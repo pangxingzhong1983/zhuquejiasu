@@ -12,6 +12,8 @@ import 'package:flutter/material.dart' hide Action;
 mixin ClashInterface {
   Future<bool> init(String homeDir);
 
+  Future<bool> preload();
+
   Future<bool> shutdown();
 
   Future<bool> get isInit;

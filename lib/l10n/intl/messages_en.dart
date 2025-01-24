@@ -124,6 +124,8 @@ class MessageLookup extends MessageLookupByLibrary {
         "copy": MessageLookupByLibrary.simpleMessage("Copy"),
         "copyEnvVar": MessageLookupByLibrary.simpleMessage(
             "Copying environment variables"),
+        "copyLink": MessageLookupByLibrary.simpleMessage("Copy link"),
+        "copySuccess": MessageLookupByLibrary.simpleMessage("Copy success"),
         "core": MessageLookupByLibrary.simpleMessage("Core"),
         "coreInfo": MessageLookupByLibrary.simpleMessage("Core info"),
         "country": MessageLookupByLibrary.simpleMessage("Country"),
@@ -171,6 +173,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "expand": MessageLookupByLibrary.simpleMessage("Standard"),
         "expirationTime":
             MessageLookupByLibrary.simpleMessage("Expiration time"),
+        "exportFile": MessageLookupByLibrary.simpleMessage("Export file"),
         "exportLogs": MessageLookupByLibrary.simpleMessage("Export logs"),
         "exportSuccess": MessageLookupByLibrary.simpleMessage("Export Success"),
         "externalController":
@@ -308,6 +311,7 @@ class MessageLookup extends MessageLookupByLibrary {
         "nullLogsDesc": MessageLookupByLibrary.simpleMessage("No logs"),
         "nullProfileDesc": MessageLookupByLibrary.simpleMessage(
             "No profile, Please add a profile"),
+        "nullProxies": MessageLookupByLibrary.simpleMessage("No proxies"),
         "nullRequestsDesc": MessageLookupByLibrary.simpleMessage("No requests"),
         "oneColumn": MessageLookupByLibrary.simpleMessage("One column"),
         "onlyIcon": MessageLookupByLibrary.simpleMessage("Icon"),

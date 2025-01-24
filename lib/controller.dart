@@ -328,7 +328,6 @@ class AppController {
       launchUrl(
         Uri.parse("https://github.com/$repository/releases/latest"),
       );
-      ;
     } else if (handleError) {
       globalState.showMessage(
         title: appLocalizations.checkUpdate,

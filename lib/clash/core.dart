@@ -28,6 +28,10 @@ class ClashCore {
     return _instance!;
   }
 
+  Future<bool> preload() {
+    return clashInterface.preload();
+  }
+
   static Future<void> initGeo() async {
     final homePath = await appPath.getHomeDirPath();
     final homeDir = Directory(homePath);
@@ -191,7 +195,7 @@ class ClashCore {
   }
 
   Future<Delay> getDelay(String url, String proxyName) async {
-    final data = await clashInterface.asyncTestDelay(url,proxyName);
+    final data = await clashInterface.asyncTestDelay(url, proxyName);
     return Delay.fromJson(json.decode(data));
   }
 

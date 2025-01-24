@@ -25,14 +25,20 @@ class ClashLib extends ClashHandlerInterface with AndroidClashInterface {
     _initService();
   }
 
+  @override
+  preload() {
+    return _canSendCompleter.future;
+  }
+
   _initService() async {
     await service?.destroy();
-    sendPort = null;
-    _canSendCompleter = Completer();
     _registerMainPort(receiverPort.sendPort);
     receiverPort.listen((message) {
       if (message is SendPort) {
-        _canSendCompleter = Completer();
+        if (_canSendCompleter.isCompleted) {
+          sendPort = null;
+          _canSendCompleter = Completer();
+        }
         sendPort = message;
         _canSendCompleter.complete(true);
       } else {
@@ -353,5 +359,5 @@ class ClashLibHandler {
   }
 }
 
-get clashLib =>
+ClashLib? get clashLib =>
     Platform.isAndroid && !globalState.isService ? ClashLib() : null;

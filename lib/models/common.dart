@@ -444,3 +444,22 @@ class Field with _$Field {
     Validator? validator,
   }) = _Field;
 }
+
+enum ActionType {
+  primary,
+  danger,
+}
+
+class ActionItemData {
+  const ActionItemData({
+    this.icon,
+    required this.label,
+    required this.onPressed,
+    this.type,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+  final IconData? icon;
+  final ActionType? type;
+}

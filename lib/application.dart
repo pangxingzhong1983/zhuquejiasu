@@ -153,7 +153,10 @@ class ApplicationState extends State<Application> {
     return AppStateManager(
       child: ClashManager(
         child: ConnectivityManager(
-          onConnectivityChanged: globalState.appController.updateLocalIp,
+          onConnectivityChanged: () {
+            globalState.appController.updateLocalIp();
+            globalState.appController.addCheckIpNumDebounce();
+          },
           child: child,
         ),
       ),

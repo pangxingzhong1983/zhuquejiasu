@@ -23,7 +23,7 @@ import 'models/models.dart';
 Future<void> main() async {
   globalState.isService = false;
   WidgetsFlutterBinding.ensureInitialized();
-  ClashCore();
+  await clashCore.preload();
   globalState.packageInfo = await PackageInfo.fromPlatform();
   final version = await system.version;
   final config = await preferences.getConfig() ?? Config();
@@ -86,7 +86,7 @@ Future<void> _service(List<String> flags) async {
       globalState.getCoreState(config, clashConfig),
     )
         .then(
-      (res) async {
+          (res) async {
         await vpn?.start(
           clashLibHandler.getAndroidVpnOptions(),
         );
@@ -129,7 +129,7 @@ Future<void> _service(List<String> flags) async {
     invokeReceiverPort.sendPort.nativePort,
   );
   invokeReceiverPort.listen(
-    (message) async {
+        (message) async {
       final invokeMessage = InvokeMessage.fromJson(json.decode(message));
       switch (invokeMessage.type) {
         case InvokeMessageType.protect:

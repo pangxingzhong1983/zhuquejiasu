@@ -134,6 +134,12 @@ class ClashService extends ClashHandlerInterface {
     process = null;
     return true;
   }
+
+  @override
+  Future<bool> preload() async {
+    await serverCompleter.future;
+    return true;
+  }
 }
 
 final clashService = system.isDesktop ? ClashService() : null;

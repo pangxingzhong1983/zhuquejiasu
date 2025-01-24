@@ -1,10 +1,12 @@
-import 'package:fl_clash/common/app_localizations.dart';
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:re_highlight/languages/yaml.dart';
 import 'package:re_highlight/styles/atom-one-light.dart';
+
+import '../models/common.dart';
 
 typedef EditingValueChangeBuilder = Widget Function(CodeLineEditingValue value);
 
@@ -28,16 +30,43 @@ class EditorPage extends StatefulWidget {
 
 class _EditorPageState extends State<EditorPage> {
   late CodeLineEditingController _controller;
+  final _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _controller = CodeLineEditingController.fromText(widget.content);
+    if (system.isDesktop) {
+      return;
+    }
+    _focusNode.onKeyEvent = ((_, event) {
+      final keys = HardwareKeyboard.instance.logicalKeysPressed;
+      final key = event.logicalKey;
+      if (!keys.contains(key)) {
+        return KeyEventResult.ignored;
+      }
+      if (key == LogicalKeyboardKey.arrowUp) {
+        _controller.moveCursor(AxisDirection.up);
+        return KeyEventResult.handled;
+      } else if (key == LogicalKeyboardKey.arrowDown) {
+        _controller.moveCursor(AxisDirection.down);
+        return KeyEventResult.handled;
+      } else if (key == LogicalKeyboardKey.arrowLeft) {
+        _controller.selection.endIndex;
+        _controller.moveCursor(AxisDirection.left);
+        return KeyEventResult.handled;
+      } else if (key == LogicalKeyboardKey.arrowRight) {
+        _controller.moveCursor(AxisDirection.right);
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    });
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -92,6 +121,7 @@ class _EditorPageState extends State<EditorPage> {
             ),
         ],
         body: CodeEditor(
+          focusNode: _focusNode,
           scrollbarBuilder: (context, child, details) {
             return Scrollbar(
               controller: details.controller,
@@ -122,6 +152,7 @@ class _EditorPageState extends State<EditorPage> {
               ],
             );
           },
+          shortcutsActivatorsBuilder: DefaultCodeShortcutsActivatorsBuilder(),
           controller: _controller,
           style: CodeEditorStyle(
             fontSize: 14,
@@ -139,16 +170,6 @@ class _EditorPageState extends State<EditorPage> {
       ),
     );
   }
-}
-
-class TextSelectionToolbarItemData {
-  const TextSelectionToolbarItemData({
-    required this.label,
-    required this.onPressed,
-  });
-
-  final String label;
-  final VoidCallback onPressed;
 }
 
 class ContextMenuControllerImpl implements SelectionToolbarController {
@@ -177,18 +198,18 @@ class ContextMenuControllerImpl implements SelectionToolbarController {
   }) {
     _removeOverLayEntry();
     final isNotEmpty = controller.selectedText.isNotEmpty;
-    List<TextSelectionToolbarItemData> menus = [
+    List<ActionItemData> menus = [
       if (isNotEmpty) ...[
-        TextSelectionToolbarItemData(
+        ActionItemData(
           label: appLocalizations.cut,
           onPressed: controller.cut,
         ),
-        TextSelectionToolbarItemData(
+        ActionItemData(
           label: appLocalizations.copy,
           onPressed: controller.copy,
         ),
       ],
-      TextSelectionToolbarItemData(
+      ActionItemData(
         label: appLocalizations.paste,
         onPressed: controller.paste,
       )
@@ -209,7 +230,7 @@ class ContextMenuControllerImpl implements SelectionToolbarController {
             anchorAbove: anchors.primaryAnchor,
             anchorBelow: anchors.secondaryAnchor ?? Offset.zero,
             children: menus.asMap().entries.map(
-              (MapEntry<int, TextSelectionToolbarItemData> entry) {
+              (MapEntry<int, ActionItemData> entry) {
                 return TextSelectionToolbarTextButton(
                   padding: TextSelectionToolbarTextButton.getPadding(
                     entry.key,

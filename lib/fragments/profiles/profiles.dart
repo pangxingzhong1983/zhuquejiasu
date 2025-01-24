@@ -7,6 +7,7 @@ import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/state.dart';
 import 'package:fl_clash/widgets/widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'add_profile.dart';
@@ -264,6 +265,36 @@ class ProfileItem extends StatelessWidget {
     ];
   }
 
+  _handleCopyLink(BuildContext context) async {
+    await Clipboard.setData(
+      ClipboardData(
+        text: profile.url,
+      ),
+    );
+    if (context.mounted) {
+      context.showNotifier(appLocalizations.copySuccess);
+    }
+  }
+
+  _handleExportFile(BuildContext context) async {
+    final commonScaffoldState = context.commonScaffoldState;
+    final res = await commonScaffoldState?.loadingRun<bool>(
+      () async {
+        final file = await profile.getFile();
+        final value = await picker.saveFile(
+          profile.label ?? profile.id,
+          file.readAsBytesSync(),
+        );
+        if (value == null) return false;
+        return true;
+      },
+      title: appLocalizations.tip,
+    );
+    if (res == true && context.mounted) {
+      context.showNotifier(appLocalizations.exportSuccess);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return CommonCard(
@@ -284,46 +315,58 @@ class ProfileItem extends StatelessWidget {
                     padding: EdgeInsets.all(8),
                     child: CircularProgressIndicator(),
                   )
-                : CommonPopupMenu<ProfileActions>(
-                    icon: Icon(Icons.more_vert),
-                    items: [
-                      CommonPopupMenuItem(
-                        action: ProfileActions.edit,
-                        label: appLocalizations.edit,
-                        iconData: Icons.edit,
-                      ),
-                      if (profile.type == ProfileType.url)
-                        CommonPopupMenuItem(
-                          action: ProfileActions.update,
-                          label: appLocalizations.update,
-                          iconData: Icons.sync,
+                : CommonPopupBox(
+                    popup: CommonPopupMenu(
+                      items: [
+                        ActionItemData(
+                          icon: Icons.edit_outlined,
+                          label: appLocalizations.edit,
+                          onPressed: () {
+                            _handleShowEditExtendPage(context);
+                          },
                         ),
-                      CommonPopupMenuItem(
-                        action: ProfileActions.delete,
-                        label: appLocalizations.delete,
-                        iconData: Icons.delete,
-                      ),
-                    ],
-                    onSelected: (ProfileActions? action) async {
-                      switch (action) {
-                        case ProfileActions.edit:
-                          _handleShowEditExtendPage(context);
-                          break;
-                        case ProfileActions.delete:
-                          _handleDeleteProfile(context);
-                          break;
-                        case ProfileActions.update:
-                          _handleUpdateProfile();
-                          break;
-                        case null:
-                          break;
-                      }
-                    },
+                        if (profile.type == ProfileType.url) ...[
+                          ActionItemData(
+                            icon: Icons.sync_alt_sharp,
+                            label: appLocalizations.sync,
+                            onPressed: () {
+                              _handleUpdateProfile();
+                            },
+                          ),
+                          ActionItemData(
+                            icon: Icons.copy,
+                            label: appLocalizations.copyLink,
+                            onPressed: () {
+                              _handleCopyLink(context);
+                            },
+                          ),
+                        ],
+                        ActionItemData(
+                          icon: Icons.file_copy_outlined,
+                          label: appLocalizations.exportFile,
+                          onPressed: () {
+                            _handleExportFile(context);
+                          },
+                        ),
+                        ActionItemData(
+                          icon: Icons.delete_outline,
+                          label: appLocalizations.delete,
+                          onPressed: () {
+                            _handleDeleteProfile(context);
+                          },
+                          type: ActionType.danger,
+                        ),
+                      ],
+                    ),
+                    target: IconButton(
+                      onPressed: () {},
+                      icon: Icon(Icons.more_vert),
+                    ),
                   ),
           ),
         ),
         title: Container(
-          padding: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(vertical: 8),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
