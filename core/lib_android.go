@@ -65,7 +65,7 @@ func (m *InvokeManager) delete(id string) {
 }
 
 func (m *InvokeManager) completer(id string, value string) {
-	fdInvokeMap.invokeMap.Store(id, value)
+	m.invokeMap.Store(id, value)
 	m.chanLock.Lock()
 	if ch, ok := m.chanMap[id]; ok {
 		close(ch)

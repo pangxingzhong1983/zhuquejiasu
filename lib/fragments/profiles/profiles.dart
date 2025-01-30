@@ -12,14 +12,6 @@ import 'package:provider/provider.dart';
 
 import 'add_profile.dart';
 
-enum PopupMenuItemEnum { delete, edit }
-
-enum ProfileActions {
-  edit,
-  update,
-  delete,
-}
-
 class ProfilesFragment extends StatefulWidget {
   const ProfilesFragment({super.key});
 
@@ -349,7 +341,8 @@ class ProfileItem extends StatelessWidget {
                           },
                         ),
                         ActionItemData(
-                          icon: Icons.delete_outline,
+                          icon: Icons.delete_outlined,
+                          iconSize: 20,
                           label: appLocalizations.delete,
                           onPressed: () {
                             _handleDeleteProfile(context);

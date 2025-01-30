@@ -74,38 +74,22 @@ class _NetworkSpeedState extends State<NetworkSpeed> {
                   child: Transform.translate(
                     offset: Offset(
                       -16,
-                      -20,
+                      -26,
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Icon(
-                          Icons.arrow_upward,
-                          color: color,
-                          size: 16,
-                        ),
-                        SizedBox(
-                          width: 2,
-                        ),
                         Text(
-                          "${_getLastTraffic(traffics).up}/s",
+                          "${appLocalizations.upload} ${_getLastTraffic(traffics).up}/s",
                           style: context.textTheme.bodySmall?.copyWith(
                             color: color,
                           ),
                         ),
                         SizedBox(
-                          width: 16,
-                        ),
-                        Icon(
-                          Icons.arrow_downward,
-                          color: color,
-                          size: 16,
-                        ),
-                        SizedBox(
-                          width: 2,
+                          height: 4,
                         ),
                         Text(
-                          "${_getLastTraffic(traffics).down}/s",
+                          "${appLocalizations.download} ${_getLastTraffic(traffics).down}/s",
                           style: context.textTheme.bodySmall?.copyWith(
                             color: color,
                           ),

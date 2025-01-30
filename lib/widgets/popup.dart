@@ -106,7 +106,9 @@ class _CommonPopupBoxState extends State<CommonPopupBox> {
     if (renderBox == null) {
       return;
     }
-    _targetOffsetValueNotifier.value = renderBox.localToGlobal(Offset.zero);
+    _targetOffsetValueNotifier.value = renderBox.localToGlobal(
+      Offset.zero,
+    );
   }
 
   @override
@@ -127,11 +129,6 @@ class _CommonPopupBoxState extends State<CommonPopupBox> {
       key: _targetKey,
       child: LayoutBuilder(
         builder: (_, __) {
-          WidgetsBinding.instance.addPostFrameCallback(
-            (_) {
-              _handleTargetOffset();
-            },
-          );
           return widget.target;
         },
       ),
@@ -153,10 +150,7 @@ class OverflowAwareLayoutDelegate extends SingleChildLayoutDelegate {
 
   @override
   Offset getPositionForChild(Size size, Size childSize) {
-    final saveOffset = Offset(
-      16,
-      16,
-    );
+    final saveOffset = Offset(16, 16);
     double x = (offset.dx - childSize.width).clamp(
       0,
       size.width - saveOffset.dx - childSize.width,
@@ -184,18 +178,21 @@ class CommonPopupMenu extends StatelessWidget {
 
   Widget _popupMenuItem(
     BuildContext context, {
-    required void Function() onTap,
-    required String label,
-    IconData? icon,
-    required ActionType type,
+    required ActionItemData item,
+    required int index,
   }) {
-    final color = type == ActionType.primary
-        ? context.colorScheme.onSurfaceVariant
-        : context.colorScheme.error;
+    final isDanger = item.type == ActionType.danger;
+    final color = isDanger
+        ? context.colorScheme.error
+        : context.colorScheme.onSurfaceVariant;
     return InkWell(
+      hoverColor:
+          isDanger ? context.colorScheme.errorContainer.withOpacity(0.3) : null,
+      splashColor:
+          isDanger ? context.colorScheme.errorContainer.withOpacity(0.4) : null,
       onTap: () {
         Navigator.of(context).pop();
-        onTap();
+        item.onPressed();
       },
       child: Padding(
         padding: EdgeInsets.only(
@@ -207,10 +204,10 @@ class CommonPopupMenu extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.max,
           children: [
-            if (icon != null) ...[
+            if (item.icon != null) ...[
               Icon(
-                icon,
-                size: 18,
+                item.icon,
+                size: item.iconSize ?? 18,
                 color: color,
               ),
               SizedBox(
@@ -219,7 +216,7 @@ class CommonPopupMenu extends StatelessWidget {
             ],
             Flexible(
               child: Text(
-                label,
+                item.label,
                 style: context.textTheme.bodyMedium?.copyWith(
                   color: color,
                 ),
@@ -249,10 +246,8 @@ class CommonPopupMenu extends StatelessWidget {
               for (final item in items.asMap().entries) ...[
                 _popupMenuItem(
                   context,
-                  onTap: item.value.onPressed,
-                  label: item.value.label,
-                  icon: item.value.icon,
-                  type: item.value.type ?? ActionType.primary,
+                  item: item.value,
+                  index: item.key,
                 ),
                 if (item.value != items.last)
                   Divider(

@@ -343,9 +343,6 @@ class AppController {
     if (!isDisclaimerAccepted) {
       handleExit();
     }
-    if (!config.appSetting.silentLaunch) {
-      window?.show();
-    }
     await globalState.initCore(
       appState: appState,
       clashConfig: clashConfig,
@@ -357,6 +354,11 @@ class AppController {
     );
     autoUpdateProfiles();
     autoCheckUpdate();
+    if (!config.appSetting.silentLaunch) {
+      window?.show();
+    } else {
+      render?.pause();
+    }
   }
 
   _initStatus() async {
@@ -376,7 +378,10 @@ class AppController {
     appState.setDelay(delay);
   }
 
-  toPage(int index, {bool hasAnimate = false}) {
+  toPage(
+    int index, {
+    bool hasAnimate = false,
+  }) {
     if (index > appState.currentNavigationItems.length - 1) {
       return;
     }

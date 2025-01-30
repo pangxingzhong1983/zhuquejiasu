@@ -456,8 +456,10 @@ class ActionItemData {
     required this.label,
     required this.onPressed,
     this.type,
+    this.iconSize,
   });
 
+  final double? iconSize;
   final String label;
   final VoidCallback onPressed;
   final IconData? icon;

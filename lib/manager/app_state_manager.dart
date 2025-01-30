@@ -73,9 +73,12 @@ class _AppStateManagerState extends State<AppStateManager>
 
   @override
   Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
-    final isPaused = state == AppLifecycleState.paused;
-    if (isPaused) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
       globalState.appController.savePreferencesDebounce();
+      render?.pause();
+    } else {
+      render?.resume();
     }
   }
 

@@ -197,54 +197,60 @@ class ContextMenuControllerImpl implements SelectionToolbarController {
     required ValueNotifier<bool> visibility,
   }) {
     _removeOverLayEntry();
-    final isNotEmpty = controller.selectedText.isNotEmpty;
-    List<ActionItemData> menus = [
-      if (isNotEmpty) ...[
-        ActionItemData(
-          label: appLocalizations.cut,
-          onPressed: controller.cut,
-        ),
-        ActionItemData(
-          label: appLocalizations.copy,
-          onPressed: controller.copy,
-        ),
-      ],
-      ActionItemData(
-        label: appLocalizations.paste,
-        onPressed: controller.paste,
-      )
-    ];
     _overlayEntry ??= OverlayEntry(
       builder: (context) => CodeEditorTapRegion(
         child: ValueListenableBuilder(
           valueListenable: controller,
           builder: (_, __, child) {
+            final isNotEmpty = controller.selectedText.isNotEmpty;
+            final isAllSelected = controller.isAllSelected;
+            final hasSelected = controller.selectedText.isNotEmpty;
+            List<ActionItemData> menus = [
+              if (isNotEmpty)
+                ActionItemData(
+                  label: appLocalizations.copy,
+                  onPressed: controller.copy,
+                ),
+              ActionItemData(
+                label: appLocalizations.paste,
+                onPressed: controller.paste,
+              ),
+              if (isNotEmpty)
+                ActionItemData(
+                  label: appLocalizations.cut,
+                  onPressed: controller.cut,
+                ),
+              if (hasSelected && !isAllSelected)
+                ActionItemData(
+                  label: appLocalizations.selectAll,
+                  onPressed: controller.selectAll,
+                ),
+            ];
             if (_isFirstRender) {
               _isFirstRender = false;
             } else if (controller.selectedText.isEmpty) {
               _removeOverLayEntry();
             }
-            return child!;
+            return TextSelectionToolbar(
+              anchorAbove: anchors.primaryAnchor,
+              anchorBelow: anchors.secondaryAnchor ?? Offset.zero,
+              children: menus.asMap().entries.map(
+                (MapEntry<int, ActionItemData> entry) {
+                  return TextSelectionToolbarTextButton(
+                    padding: TextSelectionToolbarTextButton.getPadding(
+                      entry.key,
+                      menus.length,
+                    ),
+                    alignment: AlignmentDirectional.centerStart,
+                    onPressed: () {
+                      entry.value.onPressed();
+                    },
+                    child: Text(entry.value.label),
+                  );
+                },
+              ).toList(),
+            );
           },
-          child: TextSelectionToolbar(
-            anchorAbove: anchors.primaryAnchor,
-            anchorBelow: anchors.secondaryAnchor ?? Offset.zero,
-            children: menus.asMap().entries.map(
-              (MapEntry<int, ActionItemData> entry) {
-                return TextSelectionToolbarTextButton(
-                  padding: TextSelectionToolbarTextButton.getPadding(
-                    entry.key,
-                    menus.length,
-                  ),
-                  alignment: AlignmentDirectional.centerStart,
-                  onPressed: () {
-                    entry.value.onPressed();
-                  },
-                  child: Text(entry.value.label),
-                );
-              },
-            ).toList(),
-          ),
         ),
       ),
     );
