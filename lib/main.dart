@@ -71,6 +71,18 @@ Future<void> _service(List<String> flags) async {
     other.getLocaleForString(config.appSetting.locale) ??
         WidgetsBinding.instance.platformDispatcher.locale,
   );
+
+  tile?.addListener(
+    _TileListenerWithService(
+      onStop: () async {
+        await app?.tip(appLocalizations.stopVpn);
+        clashLibHandler.stopListener();
+        clashLibHandler.stopTun();
+        await vpn?.stop();
+        exit(0);
+      },
+    ),
+  );
   if (!quickStart) {
     _handleMainIpc(clashLibHandler);
   } else {
@@ -91,17 +103,6 @@ Future<void> _service(List<String> flags) async {
           clashLibHandler.getAndroidVpnOptions(),
         );
         clashLibHandler.startListener();
-        tile?.addListener(
-          _TileListenerWithService(
-            onStop: () async {
-              await app?.tip(appLocalizations.stopVpn);
-              clashLibHandler.stopListener();
-              clashLibHandler.stopTun();
-              await vpn?.stop();
-              exit(0);
-            },
-          ),
-        );
       },
     );
   }

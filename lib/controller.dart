@@ -357,7 +357,7 @@ class AppController {
     if (!config.appSetting.silentLaunch) {
       window?.show();
     } else {
-      render?.pause();
+      window?.hide();
     }
   }
 

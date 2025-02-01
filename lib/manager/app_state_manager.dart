@@ -90,9 +90,14 @@ class _AppStateManagerState extends State<AppStateManager>
 
   @override
   Widget build(BuildContext context) {
-    return _cacheStateChange(
-      _updateNavigationsContainer(
-        widget.child,
+    return Listener(
+      onPointerDown: (_) {
+        render?.resume();
+      },
+      child: _cacheStateChange(
+        _updateNavigationsContainer(
+          widget.child,
+        ),
       ),
     );
   }

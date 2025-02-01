@@ -118,7 +118,7 @@ class CommonCard extends StatelessWidget {
       );
     }
     return BorderSide(
-      color: isSelected ? colorScheme.primary : colorScheme.onSurface.toLittle,
+      color: isSelected ? colorScheme.primary : colorScheme.onSurface.toSoft,
     );
   }
 
