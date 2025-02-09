@@ -30,7 +30,7 @@ class Request {
           url,
           options: Options(
             headers: {
-              "User-Agent": globalState.appController.clashConfig.globalUa
+              "User-Agent": globalState.config.patchClashConfig.globalUa
             },
             responseType: ResponseType.bytes,
           ),
@@ -74,6 +74,7 @@ class Request {
   final List<String> _ipInfoSources = [
     "https://ipwho.is/?fields=ip&output=csv",
     "https://ipinfo.io/ip",
+    "https://api.ipify.org",
     "https://ifconfig.me/ip/",
   ];
 
@@ -95,7 +96,7 @@ class Request {
         }
         return ipInfo;
       } catch (e) {
-        debugPrint("checkIp error ===> $e");
+        commonPrint.log("checkIp error ===> $e");
         if (e is DioException && e.type == DioExceptionType.cancel) {
           throw "cancelled";
         }

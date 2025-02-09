@@ -1,5 +1,6 @@
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/enum/enum.dart';
+import 'package:fl_clash/widgets/fade_box.dart';
 import 'package:flutter/material.dart';
 
 import 'text.dart';
@@ -56,8 +57,8 @@ class InfoHeader extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: context.colorScheme.onSurfaceVariant,
-                      ),
+                            color: context.colorScheme.onSurfaceVariant,
+                          ),
                     ),
                   ),
                 ),
@@ -166,7 +167,7 @@ class CommonCard extends StatelessWidget {
         ],
       );
     }
-    
+
     if (selectWidget != null && isSelected) {
       final List<Widget> children = [];
       children.add(childWidget);
@@ -193,10 +194,10 @@ class CommonCard extends StatelessWidget {
         iconSize: WidgetStateProperty.all(20),
         backgroundColor: backgroundColor ??
             WidgetStateProperty.resolveWith(
-              (states) => getBackgroundColor(context, states),
+                  (states) => getBackgroundColor(context, states),
             ),
         side: WidgetStateProperty.resolveWith(
-          (states) => getBorderSide(context, states),
+              (states) => getBorderSide(context, states),
         ),
       ),
       onPressed: onPressed,

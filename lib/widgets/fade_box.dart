@@ -1,4 +1,5 @@
 import 'package:animations/animations.dart';
+import 'package:fl_clash/common/common.dart';
 import 'package:flutter/material.dart';
 
 class FadeBox extends StatelessWidget {
@@ -57,6 +58,61 @@ class FadeScaleBox extends StatelessWidget {
       },
       duration: Duration(milliseconds: 300),
       child: child,
+    );
+  }
+}
+
+class FadeScaleEnterBox extends StatefulWidget {
+  final Widget child;
+
+  const FadeScaleEnterBox({
+    super.key,
+    required this.child,
+  });
+
+  @override
+  State<FadeScaleEnterBox> createState() => _FadeScaleEnterBoxState();
+}
+
+class _FadeScaleEnterBoxState extends State<FadeScaleEnterBox>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: commonDuration,
+    );
+    _animation = Tween<double>(
+      begin: 0,
+      end: 1,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    ));
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller.view,
+      builder: (_, child) {
+        return FadeScaleTransition(
+          animation: _animation,
+          child: child!,
+        );
+      },
+      child: widget.child,
     );
   }
 }
