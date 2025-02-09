@@ -1,7 +1,8 @@
 import 'package:fl_clash/common/proxy.dart';
 import 'package:fl_clash/models/models.dart';
+import 'package:fl_clash/providers/state.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ProxyManager extends StatelessWidget {
   final Widget child;
@@ -21,15 +22,17 @@ class ProxyManager extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Selector3<AppFlowingState, Config, ClashConfig, ProxyState>(
-      selector: (_, appFlowingState, config, clashConfig) => ProxyState(
-        isStart: appFlowingState.isStart,
-        systemProxy: config.networkProps.systemProxy,
-        port: clashConfig.mixedPort,
-        bassDomain: config.networkProps.bypassDomain,
-      ),
-      builder: (_, state, child) {
-        _updateProxy(state);
+    return Consumer(
+      builder: (_, ref, child) {
+        ref.listenManual(
+          proxyStateProvider,
+          (prev, next) {
+            if (prev != next) {
+              _updateProxy(next);
+            }
+          },
+          fireImmediately: true,
+        );
         return child!;
       },
       child: child,
