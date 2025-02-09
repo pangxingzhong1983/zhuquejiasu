@@ -11,7 +11,7 @@ import 'package:fl_clash/plugins/tile.dart';
 import 'package:fl_clash/plugins/vpn.dart';
 import 'package:fl_clash/state.dart';
 import 'package:flutter/material.dart';
-import 'package:package_info_plus/package_info_plus.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'application.dart';
 import 'clash/core.dart';
@@ -23,41 +23,15 @@ import 'models/models.dart';
 Future<void> main() async {
   globalState.isService = false;
   WidgetsFlutterBinding.ensureInitialized();
-  await clashCore.preload();
-  globalState.packageInfo = await PackageInfo.fromPlatform();
   final version = await system.version;
-  final config = await preferences.getConfig() ?? Config();
-  final clashConfig = await preferences.getClashConfig() ?? ClashConfig();
-  await AppLocalizations.load(
-    other.getLocaleForString(config.appSetting.locale) ??
-        WidgetsBinding.instance.platformDispatcher.locale,
-  );
+  await clashCore.preload();
+  await globalState.initApp(version);
   await android?.init();
-  await window?.init(config.windowProps, version);
-  final appState = AppState(
-    mode: clashConfig.mode,
-    version: version,
-    selectedMap: config.currentSelectedMap,
-  );
-  final appFlowingState = AppFlowingState();
-  appState.navigationItems = navigation.getItems(
-    openLogs: config.appSetting.openLogs,
-    hasProxies: false,
-  );
-  tray.update(
-    appState: appState,
-    appFlowingState: appFlowingState,
-    config: config,
-    clashConfig: clashConfig,
-  );
+  await window?.init(version);
   HttpOverrides.global = FlClashHttpOverrides();
-  runAppWithPreferences(
-    const Application(),
-    appState: appState,
-    appFlowingState: appFlowingState,
-    config: config,
-    clashConfig: clashConfig,
-  );
+  runApp(ProviderScope(
+    child: const Application(),
+  ));
 }
 
 @pragma('vm:entry-point')
@@ -67,6 +41,7 @@ Future<void> _service(List<String> flags) async {
   final quickStart = flags.contains("quick");
   final clashLibHandler = ClashLibHandler();
   final config = await preferences.getConfig() ?? Config();
+  await globalState.migrateOldData(config);
   await AppLocalizations.load(
     other.getLocaleForString(config.appSetting.locale) ??
         WidgetsBinding.instance.platformDispatcher.locale,
@@ -83,33 +58,6 @@ Future<void> _service(List<String> flags) async {
       },
     ),
   );
-  if (!quickStart) {
-    _handleMainIpc(clashLibHandler);
-  } else {
-    await ClashCore.initGeo();
-    globalState.packageInfo = await PackageInfo.fromPlatform();
-    final clashConfig = await preferences.getClashConfig() ?? ClashConfig();
-    final homeDirPath = await appPath.homeDirPath;
-    await app?.tip(appLocalizations.startVpn);
-    clashLibHandler
-        .quickStart(
-      homeDirPath,
-      globalState.getUpdateConfigParams(config, clashConfig, false),
-      globalState.getCoreState(config, clashConfig),
-    )
-        .then(
-      (res) async {
-        if (res.isNotEmpty) {
-          await vpn?.stop();
-          exit(0);
-        }
-        await vpn?.start(
-          clashLibHandler.getAndroidVpnOptions(),
-        );
-        clashLibHandler.startListener();
-      },
-    );
-  }
 
   vpn?.handleGetStartForegroundParams = () {
     final traffic = clashLibHandler.getTraffic();
@@ -122,17 +70,22 @@ Future<void> _service(List<String> flags) async {
   vpn?.addListener(
     _VpnListenerWithService(
       onStarted: (int fd) {
-        clashLibHandler.startTun(fd);
+        commonPrint.log("vpn started fd: $fd");
+        final time = clashLibHandler.startTun(fd);
+        commonPrint.log("vpn start tun time: $time");
       },
       onDnsChanged: (String dns) {
         clashLibHandler.updateDns(dns);
       },
     ),
   );
+
   final invokeReceiverPort = ReceivePort();
+
   clashLibHandler.attachInvokePort(
     invokeReceiverPort.sendPort.nativePort,
   );
+
   invokeReceiverPort.listen(
     (message) async {
       final invokeMessage = InvokeMessage.fromJson(json.decode(message));
@@ -153,6 +106,33 @@ Future<void> _service(List<String> flags) async {
       }
     },
   );
+  if (!quickStart) {
+    _handleMainIpc(clashLibHandler);
+  } else {
+    commonPrint.log("quick start");
+    await ClashCore.initGeo();
+    await globalState.init();
+    app?.tip(appLocalizations.startVpn);
+    final homeDirPath = await appPath.homeDirPath;
+    clashLibHandler
+        .quickStart(
+      homeDirPath,
+      globalState.getUpdateConfigParams(),
+      globalState.getCoreState(),
+    )
+        .then(
+      (res) async {
+        if (res.isNotEmpty) {
+          await vpn?.stop();
+          exit(0);
+        }
+        await vpn?.start(
+          clashLibHandler.getAndroidVpnOptions(),
+        );
+        clashLibHandler.startListener();
+      },
+    );
+  }
 }
 
 _handleMainIpc(ClashLibHandler clashLibHandler) {
