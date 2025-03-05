@@ -89,7 +89,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Auto check for updates when the app starts",
     ),
     "autoCloseConnections": MessageLookupByLibrary.simpleMessage(
-      "Auto lose connections",
+      "Auto close connections",
     ),
     "autoCloseConnectionsDesc": MessageLookupByLibrary.simpleMessage(
       "Auto close connections after change node",
@@ -305,6 +305,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "layout": MessageLookupByLibrary.simpleMessage("Layout"),
     "light": MessageLookupByLibrary.simpleMessage("Light"),
     "list": MessageLookupByLibrary.simpleMessage("List"),
+    "listen": MessageLookupByLibrary.simpleMessage("Listen"),
     "local": MessageLookupByLibrary.simpleMessage("Local"),
     "localBackupDesc": MessageLookupByLibrary.simpleMessage(
       "Backup local data to local",
@@ -470,7 +471,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "Set the Clash listening port",
     ),
     "proxyProviders": MessageLookupByLibrary.simpleMessage("Proxy providers"),
-    "prueBlackMode": MessageLookupByLibrary.simpleMessage("Prue black mode"),
+    "pureBlackMode": MessageLookupByLibrary.simpleMessage("Pure black mode"),
     "qrcode": MessageLookupByLibrary.simpleMessage("QR code"),
     "qrcodeDesc": MessageLookupByLibrary.simpleMessage(
       "Scan QR code to obtain profile",

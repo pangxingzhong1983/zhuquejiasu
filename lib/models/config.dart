@@ -10,7 +10,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'models.dart';
 
 part 'generated/config.freezed.dart';
-
 part 'generated/config.g.dart';
 
 const defaultBypassDomain = [
@@ -185,7 +184,7 @@ class ThemeProps with _$ThemeProps {
   const factory ThemeProps({
     int? primaryColor,
     @Default(ThemeMode.system) ThemeMode themeMode,
-    @Default(false) bool prueBlack,
+    @Default(false) bool pureBlack,
     @Default(FontFamily.system) FontFamily fontFamily,
   }) = _ThemeProps;
 
@@ -244,5 +243,4 @@ extension ConfigExt on Config {
   Profile? get currentProfile {
     return profiles.getProfile(currentProfileId);
   }
-
 }

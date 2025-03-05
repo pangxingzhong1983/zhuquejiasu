@@ -111,7 +111,7 @@ final proxyStateProvider = AutoDisposeProvider<ProxyState>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ProxyStateRef = AutoDisposeProviderRef<ProxyState>;
-String _$trayStateHash() => r'c9a1134c5513054c0739b0665135798604a5daba';
+String _$trayStateHash() => r'39ff84c50ad9c9cc666fa2538fe13ec0d7236b2e';
 
 /// See also [trayState].
 @ProviderFor(trayState)
@@ -766,7 +766,7 @@ class _GetRealTestUrlProviderElement extends AutoDisposeProviderElement<String>
   String? get testUrl => (origin as GetRealTestUrlProvider).testUrl;
 }
 
-String _$getDelayHash() => r'00001b3e650534b833f7fe5e28e7c9c1859e8fd2';
+String _$getDelayHash() => r'5e93cb8f05a64c4dc0c0a8f888bc3f665bbfcf43';
 
 /// See also [getDelay].
 @ProviderFor(getDelay)
@@ -1500,7 +1500,7 @@ class _GetSelectedProxyNameProviderElement
   String get groupName => (origin as GetSelectedProxyNameProvider).groupName;
 }
 
-String _$getProxyDescHash() => r'7c06402957387c35d9dc515ca109f8f7dbb481b0';
+String _$getProxyDescHash() => r'85338a3de696758189a007dcb426549615b919ea';
 
 /// See also [getProxyDesc].
 @ProviderFor(getProxyDesc)

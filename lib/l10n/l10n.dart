@@ -1670,10 +1670,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Auto lose connections`
+  /// `Auto close connections`
   String get autoCloseConnections {
     return Intl.message(
-      'Auto lose connections',
+      'Auto close connections',
       name: 'autoCloseConnections',
       desc: '',
       args: [],
@@ -1720,11 +1720,11 @@ class AppLocalizations {
     );
   }
 
-  /// `Prue black mode`
-  String get prueBlackMode {
+  /// `Pure black mode`
+  String get pureBlackMode {
     return Intl.message(
-      'Prue black mode',
-      name: 'prueBlackMode',
+      'Pure black mode',
+      name: 'pureBlackMode',
       desc: '',
       args: [],
     );
@@ -2678,6 +2678,11 @@ class AppLocalizations {
       desc: '',
       args: [],
     );
+  }
+
+  /// `Listen`
+  String get listen {
+    return Intl.message('Listen', name: 'listen', desc: '', args: []);
   }
 }
 

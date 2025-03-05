@@ -224,7 +224,7 @@ _$ThemePropsImpl _$$ThemePropsImplFromJson(Map<String, dynamic> json) =>
       primaryColor: (json['primaryColor'] as num?)?.toInt(),
       themeMode: $enumDecodeNullable(_$ThemeModeEnumMap, json['themeMode']) ??
           ThemeMode.system,
-      prueBlack: json['prueBlack'] as bool? ?? false,
+      pureBlack: json['pureBlack'] as bool? ?? false,
       fontFamily:
           $enumDecodeNullable(_$FontFamilyEnumMap, json['fontFamily']) ??
               FontFamily.system,
@@ -234,7 +234,7 @@ Map<String, dynamic> _$$ThemePropsImplToJson(_$ThemePropsImpl instance) =>
     <String, dynamic>{
       'primaryColor': instance.primaryColor,
       'themeMode': _$ThemeModeEnumMap[instance.themeMode]!,
-      'prueBlack': instance.prueBlack,
+      'pureBlack': instance.pureBlack,
       'fontFamily': _$FontFamilyEnumMap[instance.fontFamily]!,
     };
 

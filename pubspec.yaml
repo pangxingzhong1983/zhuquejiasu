@@ -36,7 +36,7 @@ dependencies:
   freezed_annotation: ^2.4.1
   image_picker: ^1.1.2
   webdav_client: ^1.2.2
-  dio: ^5.4.3+1
+  dio: ^5.8.0+1
   win32: ^5.5.1
   ffi: ^2.1.2
   re_editor: ^0.6.0

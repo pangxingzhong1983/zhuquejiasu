@@ -115,7 +115,7 @@ TrayState trayState(Ref ref) {
   return TrayState(
     mode: clashConfig.mode,
     port: clashConfig.mixedPort,
-    autoLaunch: appSetting.autoRun,
+    autoLaunch: appSetting.autoLaunch,
     systemProxy: networkProps.systemProxy,
     tunEnable: clashConfig.tun.enable,
     isStart: isStart,
