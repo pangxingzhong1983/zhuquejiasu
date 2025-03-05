@@ -320,7 +320,7 @@ class _PrueBlackItem extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final prueBlack =
-        ref.watch(themeSettingProvider.select((state) => state.prueBlack));
+        ref.watch(themeSettingProvider.select((state) => state.pureBlack));
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: ListItem.switchItem(
@@ -328,13 +328,13 @@ class _PrueBlackItem extends ConsumerWidget {
           Icons.contrast,
           color: context.colorScheme.primary,
         ),
-        title: Text(appLocalizations.prueBlackMode),
+        title: Text(appLocalizations.pureBlackMode),
         delegate: SwitchDelegate(
           value: prueBlack,
           onChanged: (value) {
             ref.read(themeSettingProvider.notifier).updateState(
                   (state) => state.copyWith(
-                    prueBlack: value,
+                    pureBlack: value,
                   ),
                 );
           },

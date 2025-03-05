@@ -210,7 +210,7 @@ class ApplicationState extends ConsumerState<Application> {
                       brightness: Brightness.dark,
                       systemColorSchemes: systemColorSchemes,
                       primaryColor: themeProps.primaryColor,
-                    ).toPrueBlack(themeProps.prueBlack),
+                    ).toPureBlack(themeProps.pureBlack),
                   ),
                   home: child,
                 );
