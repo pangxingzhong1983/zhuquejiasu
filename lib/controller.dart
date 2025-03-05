@@ -220,7 +220,7 @@ class AppController {
   }
 
   getRealProxyName(proxyName) {
-    return _ref.read(getRealTestUrlProvider(proxyName));
+    return _ref.read(getRealProxyNameProvider(proxyName));
   }
 
   getSelectedProxyName(groupName) {

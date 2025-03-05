@@ -24,7 +24,7 @@ final currentGroupsStateProvider = AutoDisposeProvider<GroupsState>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentGroupsStateRef = AutoDisposeProviderRef<GroupsState>;
-String _$navigationsStateHash() => r'3c57f9161625f0376679cfe8b1cce0beadd709a7';
+String _$navigationsStateHash() => r'802ae70cc8b7d7f5620b340911da89d74960bfbd';
 
 /// See also [navigationsState].
 @ProviderFor(navigationsState)
@@ -95,7 +95,7 @@ final clashConfigStateProvider = AutoDisposeProvider<ClashConfigState>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ClashConfigStateRef = AutoDisposeProviderRef<ClashConfigState>;
-String _$proxyStateHash() => r'418464d2ab29bb701ff001ca80396526fd2c8d3a';
+String _$proxyStateHash() => r'61ec20fcf35118aca445719c83e77e7d237f5570';
 
 /// See also [proxyState].
 @ProviderFor(proxyState)
@@ -111,7 +111,7 @@ final proxyStateProvider = AutoDisposeProvider<ProxyState>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef ProxyStateRef = AutoDisposeProviderRef<ProxyState>;
-String _$trayStateHash() => r'06ff742a92893667a30bc6a25d13594d83dd74fc';
+String _$trayStateHash() => r'c9a1134c5513054c0739b0665135798604a5daba';
 
 /// See also [trayState].
 @ProviderFor(trayState)
@@ -766,7 +766,7 @@ class _GetRealTestUrlProviderElement extends AutoDisposeProviderElement<String>
   String? get testUrl => (origin as GetRealTestUrlProvider).testUrl;
 }
 
-String _$getDelayHash() => r'dbc584d16f24abbc548d4c560ef50d172db23818';
+String _$getDelayHash() => r'00001b3e650534b833f7fe5e28e7c9c1859e8fd2';
 
 /// See also [getDelay].
 @ProviderFor(getDelay)

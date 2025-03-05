@@ -29,7 +29,8 @@ GroupsState currentGroupsState(Ref ref) {
 @riverpod
 NavigationItemsState navigationsState(Ref ref) {
   final openLogs = ref.watch(appSettingProvider).openLogs;
-  final hasProxies = ref.watch(currentGroupsStateProvider.select((state)=>state.value.isNotEmpty));
+  final hasProxies = ref.watch(
+      currentGroupsStateProvider.select((state) => state.value.isNotEmpty));
   return NavigationItemsState(
     value: navigation.getItems(
       openLogs: openLogs,
@@ -79,7 +80,7 @@ ClashConfigState clashConfigState(Ref ref) {
 
 @riverpod
 ProxyState proxyState(Ref ref) {
-  final isStart = ref.watch(runTimeProvider.select((state)=>state != null));
+  final isStart = ref.watch(runTimeProvider.select((state) => state != null));
   final networkProps = ref.watch(networkSettingProvider);
   final mixedPort = ref.watch(
     patchClashConfigProvider.select((state) => state.mixedPort),
@@ -94,7 +95,7 @@ ProxyState proxyState(Ref ref) {
 
 @riverpod
 TrayState trayState(Ref ref) {
-  final isStart = ref.watch(runTimeProvider.select((state)=>state != null));
+  final isStart = ref.watch(runTimeProvider.select((state) => state != null));
   final networkProps = ref.watch(networkSettingProvider);
   final clashConfig = ref.watch(
     patchClashConfigProvider,
@@ -338,11 +339,13 @@ int? getDelay(
   String? testUrl,
 }) {
   final currentTestUrl = ref.watch(getRealTestUrlProvider(testUrl));
-  return ref.watch(
+  final realProxyName = ref.watch(getRealProxyNameProvider(proxyName));
+  final delay = ref.watch(
     delayDataSourceProvider.select(
-      (state) => state[currentTestUrl]?[proxyName],
+      (state) => state[currentTestUrl]?[realProxyName],
     ),
   );
+  return delay;
 }
 
 @riverpod
@@ -407,7 +410,7 @@ String _getRealProxyName(
   return _getRealProxyName(
     groups,
     selectedMap,
-    proxyName,
+    currentSelectedName,
   );
 }
 
@@ -445,6 +448,7 @@ String getProxyDesc(Ref ref, Proxy proxy) {
     final groups = ref.watch(groupsProvider);
     final index = groups.indexWhere((element) => element.name == proxy.name);
     if (index == -1) return proxy.type;
-    return "${proxy.type}(${groups[index].now ?? '*'})";
+    final realProxyName = ref.watch(getRealProxyNameProvider(proxy.name));
+    return "${proxy.type}(${realProxyName.isNotEmpty ? realProxyName : '*'})";
   }
 }
