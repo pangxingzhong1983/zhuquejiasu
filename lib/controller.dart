@@ -756,7 +756,7 @@ class AppController {
   updateSystemProxy() {
     _ref.read(networkSettingProvider.notifier).updateState(
           (state) => state.copyWith(
-            systemProxy: state.systemProxy,
+            systemProxy: !state.systemProxy,
           ),
         );
   }

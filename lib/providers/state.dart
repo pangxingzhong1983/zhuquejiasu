@@ -256,9 +256,6 @@ GroupNamesState groupNamesState(Ref ref) {
 
 @riverpod
 ProxyGroupSelectorState proxyGroupSelectorState(Ref ref, String groupName) {
-  final testUrl = ref.watch(appSettingProvider.select(
-    (state) => state.testUrl,
-  ));
   final proxiesStyle = ref.watch(
     proxiesStyleSettingProvider,
   );
@@ -270,7 +267,7 @@ ProxyGroupSelectorState proxyGroupSelectorState(Ref ref, String groupName) {
   final sortNum = ref.watch(sortNumProvider);
   final columns = ref.watch(getProxiesColumnsProvider);
   return ProxyGroupSelectorState(
-    testUrl: testUrl,
+    testUrl: group?.testUrl,
     proxiesSortType: proxiesStyle.sortType,
     proxyCardType: proxiesStyle.cardType,
     sortNum: sortNum,
@@ -342,7 +339,10 @@ int? getDelay(
   final realProxyName = ref.watch(getRealProxyNameProvider(proxyName));
   final delay = ref.watch(
     delayDataSourceProvider.select(
-      (state) => state[currentTestUrl]?[realProxyName],
+      (state) {
+        final delayMap = state[currentTestUrl];
+        return delayMap?[realProxyName];
+      },
     ),
   );
   return delay;
