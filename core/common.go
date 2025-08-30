@@ -26,6 +26,10 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"crypto/aes"
+    "crypto/cipher"
+    "encoding/base64"
+
 )
 
 func splitByComma(s string) interface{} {
@@ -69,6 +73,45 @@ func getProfileProvidersPath(id string) string {
 	return filepath.Join(constant.Path.HomeDir(), "providers", id)
 }
 
+
+// PKCS7 去除填充
+func pkcs7Unpad(data []byte) ([]byte, error) {
+	length := len(data)
+	if length == 0 {
+		return nil, fmt.Errorf("unpad error: input too short")
+	}
+	unpadding := int(data[length-1])
+	if unpadding > length {
+		return nil, fmt.Errorf("unpad error: invalid padding")
+	}
+	return data[:(length - unpadding)], nil
+}
+
+// 解密
+func decryptAES(cipherTextBase64 string, key string, iv string) (string, error) {
+	cipherData, err := base64.StdEncoding.DecodeString(cipherTextBase64)
+	if err != nil {
+		return "", err
+	}
+	block, err := aes.NewCipher([]byte(key))
+	if err != nil {
+		return "", err
+	}
+	if len(cipherData)%aes.BlockSize != 0 {
+		return "", fmt.Errorf("ciphertext is not a multiple of the block size")
+	}
+
+	decrypted := make([]byte, len(cipherData))
+	mode := cipher.NewCBCDecrypter(block, []byte(iv))
+	mode.CryptBlocks(decrypted, cipherData)
+
+	unpadded, err := pkcs7Unpad(decrypted)
+	if err != nil {
+		return "", err
+	}
+	return string(unpadded), nil
+}
+
 func getRawConfigWithId(id string) *config.RawConfig {
 	path := getProfilePath(id)
 	bytes, err := readFile(path)
@@ -76,7 +119,17 @@ func getRawConfigWithId(id string) *config.RawConfig {
 		log.Errorln("profile is not exist")
 		return config.DefaultRawConfig()
 	}
-	prof, err := config.UnmarshalRawConfig(bytes)
+	key := "8b7c93e541a296d4c51f3a67d923ba04"
+    iv := "r4s2x9M1uVt6pB3w"
+
+//     base64Str := strings.Trim(string(bytes), `"`)
+    dec, err := decryptAES(string(bytes), key, iv)
+    if err != nil {
+    	log.Errorln("decryptAES error %v", err)
+        return config.DefaultRawConfig()
+    }
+
+	prof, err := config.UnmarshalRawConfig([]byte(dec))
 	if err != nil {
 		log.Errorln("unmarshalRawConfig error %v", err)
 		return config.DefaultRawConfig()

@@ -22,14 +22,14 @@ class AboutFragment extends StatelessWidget {
   _checkUpdate(BuildContext context) async {
     final commonScaffoldState = context.commonScaffoldState;
     if (commonScaffoldState?.mounted != true) return;
-    final data = await commonScaffoldState?.loadingRun<Map<String, dynamic>?>(
-      request.checkForUpdate,
-      title: appLocalizations.checkUpdate,
-    );
-    globalState.appController.checkUpdateResultHandle(
-      data: data,
-      handleError: true,
-    );
+    // final data = await commonScaffoldState?.loadingRun<Map<String, dynamic>?>(
+    //   request.checkForUpdate,
+    //   title: appLocalizations.checkUpdate,
+    // );
+    // globalState.appController.checkUpdateResultHandle(
+    //   data: data,
+    //   handleError: true,
+    // );
   }
 
   List<Widget> _buildMoreSection(BuildContext context) {

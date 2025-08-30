@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:webdav_client/webdav_client.dart';
 
@@ -9,6 +8,7 @@ class DAVClient {
   late Client client;
   Completer<bool> pingCompleter = Completer();
   late String fileName;
+
 
   DAVClient(DAV dav) {
     client = newClient(
@@ -31,14 +31,14 @@ class DAVClient {
 
   Future<bool> _ping() async {
     try {
-      await client.ping();
+      // await client.ping();
       return true;
     } catch (_) {
       return false;
     }
   }
 
-  get root => "/$appName";
+  get root => "/FlClash";
 
   get backupFile => "$root/$fileName";
 
@@ -49,8 +49,26 @@ class DAVClient {
   }
 
   Future<List<int>> recovery() async {
-    await client.mkdir("$root");
+    await client.mkdir("$root"  );
     final data = await client.read(backupFile);
     return data;
   }
+
+  // Future<List<int>> recovery({Function(int received, int total)? onProgress}) async {
+  //   await client.mkdir("$root");
+  //
+  //   // 先获取文件信息
+  //   final props = await client.readProps(backupFile);
+  //   final fileSize = props.size ?? 0;
+  //
+  //   // 使用带进度的下载
+  //   final data = await client.read(
+  //     backupFile,
+  //     onProgress: (count, total) {
+  //       onProgress?.call(count, fileSize);
+  //     },
+  //   );
+  //
+  //   return data;
+  // }
 }

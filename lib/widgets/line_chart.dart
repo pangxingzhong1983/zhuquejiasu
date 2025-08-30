@@ -191,8 +191,8 @@ class LineChartPainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          color.withOpacity(0.3),
-          color.withOpacity(0.1),
+          color.withValues(alpha: 0.3),
+          color.withValues(alpha: 0.1),
         ],
       );
 

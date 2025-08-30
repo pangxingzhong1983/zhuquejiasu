@@ -15,7 +15,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'common/FileCrypto.dart';
 import 'common/common.dart';
+import 'fragments/UpdateDialog.dart';
 import 'models/models.dart';
 
 class AppController {
@@ -404,10 +406,24 @@ class AppController {
     }
   }
 
+  // 检查更新
   autoCheckUpdate() async {
-    if (!_ref.read(appSettingProvider).autoCheckUpdate) return;
+    // if (!_ref.read(appSettingProvider).autoCheckUpdate) return;
     final res = await request.checkForUpdate();
-    checkUpdateResultHandle(data: res);
+    checkUpdateResultHandle2(data: res);
+  }
+
+  checkUpdateResultHandle2({
+    dynamic data,
+    bool handleError = false,
+  }) async {
+    if (data != null) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => UpdateDialog(data: data),
+      );
+    }
   }
 
   checkUpdateResultHandle({
@@ -485,7 +501,9 @@ class AppController {
 
   init() async {
     await _handlePreference();
-    await _handlerDisclaimer();
+
+    /// 免责声明
+    // await _handlerDisclaimer();
     await initCore();
     await _initStatus();
     updateTray(true);
@@ -506,11 +524,13 @@ class AppController {
     if (Platform.isAndroid) {
       await globalState.updateStartTime();
     }
-    final status = globalState.isStart == true
+    var status = globalState.isStart == true
         ? true
         : _ref.read(appSettingProvider).autoRun;
 
-    await updateStatus(status);
+    // 默认为不启动
+    status = false;
+    await updateStatus(false);
     if (!status) {
       addCheckIpNumDebounce();
     }
@@ -871,43 +891,52 @@ class AppController {
   }
 
   recoveryData(
-    List<int> data,
-    RecoveryOption recoveryOption,
-  ) async {
+      List<int> data,
+      RecoveryOption recoveryOption,
+      ) async {
     final archive = await Isolate.run<Archive>(() {
       final zipDecoder = ZipDecoder();
       return zipDecoder.decodeBytes(data);
     });
     final homeDirPath = await appPath.homeDirPath;
     final configs =
-        archive.files.where((item) => item.name.endsWith(".json")).toList();
-    final profiles =
-        archive.files.where((item) => !item.name.endsWith(".json"));
+    archive.files.where((item) => item.name.endsWith(".enc")).toList();
+    final profiles = archive.files.where((item) => !item.name.endsWith(".enc"));
     final configIndex =
-        configs.indexWhere((config) => config.name == "config.json");
+    configs.indexWhere((config) => config.name == "config.enc");
     if (configIndex == -1) throw "invalid backup file";
     final configFile = configs[configIndex];
+
+    // 先将 Uint8List 转换为字符串
+    final contentString = String.fromCharCodes(configFile.content);
+    final cleanContent = contentString.replaceAll(RegExp(r'^"|"$'), '');
+    var dec = FileCrypto.decryptContent(cleanContent);
     var tempConfig = Config.compatibleFromJson(
-      json.decode(
-        utf8.decode(configFile.content),
-      ),
+      json.decode(dec),
     );
     for (final profile in profiles) {
       final filePath = join(homeDirPath, profile.name);
       final file = File(filePath);
       await file.create(recursive: true);
+
+      // 转换为字符串
+      // final encryptedContent = utf8.decode(profile.content);
+      // final contentString =  String.fromCharCodes(profile.content);
+      // final cleanContent = contentString.replaceAll(RegExp(r'^"|"$'), '');
+      // var dec = FileCrypto.decryptContent(encryptedContent);
       await file.writeAsBytes(profile.content);
+      // await file.writeAsString(dec);
     }
     final clashConfigIndex =
-        configs.indexWhere((config) => config.name == "clashConfig.json");
+    configs.indexWhere((config) => config.name == "clashConfig.json");
     if (clashConfigIndex != -1) {
       final clashConfigFile = configs[clashConfigIndex];
       tempConfig = tempConfig.copyWith(
         patchClashConfig: ClashConfig.fromJson(
           json.decode(
-            utf8.decode(
+            FileCrypto.decryptContent(utf8.decode(
               clashConfigFile.content,
-            ),
+            )),
           ),
         ),
       );
@@ -916,6 +945,33 @@ class AppController {
       tempConfig,
       recoveryOption,
     );
+  }
+
+  bool hasWebDAV(){
+    return _ref.read(profilesProvider) != null;
+  }
+
+  Future<void> clearWebDAV() async {
+    // 1. 清空 WebDAV Provider 数据
+    // _ref.read(appDAVSettingProvider.notifier).value = null; // 或者 {}
+    //
+    // // 2. 清空代理相关的 Provider 数据
+    // _ref.read(profilesProvider.notifier).value = [];
+    //
+    // _ref.read(currentProfileIdProvider.notifier).value = '0';
+    //
+    // // 2. 删除 WebDAV 下载的文件
+    // final homeDirPath = await appPath.homeDirPath;
+    // final dir = Directory(homeDirPath);
+    //
+    // if (await dir.exists()) {
+    //   final files = dir.listSync(); // 列出所有文件和文件夹
+    //   for (var file in files) {
+    //     if (file is File) {
+    //       await file.delete(); // 删除文件
+    //     }
+    //   }
+    // }
   }
 
   _recovery(Config config, RecoveryOption recoveryOption) {

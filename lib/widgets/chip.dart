@@ -28,7 +28,7 @@ class CommonChip extends StatelessWidget {
         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         onDeleted: onPressed ?? () {},
         side:
-            BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.2)),
+            BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.2)),
         labelStyle: Theme.of(context).textTheme.bodyMedium,
         label: Text(label),
       );
@@ -42,7 +42,7 @@ class CommonChip extends StatelessWidget {
         horizontal: 4,
       ),
       onPressed: onPressed ?? () {},
-      side: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.2)),
+      side: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.2)),
       labelStyle: Theme.of(context).textTheme.bodyMedium,
       label: Text(label),
     );

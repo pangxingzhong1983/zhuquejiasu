@@ -76,8 +76,7 @@ Future<T> retry<T>({
       return res;
     }
     attempts++;
-  }
-  throw "unknown error";
+  }throw "unknown error";
 }
 
 final debouncer = Debouncer();

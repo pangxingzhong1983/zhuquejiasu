@@ -299,8 +299,8 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
         }?.map {
             Package(
                 packageName = it.packageName,
-                label = it.applicationInfo.loadLabel(packageManager).toString(),
-                isSystem = (it.applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM) == 1,
+                label = it.applicationInfo?.loadLabel(packageManager).toString(),
+                isSystem = (it.applicationInfo!!.flags and ApplicationInfo.FLAG_SYSTEM) == 1,
                 lastUpdateTime = it.lastUpdateTime
             )
         }?.let { packages.addAll(it) }
@@ -391,7 +391,7 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
             }.forEach {
                 if (it.name.matches(chinaAppRegex)) return true
             }
-            ZipFile(File(packageInfo.applicationInfo.publicSourceDir)).use {
+            ZipFile(File(packageInfo.applicationInfo?.publicSourceDir)).use {
                 for (packageEntry in it.entries()) {
                     if (packageEntry.name.startsWith("firebase-")) return false
                 }

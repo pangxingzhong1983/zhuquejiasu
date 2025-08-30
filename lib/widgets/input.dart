@@ -45,7 +45,7 @@ class OptionsDialog<T> extends StatelessWidget {
                   },
                 ),
                 title: Text(
-                  this.textBuilder(option),
+                  textBuilder(option),
                 ),
               ),
           ],
@@ -177,13 +177,13 @@ class ListPage<T> extends StatelessWidget {
       child: AddDialog(
         keyField: isMap
             ? Field(
-                label: this.keyLabel ?? appLocalizations.key,
+                label: keyLabel ?? appLocalizations.key,
                 value:
                     item == null ? "" : (item as MapEntry<String, String>).key,
               )
             : null,
         valueField: Field(
-          label: this.valueLabel ?? appLocalizations.value,
+          label: valueLabel ?? appLocalizations.value,
           value: item == null
               ? ""
               : isMap
@@ -237,7 +237,7 @@ class ListPage<T> extends StatelessWidget {
 
   Widget _buildList() {
     final items = this.items.toList();
-    if (this.keyBuilder != null) {
+    if (keyBuilder != null) {
       return ReorderableListView.builder(
         padding: const EdgeInsets.only(
           bottom: 16 + 64,

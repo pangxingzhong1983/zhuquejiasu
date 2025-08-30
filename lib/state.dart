@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'common/common.dart';
 import 'controller.dart';
 import 'models/models.dart';
+import 'models/user.dart';
 
 typedef UpdateTasks = List<FutureOr Function()>;
 
@@ -32,6 +33,9 @@ class GlobalState {
   final safeMessageOffsetNotifier = ValueNotifier(Offset.zero);
   final navigatorKey = GlobalKey<NavigatorState>();
   late AppController appController;
+
+  late User user;
+
   GlobalKey<CommonScaffoldState> homeScaffoldKey = GlobalKey();
 
   bool get isStart => startTime != null && startTime!.isBeforeNow;

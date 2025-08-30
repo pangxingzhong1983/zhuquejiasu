@@ -2,19 +2,19 @@ import 'package:flutter/material.dart';
 
 extension ColorExtension on Color {
   Color get toLight {
-    return withOpacity(0.8);
+    return withValues(alpha: 0.8);
   }
 
   Color get toLighter {
-    return withOpacity(0.6);
+    return withValues(alpha: 0.6);
   }
 
   Color get toSoft {
-    return withOpacity(0.15);
+    return withValues(alpha: 0.15);
   }
 
   Color get toLittle {
-    return withOpacity(0.03);
+    return withValues(alpha: 0.03);
   }
 
   Color darken([double amount = .1]) {

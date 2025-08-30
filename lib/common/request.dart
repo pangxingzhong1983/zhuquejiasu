@@ -9,6 +9,10 @@ import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/state.dart';
 import 'package:flutter/cupertino.dart';
 
+import '../enum/enum.dart';
+import '../net/api.dart';
+import '../net/dioutils.dart';
+
 class Request {
   late final Dio _dio;
   late final Dio _clashDio;
@@ -56,19 +60,31 @@ class Request {
     return MemoryImage(data);
   }
 
-  Future<Map<String, dynamic>?> checkForUpdate() async {
-    final response = await _dio.get(
-      "https://api.github.com/repos/$repository/releases/latest",
-      options: Options(
-        responseType: ResponseType.json,
-      ),
-    );
-    if (response.statusCode != 200) return null;
-    final data = response.data as Map<String, dynamic>;
-    final remoteVersion = data['tag_name'];
+  Future<dynamic> getShort(String url) async {
+    var response = await DioUtils.instance
+        .request(Method.post, Api.getShort, autoDismiss: false,params: {'url' :url });
+    if (response['code'] != 200) return null;
+    final data = response['data'] ;
+    final resultUrl = data['url'];
+    await Future.delayed(const Duration(seconds: 1));
+    return resultUrl;
+  }
+
+  Future<dynamic> checkForUpdate() async {
+    // final response = await _dio.get(
+    //   "https://api.github.com/repos/$repository/releases/latest",
+    //   options: Options(
+    //     responseType: ResponseType.json,
+    //   ),
+    // );
+    var response = await DioUtils.instance
+        .request(Method.post, Api.checkUpdate, autoDismiss: false,params: {'platform' :SupportPlatform.currentPlatform.name });
+    if (response['code'] != 200) return null;
+    final data = response['data'] ;
+    final remoteVersion = data['version'];
     final version = globalState.packageInfo.version;
-    final hasUpdate =
-        other.compareVersions(remoteVersion.replaceAll('v', ''), version) > 0;
+    final hasUpdate = remoteVersion != version;
+
     if (!hasUpdate) return null;
     return data;
   }
@@ -81,6 +97,7 @@ class Request {
   };
 
   Future<IpInfo?> checkIp({CancelToken? cancelToken}) async {
+    return null;
     for (final source in _ipInfoSources.entries) {
       try {
         final response = await _dio.get<Map<String, dynamic>>(
@@ -88,6 +105,7 @@ class Request {
           cancelToken: cancelToken,
           options: Options(
             responseType: ResponseType.json,
+            receiveTimeout: const Duration(seconds: 3), // 接收超时时间
           ),
         );
         if (response.statusCode != 200 || response.data == null) {

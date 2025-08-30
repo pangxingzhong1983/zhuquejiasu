@@ -1,6 +1,7 @@
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/models.dart';
+import 'package:fl_clash/models/user.dart';
 import 'package:fl_clash/state.dart';
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -294,6 +295,22 @@ class Version extends _$Version with AutoDisposeNotifierMixin {
     );
   }
 }
+
+
+@riverpod
+class Member extends _$Member{
+  @override
+  User build() {
+    return User(email: "登录/注册", id: -1, balance: 0, expired_at: 0, inviteCode: '',); // 默认值
+  }
+  void updateUser(User newUser) {
+    state = newUser;
+  }
+  void logout(){
+    state = User(email: "登录/注册", id: -1, balance: 0, expired_at: 0, inviteCode: '',); // 默认值
+  }
+}
+
 
 @riverpod
 class Groups extends _$Groups with AutoDisposeNotifierMixin {

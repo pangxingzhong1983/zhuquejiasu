@@ -1,2 +1,23 @@
-app_name: 'FlClash'
+app_name: '朱雀加速'
 output: 'dist/'
+releases:
+  - name: windows
+    jobs:
+      - name: exe
+        package:
+          platform: windows
+          target: windows
+          build_args:
+            target-platform: windows-x64
+            dart-define:
+              APP_ENV: prod
+        distribute:
+          - name: exe
+            path: build/windows/runner/Release
+            file_name: '朱雀加速'
+            inno_setup:
+              setup_icon_file: "assets/icons/app_icon.ico"
+              publisher: "zhuque"
+              app_id: "com.clash.zhuque"
+              setup_languages: ["default"]  # 添加这行
+              path: "C:/Program Files (x86)/Inno Setup 6/ISCC.exe"  # 使用正斜杠

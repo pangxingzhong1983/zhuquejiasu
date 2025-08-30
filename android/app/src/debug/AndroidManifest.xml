@@ -3,10 +3,10 @@
          the Flutter tool needs it to communicate with the running application
          to allow setting breakpoints, to provide hot reload, etc.
     -->
-    <application android:label="FlClash Debug" tools:replace="android:label">
+    <application android:label="朱雀加速 Debug" tools:replace="android:label">
         <service
                 android:name=".services.FlClashTileService"
-                android:label="FlClash Debug"
+                android:label="朱雀加速 Debug"
                 tools:replace="android:label">
         </service>
     </application>

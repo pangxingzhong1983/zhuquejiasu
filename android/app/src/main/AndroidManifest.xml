@@ -18,6 +18,10 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
@@ -25,8 +29,9 @@
     <application
         android:name=".FlClashApplication"
         android:hardwareAccelerated="true"
-        android:icon="@mipmap/ic_launcher"
-        android:label="FlClash">
+        android:icon="@drawable/ic_stat_name"
+        android:label="@string/fl_clash">
+        android:largeHeap="true"  <!-- 添加这行 -->
         <activity
             android:name="com.follow.clash.MainActivity"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"

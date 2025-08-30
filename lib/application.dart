@@ -10,6 +10,7 @@ import 'package:fl_clash/plugins/app.dart';
 import 'package:fl_clash/providers/config.dart';
 import 'package:fl_clash/state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -157,6 +158,7 @@ class ApplicationState extends ConsumerState<Application> {
 
   @override
   Widget build(context) {
+
     return _buildPlatformWrap(
       _buildWrap(
         Consumer(
@@ -175,7 +177,7 @@ class ApplicationState extends ConsumerState<Application> {
                     GlobalCupertinoLocalizations.delegate,
                     GlobalWidgetsLocalizations.delegate
                   ],
-                  builder: (_, child) {
+                  builder:EasyLoading.init(builder:(_, child) {
                     return MessageManager(
                       child: LayoutBuilder(
                         builder: (_, container) {
@@ -186,7 +188,7 @@ class ApplicationState extends ConsumerState<Application> {
                         },
                       ),
                     );
-                  },
+                  }),
                   scrollBehavior: BaseScrollBehavior(),
                   title: appName,
                   locale: other.getLocaleForString(locale),
@@ -205,7 +207,7 @@ class ApplicationState extends ConsumerState<Application> {
                     useMaterial3: true,
                     pageTransitionsTheme: _pageTransitionsTheme,
                     colorScheme: _getAppColorScheme(
-                      brightness: Brightness.dark,
+                      brightness: Brightness.light,
                       systemColorSchemes: systemColorSchemes,
                       primaryColor: themeProps.primaryColor,
                     ).toPureBlack(themeProps.pureBlack),
@@ -215,7 +217,8 @@ class ApplicationState extends ConsumerState<Application> {
               },
             );
           },
-          child: const HomePage(),
+          // child: isLoggedIn ? const HomePage() : const LoginPage(),
+          child:  const HomePage(),
         ),
       ),
     );

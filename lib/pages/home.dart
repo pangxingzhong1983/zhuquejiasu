@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../fragments/dashboard/widgets/AppDrawer.dart';
+
 typedef OnSelected = void Function(int index);
 
 class HomePage extends StatelessWidget {
@@ -19,30 +21,23 @@ class HomePage extends StatelessWidget {
       child: Consumer(
         builder: (_, ref, child) {
           final state = ref.watch(homeStateProvider);
-          final viewMode = state.viewMode;
-          final navigationItems = state.navigationItems;
+
           final pageLabel = state.pageLabel;
-          final index = navigationItems.lastIndexWhere(
-            (element) => element.label == pageLabel,
-          );
-          final currentIndex = index == -1 ? 0 : index;
-          final navigationBar = CommonNavigationBar(
-            viewMode: viewMode,
-            navigationItems: navigationItems,
-            currentIndex: currentIndex,
-          );
-          final bottomNavigationBar =
-              viewMode == ViewMode.mobile ? navigationBar : null;
-          final sideNavigationBar =
-              viewMode != ViewMode.mobile ? navigationBar : null;
+
           return CommonScaffold(
             key: globalState.homeScaffoldKey,
-            title: Intl.message(
-              pageLabel.name,
+            title:  '朱雀加速',
+            drawer: const AppDrawer(),
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
             ),
-            sideNavigationBar: sideNavigationBar,
+
+            // sideNavigationBar: sideNavigationBar,
             body: child!,
-            bottomNavigationBar: bottomNavigationBar,
+            // bottomNavigationBar: bottomNavigationBar,
           );
         },
         child: _HomePageView(),
@@ -80,24 +75,7 @@ class _HomePageViewState extends ConsumerState<_HomePageView> {
     }
   }
 
-  // _handlePageChanged(PageLabel next) {
-  //   debouncer.call(DebounceTag.pageChange, () {
-  //     if (_prevPageLabel == next) {
-  //       return;
-  //     }
-  //     if (_prevPageLabel != null) {
-  //       final prevTabPageKey = GlobalObjectKey(_prevPageLabel!);
-  //       if (prevTabPageKey.currentState is PageMixin) {
-  //         (prevTabPageKey.currentState as PageMixin).onPageHidden();
-  //       }
-  //     }
-  //     final nextTabPageKey = GlobalObjectKey(next);
-  //     if (nextTabPageKey.currentState is PageMixin) {
-  //       (nextTabPageKey.currentState as PageMixin).onPageShow();
-  //     }
-  //     _prevPageLabel = next;
-  //   }, duration: commonDuration);
-  // }
+
 
   @override
   Widget build(BuildContext context) {
@@ -264,7 +242,7 @@ class _NavigationBarDefaultsM3 extends NavigationBarThemeData {
       return IconThemeData(
         size: 24.0,
         color: states.contains(WidgetState.disabled)
-            ? _colors.onSurfaceVariant.withOpacity(0.38)
+            ? _colors.onSurfaceVariant.withValues(alpha: 0.38)
             : states.contains(WidgetState.selected)
                 ? _colors.onSecondaryContainer
                 : _colors.onSurfaceVariant,
@@ -285,7 +263,7 @@ class _NavigationBarDefaultsM3 extends NavigationBarThemeData {
       return style.apply(
           overflow: TextOverflow.ellipsis,
           color: states.contains(WidgetState.disabled)
-              ? _colors.onSurfaceVariant.withOpacity(0.38)
+              ? _colors.onSurfaceVariant.withValues(alpha: 0.38)
               : states.contains(WidgetState.selected)
                   ? _colors.onSurface
                   : _colors.onSurfaceVariant);

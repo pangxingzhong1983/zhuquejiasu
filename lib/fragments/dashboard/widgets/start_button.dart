@@ -5,14 +5,16 @@ import 'package:fl_clash/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class StartButton extends StatefulWidget {
+import '../../login.dart';
+
+class StartButton extends ConsumerStatefulWidget {
   const StartButton({super.key});
 
   @override
-  State<StartButton> createState() => _StartButtonState();
+  _StartButtonState createState() => _StartButtonState();
 }
 
-class _StartButtonState extends State<StartButton>
+class _StartButtonState extends ConsumerState<StartButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   bool isStart = false;
@@ -35,6 +37,15 @@ class _StartButtonState extends State<StartButton>
   }
 
   handleSwitchStart() {
+    final member = ref.watch(memberProvider); // 监听 memberProvider
+    /// 如果未登录 则提示尚未登录 ，跳转到登录页
+    if (member.id == -1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginFragment()),
+      );
+    }
+
     if (isStart == globalState.appState.isStart) {
       isStart = !isStart;
       updateController();

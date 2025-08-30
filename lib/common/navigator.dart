@@ -218,7 +218,7 @@ class _CommonPageTransitionState extends State<CommonPageTransition> {
         begin: const _CommonEdgeShadowDecoration(),
         end: _CommonEdgeShadowDecoration(
           <Color>[
-            widget.context.colorScheme.inverseSurface.withOpacity(
+            widget.context.colorScheme.inverseSurface.withValues(alpha:
               0.06,
             ),
             Colors.transparent,

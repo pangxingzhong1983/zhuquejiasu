@@ -12,6 +12,7 @@ import 'package:fl_clash/plugins/vpn.dart';
 import 'package:fl_clash/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sp_util/sp_util.dart';
 
 import 'application.dart';
 import 'clash/core.dart';
@@ -28,6 +29,9 @@ Future<void> main() async {
   await android?.init();
   await window?.init(version);
   HttpOverrides.global = FlClashHttpOverrides();
+
+  await SpUtil.getInstance(); // 初始化 SpUtil
+
   runApp(ProviderScope(
     child: const Application(),
   ));

@@ -15,6 +15,7 @@ class CommonScaffold extends StatefulWidget {
   final String title;
   final Widget? leading;
   final List<Widget>? actions;
+  final Widget? drawer;
   final bool automaticallyImplyLeading;
 
   const CommonScaffold({
@@ -24,6 +25,7 @@ class CommonScaffold extends StatefulWidget {
     this.bottomNavigationBar,
     this.leading,
     required this.title,
+    this.drawer,
     this.actions,
     this.automaticallyImplyLeading = true,
   });
@@ -227,6 +229,7 @@ class CommonScaffoldState extends State<CommonScaffold> {
         ),
       ],
     );
+
     final scaffold = Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(kToolbarHeight),
@@ -266,12 +269,16 @@ class CommonScaffoldState extends State<CommonScaffold> {
                     systemNavigationBarDividerColor: Colors.transparent,
                   ),
                   automaticallyImplyLeading: widget.automaticallyImplyLeading,
-                  leading: state.searching
-                      ? IconButton(
-                          onPressed: _handleExitSearching,
-                          icon: Icon(Icons.arrow_back),
-                        )
-                      : widget.leading,
+                  leading: Builder(  // 使用 Builder 包装
+                    builder: (BuildContext context) {
+                      return IconButton(
+                        icon: const Icon(Icons.menu),
+                        onPressed: () {
+                          Scaffold.of(context).openDrawer();  // 现在可以安全地使用 Scaffold.of
+                        },
+                      );
+                    },
+                  ),
                   title: state.searching
                       ? TextField(
                           autofocus: true,
@@ -343,6 +350,7 @@ class CommonScaffoldState extends State<CommonScaffold> {
         ),
       ),
       body: body,
+      drawer: widget.drawer,
       floatingActionButton: ValueListenableBuilder<Widget?>(
         valueListenable: _floatingActionButton,
         builder: (_, value, __) {

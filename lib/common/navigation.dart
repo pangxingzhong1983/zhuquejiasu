@@ -30,6 +30,7 @@ class Navigation {
         modes: hasProxies
             ? [NavigationItemMode.mobile, NavigationItemMode.desktop]
             : [],
+        // modes: [],
       ),
       const NavigationItem(
         icon: Icon(Icons.folder),
@@ -39,6 +40,7 @@ class Navigation {
             PageLabel.profiles,
           ),
         ),
+        // modes: [],
       ),
       const NavigationItem(
         icon: Icon(Icons.view_timeline),
@@ -49,7 +51,8 @@ class Navigation {
           ),
         ),
         description: "requestsDesc",
-        modes: [NavigationItemMode.desktop, NavigationItemMode.more],
+        // modes: [NavigationItemMode.desktop, NavigationItemMode.more],
+        modes: [],
       ),
       const NavigationItem(
         icon: Icon(Icons.ballot),
@@ -60,7 +63,8 @@ class Navigation {
           ),
         ),
         description: "connectionsDesc",
-        modes: [NavigationItemMode.desktop, NavigationItemMode.more],
+        // modes: [NavigationItemMode.desktop, NavigationItemMode.more],
+        modes: [],
       ),
       const NavigationItem(
         icon: Icon(Icons.storage),
@@ -72,7 +76,8 @@ class Navigation {
             PageLabel.resources,
           ),
         ),
-        modes: [NavigationItemMode.more],
+        // modes: [NavigationItemMode.more],
+        modes: [],
       ),
       NavigationItem(
         icon: const Icon(Icons.adb),

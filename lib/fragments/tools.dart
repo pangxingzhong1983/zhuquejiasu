@@ -13,7 +13,12 @@ import 'package:fl_clash/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:sp_util/sp_util.dart';
+import '../models/user.dart';
+import '../net/api.dart';
+import '../net/dioutils.dart';
 import 'backup_and_recovery.dart';
+import 'login.dart';
 import 'theme.dart';
 import 'package:path/path.dart' show dirname, join;
 
@@ -59,8 +64,8 @@ class _ToolboxFragmentState extends ConsumerState<ToolsFragment> {
     return generateSection(
       title: appLocalizations.other,
       items: [
-        _DisclaimerItem(),
-        _InfoItem(),
+        // _DisclaimerItem(),
+        // _InfoItem(),
       ],
     );
   }
@@ -69,13 +74,14 @@ class _ToolboxFragmentState extends ConsumerState<ToolsFragment> {
     return generateSection(
       title: appLocalizations.settings,
       items: [
+        _LoginItem(),
         _LocaleItem(),
         _ThemeItem(),
-        _BackupItem(),
+        // _BackupItem(),
         if (system.isDesktop) _HotkeyItem(),
         if (Platform.isWindows) _LoopbackItem(),
         if (Platform.isAndroid) _AccessItem(),
-        _OverrideItem(),
+        // _OverrideItem(),
         _SettingItem(),
       ],
     );
@@ -213,6 +219,80 @@ class _LoopbackItem extends StatelessWidget {
     );
   }
 }
+
+class _LoginItem extends ConsumerWidget {
+  const _LoginItem();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final member = ref.watch(memberProvider); // 监听用户状态
+
+    return Column(
+      children: [
+        member.id == -1
+            ? ListItem.open(
+          leading: const Icon(Icons.login),
+          title: const Text("登录/注册"),
+          delegate: OpenDelegate(
+            title: "登录/注册",
+            widget: const LoginFragment(),
+            extendPageWidth: 360,
+          ),
+        )
+            : ListItem(
+          leading: const Icon(Icons.person),
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(child: Text(member.email!, overflow: TextOverflow.ellipsis)),
+              IconButton(
+                icon: const Icon(Icons.refresh, color: Colors.blue),
+                onPressed: () => _refresh(ref),
+              ),
+            ],
+          ),
+          subtitle: member.expired_at==0? Text('尚未购买任何套餐'): Text(DateTime.fromMillisecondsSinceEpoch(
+              member.expired_at! * 1000)
+              .toString()),
+        ),
+
+        // 退出按钮（仅当用户已登录时显示）
+        if (member.id != -1)
+          ListItem(
+            leading: const Icon(Icons.exit_to_app, color: Colors.red),
+            title: const Text("退出登录", style: TextStyle(color: Colors.red)),
+            onTap: () => _logout(ref),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _logout(WidgetRef ref) async {
+    // 触发退出登录逻辑
+    ref.read(memberProvider.notifier).logout(); // 调用 provider 处理退出
+
+    /// 清理webdav信息
+    globalState.appController.clearWebDAV();
+    // 清理缓存
+    await SpUtil.clear();
+  }
+
+  void _refresh(WidgetRef ref) {
+    _getMemberInfo(ref); // 触发 Provider 重新加载数据
+  }
+  _getMemberInfo(WidgetRef ref) async {
+    try {
+      var data = await DioUtils.instance.request(Method.post, Api.getMemberInfo,autoDismiss: false);
+      print('result=======$data');
+      var user = User.fromJson(data['data']);
+      ref.read(memberProvider.notifier).updateUser(user);
+    } catch (e) {
+      throw Exception('请重新登录');
+    }
+  }
+}
+
+
 
 class _AccessItem extends StatelessWidget {
   const _AccessItem();

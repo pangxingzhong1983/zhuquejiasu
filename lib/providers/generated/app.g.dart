@@ -242,6 +242,20 @@ final versionProvider = AutoDisposeNotifierProvider<Version, int>.internal(
 );
 
 typedef _$Version = AutoDisposeNotifier<int>;
+String _$memberHash() => r'd065830cb4dcf6fb045dbaf12ce6083eb657fef1';
+
+/// See also [Member].
+@ProviderFor(Member)
+final memberProvider = AutoDisposeNotifierProvider<Member, User>.internal(
+  Member.new,
+  name: r'memberProvider',
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$memberHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef _$Member = AutoDisposeNotifier<User>;
 String _$groupsHash() => r'fbff504e0bcdb5a2770a902f2867aabd921fbadc';
 
 /// See also [Groups].
