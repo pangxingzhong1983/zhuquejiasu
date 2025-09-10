@@ -3,16 +3,13 @@ on:
   workflow_dispatch: {}
   push:
     branches: [ main ]
-env:
-  FLUTTER_CHANNEL: stable
-
 jobs:
   android-arm64:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-        with: { channel: ${{ env.FLUTTER_CHANNEL }} }
+        with: { channel: stable }
       - run: flutter pub get
       - run: flutter build appbundle --release --target-platform=android-arm64
       - run: flutter build apk --release --target-platform=android-arm64
@@ -22,34 +19,32 @@ jobs:
           path: |
             build/app/outputs/bundle/release/*.aab
             build/app/outputs/flutter-apk/*-arm64-v8a*.apk
-
   windows-amd64:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-        with: { channel: ${{ env.FLUTTER_CHANNEL }} }
+        with: { channel: stable }
+      - run: flutter config --enable-windows-desktop
       - run: flutter pub get
       - run: flutter build windows --release
-      - name: Zip windows x64
-        run: |
+      - run: |
           cd build/windows/x64/runner/Release
           powershell -Command "Compress-Archive -Path * -DestinationPath ../../../app-windows-amd64.zip"
       - uses: actions/upload-artifact@v4
         with:
           name: windows-amd64
           path: build/app-windows-amd64.zip
-
   macos-arm64:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-        with: { channel: ${{ env.FLUTTER_CHANNEL }} }
+        with: { channel: stable }
+      - run: flutter config --enable-macos-desktop
       - run: flutter pub get
       - run: flutter build macos --release
-      - name: Build DMG
-        run: |
+      - run: |
           APP_PATH=$(ls -1 build/macos/Build/Products/Release/*.app | head -n1)
           APP_NAME=$(basename "$APP_PATH" .app)
           hdiutil create -volname "$APP_NAME" -srcfolder "$APP_PATH" -ov -format UDZO build/${APP_NAME}-macos-arm64.dmg
@@ -57,17 +52,19 @@ jobs:
         with:
           name: macos-arm64
           path: build/*-macos-arm64.dmg
-
   linux-amd64:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
-        with: { channel: ${{ env.FLUTTER_CHANNEL }} }
+        with: { channel: stable }
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+          flutter config --enable-linux-desktop
       - run: flutter pub get
       - run: flutter build linux --release
-      - name: Pack linux x64
-        run: |
+      - run: |
           tar -C build/linux/x64/release/bundle -czf build/app-linux-amd64.tar.gz .
       - uses: actions/upload-artifact@v4
         with:
