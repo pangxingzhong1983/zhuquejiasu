@@ -15,7 +15,6 @@ import (
 	"github.com/metacubex/mihomo/constant"
 	cp "github.com/metacubex/mihomo/constant/provider"
 	"github.com/metacubex/mihomo/hub/executor"
-	"github.com/metacubex/mihomo/listener"
 	"github.com/metacubex/mihomo/log"
 	"github.com/metacubex/mihomo/tunnel"
 	"github.com/metacubex/mihomo/tunnel/statistic"
@@ -23,15 +22,17 @@ import (
 	"runtime"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 )
 
 var (
-	isInit            = false
-	configParams      = ConfigExtendedParams{}
-	externalProviders = map[string]cp.Provider{}
-	logSubscriber     observable.Subscription[log.Event]
-	currentConfig     *config.Config
+    isInit            = false
+    configParams      = ConfigExtendedParams{}
+    externalProviders = map[string]cp.Provider{}
+    logSubscriber     observable.Subscription[log.Event]
+    currentConfig     *config.Config
+    requestNotifyStop chan struct{}
 )
 
 func handleInitClash(homeDirStr string) bool {
@@ -51,11 +52,11 @@ func handleStartListener() bool {
 }
 
 func handleStopListener() bool {
-	runLock.Lock()
-	defer runLock.Unlock()
-	isRunning = false
-	listener.StopListener()
-	return true
+    runLock.Lock()
+    defer runLock.Unlock()
+    isRunning = false
+    stopListeners()
+    return true
 }
 
 func handleGetIsInit() bool {
@@ -151,11 +152,11 @@ func handleChangeProxy(data string, fn func(string string)) {
 }
 
 func handleGetTraffic() string {
-	up, down := statistic.DefaultManager.Current(state.CurrentState.OnlyStatisticsProxy)
-	traffic := map[string]int64{
-		"up":   up,
-		"down": down,
-	}
+    up, down := statistic.DefaultManager.Now()
+    traffic := map[string]int64{
+        "up":   up,
+        "down": down,
+    }
 	data, err := json.Marshal(traffic)
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -165,11 +166,12 @@ func handleGetTraffic() string {
 }
 
 func handleGetTotalTraffic() string {
-	up, down := statistic.DefaultManager.Total(state.CurrentState.OnlyStatisticsProxy)
-	traffic := map[string]int64{
-		"up":   up,
-		"down": down,
-	}
+    snap := statistic.DefaultManager.Snapshot()
+    up, down := snap.UploadTotal, snap.DownloadTotal
+    traffic := map[string]int64{
+        "up":   up,
+        "down": down,
+    }
 	data, err := json.Marshal(traffic)
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -320,36 +322,35 @@ func handleGetExternalProvider(externalProviderName string) string {
 }
 
 func handleUpdateGeoData(geoType string, geoName string, fn func(value string)) {
-	go func() {
-		path := constant.Path.Resolve(geoName)
-		switch geoType {
-		case "MMDB":
-			err := updater.UpdateMMDBWithPath(path)
-			if err != nil {
-				fn(err.Error())
-				return
-			}
-		case "ASN":
-			err := updater.UpdateASNWithPath(path)
-			if err != nil {
-				fn(err.Error())
-				return
-			}
-		case "GeoIp":
-			err := updater.UpdateGeoIpWithPath(path)
-			if err != nil {
-				fn(err.Error())
-				return
-			}
-		case "GeoSite":
-			err := updater.UpdateGeoSiteWithPath(path)
-			if err != nil {
-				fn(err.Error())
-				return
-			}
-		}
-		fn("")
-	}()
+    go func() {
+        switch geoType {
+        case "MMDB":
+            err := updater.UpdateMMDB()
+            if err != nil {
+                fn(err.Error())
+                return
+            }
+        case "ASN":
+            err := updater.UpdateASN()
+            if err != nil {
+                fn(err.Error())
+                return
+            }
+        case "GeoIp":
+            err := updater.UpdateGeoIp()
+            if err != nil {
+                fn(err.Error())
+                return
+            }
+        case "GeoSite":
+            err := updater.UpdateGeoSite()
+            if err != nil {
+                fn(err.Error())
+                return
+            }
+        }
+        fn("")
+    }()
 }
 
 func handleUpdateExternalProvider(providerName string, fn func(value string)) {
@@ -387,30 +388,46 @@ func handleSideLoadExternalProvider(providerName string, data []byte, fn func(va
 }
 
 func handleStartLog() {
-	if logSubscriber != nil {
-		log.UnSubscribe(logSubscriber)
-		logSubscriber = nil
-	}
-	logSubscriber = log.Subscribe()
-	go func() {
-		for logData := range logSubscriber {
-			if logData.LogLevel < log.Level() {
-				continue
-			}
-			message := &Message{
-				Type: LogMessage,
-				Data: logData,
-			}
-			sendMessage(*message)
-		}
-	}()
+    if logSubscriber != nil {
+        log.UnSubscribe(logSubscriber)
+        logSubscriber = nil
+    }
+    logSubscriber = log.Subscribe()
+    go func() {
+        for logData := range logSubscriber {
+            if logData.LogLevel < log.Level() {
+                continue
+            }
+            message := &Message{
+                Type: LogMessage,
+                Data: logData,
+            }
+            sendMessage(*message)
+
+            // Bridge provider loaded events from logs
+            payload := logData.Payload
+            // examples: "[Provider] xxx's content update"
+            if strings.HasPrefix(payload, "[Provider] ") && strings.Contains(payload, "content update") {
+                // extract provider name between prefix and "'s"
+                rest := strings.TrimPrefix(payload, "[Provider] ")
+                if idx := strings.Index(rest, "'s"); idx > 0 {
+                    providerName := rest[:idx]
+                    sendMessage(Message{Type: LoadedMessage, Data: providerName})
+                }
+            }
+        }
+    }()
+
+    // Start request notify pump (poll-based)
+    startRequestNotify()
 }
 
 func handleStopLog() {
-	if logSubscriber != nil {
-		log.UnSubscribe(logSubscriber)
-		logSubscriber = nil
-	}
+    if logSubscriber != nil {
+        log.UnSubscribe(logSubscriber)
+        logSubscriber = nil
+    }
+    stopRequestNotify()
 }
 
 func handleGetCountryCode(ip string, fn func(value string)) {
@@ -427,41 +444,52 @@ func handleGetCountryCode(ip string, fn func(value string)) {
 }
 
 func handleGetMemory(fn func(value string)) {
-	go func() {
-		fn(strconv.FormatUint(statistic.DefaultManager.Memory(), 10))
-	}()
+    go func() {
+        fn(strconv.FormatUint(statistic.DefaultManager.Memory(), 10))
+    }()
+}
+
+// startRequestNotify polls statistic manager and emits RequestMessage when new connections appear
+func startRequestNotify() {
+    stopRequestNotify()
+    ch := make(chan struct{})
+    requestNotifyStop = ch
+    go func() {
+        known := map[string]struct{}{}
+        ticker := time.NewTicker(1 * time.Second)
+        defer ticker.Stop()
+        for {
+            select {
+            case <-ch:
+                return
+            case <-ticker.C:
+                // copy snapshot and detect new connections
+                var toSend []statistic.Tracker
+                statistic.DefaultManager.Range(func(c statistic.Tracker) bool {
+                    id := c.ID()
+                    if _, ok := known[id]; !ok {
+                        known[id] = struct{}{}
+                        toSend = append(toSend, c)
+                    }
+                    return true
+                })
+                for _, c := range toSend {
+                    sendMessage(Message{Type: RequestMessage, Data: c})
+                }
+            }
+        }
+    }()
+}
+
+func stopRequestNotify() {
+    if requestNotifyStop != nil {
+        close(requestNotifyStop)
+        requestNotifyStop = nil
+    }
 }
 
 func handleSetState(params string) {
 	_ = json.Unmarshal([]byte(params), state.CurrentState)
 }
 
-func init() {
-	adapter.UrlTestHook = func(url string, name string, delay uint16) {
-		delayData := &Delay{
-			Url:  url,
-			Name: name,
-		}
-		if delay == 0 {
-			delayData.Value = -1
-		} else {
-			delayData.Value = int32(delay)
-		}
-		sendMessage(Message{
-			Type: DelayMessage,
-			Data: delayData,
-		})
-	}
-	statistic.DefaultRequestNotify = func(c statistic.Tracker) {
-		sendMessage(Message{
-			Type: RequestMessage,
-			Data: c,
-		})
-	}
-	executor.DefaultProviderLoadedHook = func(providerName string) {
-		sendMessage(Message{
-			Type: LoadedMessage,
-			Data: providerName,
-		})
-	}
-}
+func init() {}

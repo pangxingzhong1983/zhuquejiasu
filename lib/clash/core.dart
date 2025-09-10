@@ -87,6 +87,19 @@ class ClashCore {
     return await clashInterface.updateConfig(updateConfigParams);
   }
 
+  Future<String> setupConfig(SetupParams setupParams) async {
+    print('[DEBUG] setupConfig called with params: ${setupParams.toString()}');
+    try {
+      final result = await clashInterface.setupConfig(setupParams);
+      print('[DEBUG] setupConfig success: $result');
+      return result;
+    } catch (e) {
+      print('[DEBUG] setupConfig error: $e');
+      print('[DEBUG] setupConfig error type: ${e.runtimeType}');
+      rethrow;
+    }
+  }
+
   Future<List<Group>> getProxiesGroups() async {
     final proxiesRawString = await clashInterface.getProxies();
     return Isolate.run<List<Group>>(() {

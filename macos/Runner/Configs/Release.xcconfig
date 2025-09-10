@@ -1,2 +1,9 @@
 #include "../../Flutter/Flutter-Release.xcconfig"
 #include "Warnings.xcconfig"
+MACOSX_DEPLOYMENT_TARGET = 11.0
+ARCHS = arm64
+EXCLUDED_ARCHS[sdk=macos*] = x86_64
+ONLY_ACTIVE_ARCH = NO
+ARCHS = arm64
+EXCLUDED_ARCHS[sdk=macos*] = x86_64
+ONLY_ACTIVE_ARCH = NO

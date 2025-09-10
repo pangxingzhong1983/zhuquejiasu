@@ -141,15 +141,15 @@ class Other {
   String getTrayIconPath({
     required Brightness brightness,
   }) {
-    if (Platform.isMacOS) {
-      return "assets/images/icon_white.png";
-    }
     final suffix = Platform.isWindows ? "ico" : "png";
+    if (Platform.isMacOS) {
+      // Use non-template icons and switch by brightness for correct contrast
+      return switch (brightness) {
+        Brightness.dark => "assets/images/icon_white.$suffix",
+        Brightness.light => "assets/images/icon_black.$suffix",
+      };
+    }
     return "assets/images/icon.$suffix";
-    // return switch (brightness) {
-    //   Brightness.dark => "assets/images/icon_white.$suffix",
-    //   Brightness.light => "assets/images/icon_black.$suffix",
-    // };
   }
 
   int compareVersions(String version1, String version2) {

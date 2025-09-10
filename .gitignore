@@ -59,3 +59,5 @@ app.*.map.json
 .vscode/
 .DS_Store
 *.log
+log/
+flutter_app.log

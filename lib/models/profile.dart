@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:fl_clash/clash/core.dart';
+import 'package:fl_clash/common/FileCrypto.dart';
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -130,12 +131,15 @@ extension ProfileExtension on Profile {
   }
 
   Future<Profile> saveFile(Uint8List bytes) async {
-    final message = await clashCore.validateConfig(utf8.decode(bytes));
+    final plain = utf8.decode(bytes);
+    final message = await clashCore.validateConfig(plain);
     if (message.isNotEmpty) {
       throw message;
     }
     final file = await getFile();
-    await file.writeAsBytes(bytes);
+    // 加密后再保存，保证本地与 WebDAV 恢复一致
+    final encrypted = FileCrypto.encryptContent(plain);
+    await file.writeAsString(encrypted);
     return copyWith(lastUpdateDate: DateTime.now());
   }
 
@@ -145,7 +149,9 @@ extension ProfileExtension on Profile {
       throw message;
     }
     final file = await getFile();
-    await file.writeAsString(value);
+    // 加密后再保存，保证本地与 WebDAV 恢复一致
+    final encrypted = FileCrypto.encryptContent(value);
+    await file.writeAsString(encrypted);
     return copyWith(lastUpdateDate: DateTime.now());
   }
 }

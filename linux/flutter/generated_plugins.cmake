@@ -8,6 +8,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   gtk
   hotkey_manager_linux
   open_file_linux
+  proxy_manager
   screen_retriever_linux
   tray_manager
   url_launcher_linux
