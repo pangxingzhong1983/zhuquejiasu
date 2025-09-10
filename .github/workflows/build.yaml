@@ -1,6 +1,11 @@
 name: build
-on: { workflow_dispatch: {} }
-env: { FLUTTER_CHANNEL: stable }
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ main ]
+
+env:
+  FLUTTER_CHANNEL: stable
 
 jobs:
   android-arm64:
@@ -19,6 +24,7 @@ jobs:
           path: |
             build/app/outputs/bundle/release/*.aab
             build/app/outputs/flutter-apk/*-arm64-v8a*.apk
+            build/app/outputs/flutter-apk/app-release.apk
 
   windows-amd64:
     runs-on: windows-latest
@@ -47,14 +53,18 @@ jobs:
       - run: flutter pub get
       - run: flutter build macos --release
       - name: Build DMG (drag-and-drop)
+        shell: bash
         run: |
-          APP_NAME="ZhuqueJiasu"
-          SRC="build/macos/Build/Products/Release/${APP_NAME}.app"
+          set -e
+          APP_PATH=$(ls -1 build/macos/Build/Products/Release/*.app | head -n1)
+          if [[ -z "$APP_PATH" ]]; then echo "No .app found"; exit 1; fi
+          APP_NAME=$(basename "$APP_PATH" .app)
           DMG="build/${APP_NAME}-macos-arm64.dmg"
           mkdir -p build/dmgroot
-          cp -R "${SRC}" build/dmgroot/
-          ln -s /Applications build/dmgroot/Applications
-          hdiutil create -volname "${APP_NAME}" -srcfolder build/dmgroot -ov -format UDZO "${DMG}"
+          cp -R "$APP_PATH" build/dmgroot/
+          ln -s /Applications build/dmgroot/Applications || true
+          hdiutil create -volname "$APP_NAME" -srcfolder build/dmgroot -ov -format UDZO "$DMG"
+          echo "DMG at $DMG"
       - uses: actions/upload-artifact@v4
         with:
           name: macos-arm64
