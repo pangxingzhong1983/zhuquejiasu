@@ -428,7 +428,8 @@ class BuildCommand extends Command {
     await Build.exec(
       name: name,
       Build.getExecutable(
-        "flutter_distributor package --skip-clean --platform ${target.name} --targets $targets --flutter-build-args=verbose $args",
+        // Add common Flutter build optimizations to reduce app size
+        "flutter_distributor package --skip-clean --platform ${target.name} --targets $targets --flutter-build-args=verbose,\--tree-shake-icons,\--split-debug-info=build/symbols/${target.name} $args",
       ),
     );
   }
@@ -505,16 +506,15 @@ class BuildCommand extends Command {
           Arch.arm64: "android-arm64",
           Arch.amd64: "android-x64",
         };
-        final defaultArches = [Arch.arm, Arch.arm64, Arch.amd64];
-        final defaultTargets = defaultArches
-            .where((element) => arch == null ? true : element == arch)
-            .map((e) => targetMap[e])
-            .toList();
+        // Only keep arm64-v8a by default; can override with --arch
+        final defaultArches = [arch ?? Arch.arm64];
+        final defaultTargets = defaultArches.map((e) => targetMap[e]).toList();
         _buildDistributor(
           target: target,
-          targets: "apk",
+          // Build Play-ready App Bundle (.aab) only for arm64
+          targets: "aab",
           args:
-              "--flutter-build-args split-per-abi --build-target-platform ${defaultTargets.join(",")}",
+              "--build-target-platform ${defaultTargets.join(",")}",
         );
         return;
       case Target.macos:

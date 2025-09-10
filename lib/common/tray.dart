@@ -29,7 +29,8 @@ class Tray {
         brightness: brightness ??
             WidgetsBinding.instance.platformDispatcher.platformBrightness,
       ),
-      isTemplate: true,
+      // Use pre-tinted icons; do not apply template masking to avoid white square
+      isTemplate: false,
     );
     if (!Platform.isLinux) {
       await trayManager.setToolTip(

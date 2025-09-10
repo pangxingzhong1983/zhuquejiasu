@@ -23,6 +23,8 @@ mixin ClashInterface {
 
   FutureOr<String> updateConfig(UpdateConfigParams updateConfigParams);
 
+  FutureOr<String> setupConfig(SetupParams setupParams);
+
   FutureOr<String> getProxies();
 
   FutureOr<String> changeProxy(ChangeProxyParams changeProxyParams);
@@ -240,6 +242,16 @@ abstract class ClashHandlerInterface with ClashInterface {
     return await invoke<String>(
       method: ActionMethod.updateConfig,
       data: json.encode(updateConfigParams),
+      timeout: Duration(minutes: 2),
+    );
+  }
+
+  @override
+  Future<String> setupConfig(SetupParams setupParams) async {
+    final data = json.encode(setupParams);
+    return await invoke<String>(
+      method: ActionMethod.setupConfig,
+      data: data,
       timeout: Duration(minutes: 2),
     );
   }

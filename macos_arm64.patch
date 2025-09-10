@@ -1,0 +1,21 @@
+*** macos/Podfile
+@@
+-platform :osx, '10.14'
++platform :osx, '11.0'
+ 
+ post_install do |installer|
+   installer.pods_project.targets.each do |t|
+-    # default
++    t.build_configurations.each do |config|
++      config.build_settings['MACOSX_DEPLOYMENT_TARGET'] = '11.0'
++      config.build_settings['EXCLUDED_ARCHS[sdk=macos*]'] = 'x86_64'
++      config.build_settings['ONLY_ACTIVE_ARCH'] = 'NO'
++    end
+   end
+ end
+*** macos/Runner/Configs/Debug.xcconfig
+@@
++MACOSX_DEPLOYMENT_TARGET = 11.0
+*** macos/Runner/Configs/Release.xcconfig
+@@
++MACOSX_DEPLOYMENT_TARGET = 11.0

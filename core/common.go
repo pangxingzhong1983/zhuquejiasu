@@ -13,11 +13,11 @@ import (
 	"github.com/metacubex/mihomo/component/resolver"
 	"github.com/metacubex/mihomo/config"
 	"github.com/metacubex/mihomo/constant"
-	"github.com/metacubex/mihomo/constant/features"
 	cp "github.com/metacubex/mihomo/constant/provider"
 	"github.com/metacubex/mihomo/hub"
 	"github.com/metacubex/mihomo/hub/route"
 	"github.com/metacubex/mihomo/listener"
+	LC "github.com/metacubex/mihomo/listener/config"
 	"github.com/metacubex/mihomo/log"
 	rp "github.com/metacubex/mihomo/rules/provider"
 	"github.com/metacubex/mihomo/tunnel"
@@ -29,6 +29,7 @@ import (
 	"crypto/aes"
     "crypto/cipher"
     "encoding/base64"
+    "runtime"
 
 )
 
@@ -177,7 +178,8 @@ func toExternalProvider(p cp.Provider) (*ExternalProvider, error) {
 			Count:            psp.Count(),
 			UpdateAt:         psp.UpdatedAt(),
 			Path:             psp.Vehicle().Path(),
-			SubscriptionInfo: psp.GetSubscriptionInfo(),
+			// Upstream removed public getter; skip subscription info here
+			SubscriptionInfo: nil,
 		}, nil
 	case *rp.RuleSetProvider:
 		rsp := p.(*rp.RuleSetProvider)
@@ -291,11 +293,14 @@ func overwriteConfig(targetConfig *config.RawConfig, patchConfig config.RawConfi
 	targetConfig.Profile.StoreSelected = false
 	targetConfig.GeoXUrl = patchConfig.GeoXUrl
 	targetConfig.GlobalUA = patchConfig.GlobalUA
-	if configParams.TestURL != nil {
-		constant.DefaultTestURL = *configParams.TestURL
-	}
 	for idx := range targetConfig.ProxyGroup {
-		targetConfig.ProxyGroup[idx]["url"] = ""
+		if configParams.TestURL != nil {
+			// Override test URL per-group for newer core
+			targetConfig.ProxyGroup[idx]["url"] = *configParams.TestURL
+		} else {
+			// Clear to use core default
+			targetConfig.ProxyGroup[idx]["url"] = ""
+		}
 	}
 	genHosts(targetConfig.Hosts, patchConfig.Hosts)
 	if configParams.OverrideDns {
@@ -363,13 +368,25 @@ func updateListeners(force bool) {
 	listener.ReCreateShadowSocks(general.ShadowSocksConfig, tunnel.Tunnel)
 	listener.ReCreateVmess(general.VmessConfig, tunnel.Tunnel)
 	listener.ReCreateTuic(general.TuicServer, tunnel.Tunnel)
-	if !features.Android {
+	if runtime.GOOS != "android" {
 		listener.ReCreateTun(general.Tun, tunnel.Tunnel)
 	}
 }
 
 func stopListeners() {
-	listener.StopListener()
+	// Recreate listeners with zero/empty config to close them on new core
+	listener.ReCreateHTTP(0, tunnel.Tunnel)
+	listener.ReCreateSocks(0, tunnel.Tunnel)
+	listener.ReCreateRedir(0, tunnel.Tunnel)
+	listener.ReCreateTProxy(0, tunnel.Tunnel)
+	listener.ReCreateMixed(0, tunnel.Tunnel)
+	listener.ReCreateShadowSocks("", tunnel.Tunnel)
+	listener.ReCreateVmess("", tunnel.Tunnel)
+    listener.ReCreateTuic(LC.TuicServer{Enable: false}, tunnel.Tunnel)
+	// Tun will be closed by Cleanup when disabled; ensure closed explicitly
+    if runtime.GOOS != "android" {
+        listener.ReCreateTun(LC.Tun{Enable: false}, tunnel.Tunnel)
+    }
 }
 
 func patchSelectGroup() {
