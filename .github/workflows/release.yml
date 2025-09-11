@@ -4,6 +4,10 @@ on:
     tags:
       - 'v*'
 
+concurrency:
+  group: release-single
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
@@ -15,12 +19,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: subosito/flutter-action@v2
         with:
           channel: ${{ env.FLUTTER_CHANNEL }}
           cache: true
           java-version: '17'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.x'
+      - name: Set up Android NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r26d
+      - name: Export ANDROID_NDK for setup.dart
+        run: echo "ANDROID_NDK=$ANDROID_NDK_HOME" >> $GITHUB_ENV
       - run: flutter pub get
+      - name: Prebuild core libs for android arm64
+        run: |
+          dart --version
+          go version
+          echo "ANDROID_NDK=$ANDROID_NDK"
+          dart run setup.dart android --arch arm64 --out core
       - run: flutter build appbundle --release --target-platform=android-arm64
       - run: flutter build apk --release --target-platform=android-arm64 --split-per-abi
       - name: Package android arm64 artifacts
@@ -42,13 +63,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: subosito/flutter-action@v2
         with:
           channel: ${{ env.FLUTTER_CHANNEL }}
           cache: true
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.x'
       - run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libkeybinder-3.0-0 libkeybinder-3.0-dev
       - run: flutter config --enable-linux-desktop
       - run: flutter pub get
+      - name: Prebuild core for linux amd64
+        run: |
+          go version
+          dart run setup.dart linux --arch amd64 --out core
       - run: flutter build linux --release
       - run: tar -C build/linux/x64/release/bundle -czf build/linux-amd64.tar.gz .
       - uses: actions/upload-artifact@v4
@@ -61,12 +91,25 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: subosito/flutter-action@v2
         with:
           channel: ${{ env.FLUTTER_CHANNEL }}
           cache: true
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.x'
       - run: flutter config --enable-windows-desktop
       - run: flutter pub get
+      - name: Prebuild core and helper for windows amd64
+        shell: pwsh
+        run: |
+          & go version
+          dart run setup.dart windows --arch amd64 --out core
       - run: flutter build windows --release
       - shell: pwsh
         run: |
@@ -82,12 +125,21 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: subosito/flutter-action@v2
         with:
           channel: ${{ env.FLUTTER_CHANNEL }}
           cache: true
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.x'
       - run: flutter config --enable-macos-desktop
       - run: flutter pub get
+      - name: Prebuild core for macos arm64
+        run: |
+          go version
+          dart run setup.dart macos --arch arm64 --out core
       - run: flutter build macos --release
       - name: Create DMG
         run: |
@@ -114,6 +166,18 @@ jobs:
       - name: List artifacts to release
         run: |
           ls -R dist || true
+      - name: Compute checksums and sizes
+        run: |
+          set -euxo pipefail
+          find dist -type f -maxdepth 2 -print
+          for f in \
+            dist/android-arm64/android-arm64.zip \
+            dist/windows-amd64/windows-amd64.zip \
+            dist/macos-arm64/macos-arm64.dmg \
+            dist/linux-amd64/linux-amd64.tar.gz; do
+            sha256sum "$f" || shasum -a 256 "$f" || true
+            ls -l "$f"
+          done
       - name: Create GitHub Release and upload assets
         uses: softprops/action-gh-release@v2
         with:
