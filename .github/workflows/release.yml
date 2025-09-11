@@ -1,5 +1,10 @@
 name: release
 on:
+  push:
+    tags:
+      - 'v*'
+  repository_dispatch:
+    types: [release-retry]
   workflow_dispatch:
     inputs:
       tag:
@@ -12,12 +17,13 @@ permissions:
   actions: write
 
 concurrency:
-  group: release-${{ inputs.tag }}
+  group: release-${{ github.event_name == 'repository_dispatch' && github.event.client_payload.tag || github.ref_name || inputs.tag }}
   cancel-in-progress: true
 
 env:
   FLUTTER_CHANNEL: stable
-  TAG: ${{ inputs.tag }}
+  TAG: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.tag || github.ref_name || inputs.tag }}
+  ATTEMPT: ${{ github.event_name == 'repository_dispatch' && github.event.client_payload.attempt || 1 }}
 
 jobs:
   android-arm64:
@@ -31,7 +37,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ env.TAG }}
           fetch-depth: 0
       - uses: subosito/flutter-action@v2
         with:
@@ -102,7 +108,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ env.TAG }}
           fetch-depth: 0
       - uses: subosito/flutter-action@v2
         with:
@@ -156,7 +162,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ env.TAG }}
           fetch-depth: 0
       - uses: subosito/flutter-action@v2
         with:
@@ -225,7 +231,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ env.TAG }}
           fetch-depth: 0
       - uses: subosito/flutter-action@v2
         with:
@@ -320,35 +326,55 @@ jobs:
     name: self-heal
     runs-on: ubuntu-latest
     needs: [verify]
-    if: needs.verify.outputs.passed != 'true' && github.run_attempt < 3
+    if: needs.verify.outputs.passed != 'true'
     steps:
       - name: Print plan
         run: |
-          echo "Attempt: $GITHUB_RUN_ATTEMPT"
+          echo "Attempt(this run): $GITHUB_RUN_ATTEMPT"
+          echo "Attempt(env): $ATTEMPT"
           echo "Missing: ${{ needs.verify.outputs.missing }}"
-          echo "Will apply minimal patch and re-dispatch run"
+          echo "Will apply minimal patch and re-dispatch run with backoff"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Apply minimal patch for robustness
+      - name: Apply minimal patch for failing targets only
+        env:
+          MISSING: ${{ needs.verify.outputs.missing }}
         run: |
           set -euo pipefail
-          sed -i.bak 's/*arm64-v8a\*.apk/*arm64\*.apk/g' .github/workflows/release.yml || true
-          git config user.email "actions@github"
-          git config user.name "GitHub Actions"
-          git commit -am "ci(release): self-heal fallback patterns" || echo "no changes"
-          git push origin HEAD
-      - name: Re-dispatch this workflow
+          echo "MISSING=$MISSING"
+          changed=0
+          if echo "$MISSING" | grep -q 'android-arm64.zip'; then
+            sed -i.bak 's/*arm64-v8a\*.apk/*arm64\*.apk/g' .github/workflows/release.yml || true
+            echo "Patched: relax Android APK glob"
+            changed=1
+          fi
+          if [ "$changed" = "1" ]; then
+            git config user.email "actions@github"
+            git config user.name "GitHub Actions"
+            git commit -am "ci(release): self-heal minimal patch for missing artifacts" || echo "no changes"
+            git push origin HEAD
+          else
+            echo "No minimal patch applicable"
+          fi
+      - name: Backoff before re-dispatch
+        run: |
+          set -euo pipefail
+          base=$ATTEMPT
+          if [ "$base" -lt 1 ]; then base=1; fi
+          mins=$(( 2 ** base ))
+          echo "Sleeping for ${mins} minutes before retry"
+          sleep $(( mins * 60 ))
+      - name: Re-dispatch this workflow (repository_dispatch)
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            await github.request('POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches', {
+            await github.request('POST /repos/{owner}/{repo}/dispatches', {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              workflow_id: 'release.yml',
-              ref: 'main',
-              inputs: { tag: process.env.TAG }
+              event_type: 'release-retry',
+              client_payload: { tag: process.env.TAG, attempt: Number(process.env.ATTEMPT || '1') + 1 }
             })
 
   publish:
@@ -390,6 +416,38 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  track-issue:
+    name: track-issue
+    runs-on: ubuntu-latest
+    needs: [verify]
+    steps:
+      - name: Open or update tracking issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const tag = process.env.TAG;
+            const title = `Release auto-heal: ${tag}`;
+            const {owner, repo} = context.repo;
+            const issues = await github.rest.search.issuesAndPullRequests({ q: `repo:${owner}/${repo} is:issue in:title "${title}" state:open` });
+            if (process.env['NEEDS_VERIFY_OUTPUTS_PASSED'] === 'true') {
+              if (issues.data.items.length) {
+                const issue_number = issues.data.items[0].number;
+                await github.rest.issues.createComment({owner, repo, issue_number, body: `Release passed. Closing.`});
+                await github.rest.issues.update({owner, repo, issue_number, state: 'closed'});
+              }
+            } else {
+              const body = `Attempt: ${process.env.ATTEMPT}\nMissing: ${{ needs.verify.outputs.missing }}\nAction: self-heal + retry`;
+              if (issues.data.items.length) {
+                const issue_number = issues.data.items[0].number;
+                await github.rest.issues.createComment({owner, repo, issue_number, body});
+              } else {
+                await github.rest.issues.create({owner, repo, title, body});
+              }
+            }
+        env:
+          NEEDS_VERIFY_OUTPUTS_PASSED: ${{ needs.verify.outputs.passed }}
+
   file-issue:
     name: file-issue
     runs-on: ubuntu-latest
@@ -404,4 +462,3 @@ jobs:
             const title = `Release failed for ${process.env.TAG}`;
             const body = `Release verification failed after 3 attempts.\nMissing artifacts: ${'${{ needs.verify.outputs.missing }}'}\nPlease inspect job logs for platform-specific errors and consider updating the workflow accordingly.`;
             await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body });
-
