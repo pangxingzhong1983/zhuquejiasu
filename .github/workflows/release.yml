@@ -285,6 +285,7 @@ jobs:
     name: verify
     runs-on: ubuntu-latest
     needs: [android-arm64, linux-amd64, windows-amd64, macos-arm64]
+    if: always()
     outputs:
       passed: ${{ steps.result.outputs.passed }}
       missing: ${{ steps.result.outputs.missing }}
@@ -326,18 +327,26 @@ jobs:
     name: self-heal
     runs-on: ubuntu-latest
     needs: [verify]
-    if: needs.verify.outputs.passed != 'true'
+    if: always()
+    env:
+      PASSED: ${{ needs.verify.outputs.passed }}
     steps:
       - name: Print plan
         run: |
           echo "Attempt(this run): $GITHUB_RUN_ATTEMPT"
           echo "Attempt(env): $ATTEMPT"
+          echo "Passed: ${PASSED:-false}"
           echo "Missing: ${{ needs.verify.outputs.missing }}"
-          echo "Will apply minimal patch and re-dispatch run with backoff"
+          echo "Will apply minimal patch and re-dispatch run with backoff if not passed"
+      - name: Exit early when already passed
+        if: env.PASSED == 'true'
+        run: echo "Already passed; skip self-heal."
       - uses: actions/checkout@v4
+        if: env.PASSED != 'true'
         with:
           fetch-depth: 0
       - name: Apply minimal patch for failing targets only
+        if: env.PASSED != 'true'
         env:
           MISSING: ${{ needs.verify.outputs.missing }}
         run: |
@@ -358,6 +367,7 @@ jobs:
             echo "No minimal patch applicable"
           fi
       - name: Backoff before re-dispatch
+        if: env.PASSED != 'true'
         run: |
           set -euo pipefail
           base=$ATTEMPT
@@ -366,6 +376,7 @@ jobs:
           echo "Sleeping for ${mins} minutes before retry"
           sleep $(( mins * 60 ))
       - name: Re-dispatch this workflow (repository_dispatch)
+        if: env.PASSED != 'true'
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
