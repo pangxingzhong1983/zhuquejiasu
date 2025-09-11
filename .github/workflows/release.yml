@@ -50,7 +50,7 @@ jobs:
       - name: Set up Android NDK
         uses: nttld/setup-ndk@v1
         with:
-          ndk-version: r26d
+          ndk-version: r27b
       - name: Build core lib for android arm64
         run: |
           set -euxo pipefail
