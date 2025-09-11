@@ -16,8 +16,9 @@ jobs:
       - id: read
         run: |
           if [ ! -f .github/cleanup-tags.txt ]; then
-            echo "No cleanup file found" >&2
-            exit 1
+            echo "No cleanup file found; nothing to do."
+            echo "tags=" >> $GITHUB_OUTPUT
+            exit 0
           fi
           TAGS=$(grep -E '^[^#[:space:]]' .github/cleanup-tags.txt | tr '\n' ' ')
           echo "tags=$TAGS" >> $GITHUB_OUTPUT
@@ -26,7 +27,12 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const tags = `${{ steps.read.outputs.tags }}`.trim().split(/\s+/).filter(Boolean);
+            const raw = `${{ steps.read.outputs.tags }}`;
+            const tags = (raw || '').trim().split(/\s+/).filter(Boolean);
+            if (!tags.length) {
+              core.info('No tags to clean up.');
+              return;
+            }
             const {owner, repo} = context.repo;
             for (const tag of tags) {
               core.info(`Processing ${tag}`);
@@ -46,4 +52,3 @@ jobs:
                 core.info(`Tag ${tag} ref not found or already deleted`);
               }
             }
-
