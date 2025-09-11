@@ -80,7 +80,7 @@ jobs:
           retention-days: 90
 
   macos-arm64:
-    runs-on: macos-latest
+    runs-on: macos-14  # Apple Silicon runner to produce arm64 binaries
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
