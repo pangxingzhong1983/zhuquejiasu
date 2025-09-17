@@ -1,3 +1,7 @@
+## Unreleased
+
+- Update CI build pipeline to collect cross-platform artifacts under `dist/` and publish a consolidated bundle.
+
 ## v0.8.80
 
 - Optimize dashboard performance
