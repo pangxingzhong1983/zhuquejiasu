@@ -21,19 +21,28 @@ jobs:
       - run: flutter pub get
       - run: flutter build appbundle --release --target-platform=android-arm64
       - run: flutter build apk --release --target-platform=android-arm64 --split-per-abi
-      - name: Package android arm64 artifacts
+      - name: Collect android arm64 artifacts
         run: |
           set -euxo pipefail
-          mkdir -p build/artifacts
+          mkdir -p dist/android-arm64
           AAB=$(ls -1 build/app/outputs/bundle/release/*.aab | head -n1)
-          APK=$(ls -1 build/app/outputs/flutter-apk/*arm64-v8a*.apk | head -n1)
-          cp "$AAB" build/artifacts/
-          cp "$APK" build/artifacts/
-          (cd build/artifacts && zip -9 -r ../android-arm64.zip .)
-      - uses: actions/upload-artifact@v4
+          APK=$(ls -1 build/app/outputs/flutter-apk/*arm64-v8a*.apk 2>/dev/null | head -n1 || true)
+          if [ -z "$APK" ]; then
+            APK=$(ls -1 build/app/outputs/flutter-apk/*arm64*.apk | head -n1)
+          fi
+          cp "$AAB" dist/android-arm64/
+          cp "$APK" dist/android-arm64/
+      - name: List dist contents
+        run: |
+          set -euxo pipefail
+          echo "::group::DIST-LIST"
+          ls -lR dist
+          echo "::endgroup::"
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: android-arm64
-          path: build/android-arm64.zip
+          name: build-artifacts
+          path: dist/**
           if-no-files-found: error
           retention-days: 90
 
@@ -49,11 +58,47 @@ jobs:
       - run: flutter config --enable-linux-desktop
       - run: flutter pub get
       - run: flutter build linux --release
-      - run: tar -C build/linux/x64/release/bundle -czf build/app-linux-amd64.tar.gz .
-      - uses: actions/upload-artifact@v4
+      - name: Package linux amd64 deb
+        run: |
+          set -euxo pipefail
+          VERSION=$(grep '^version:' pubspec.yaml | head -n1 | awk '{print $2}' | cut -d+ -f1)
+          PACKAGE=flclash
+          BUILD_DIR="build/linux/x64/release/bundle"
+          DIST_DIR="dist/linux-amd64"
+          STAGING="$DIST_DIR/${PACKAGE}_${VERSION}_amd64"
+          mkdir -p "$STAGING/DEBIAN"
+          cat > "$STAGING/DEBIAN/control" <<EOF
+Package: $PACKAGE
+Version: $VERSION
+Section: net
+Priority: optional
+Architecture: amd64
+Maintainer: chen08209 <chen08209@gmail.com>
+Depends: libgtk-3-0, libayatana-appindicator3-1
+Description: FlClash desktop client
+EOF
+          mkdir -p "$STAGING/usr/lib/$PACKAGE"
+          cp -a "$BUILD_DIR"/* "$STAGING/usr/lib/$PACKAGE/"
+          mkdir -p "$STAGING/usr/bin"
+          cat > "$STAGING/usr/bin/$PACKAGE" <<'EOF'
+#!/bin/sh
+exec /usr/lib/flclash/FlClash "$@"
+EOF
+          chmod 755 "$STAGING/usr/bin/$PACKAGE"
+          mkdir -p dist/linux-amd64
+          dpkg-deb --build --root-owner-group "$STAGING"
+          rm -rf "$STAGING"
+      - name: List dist contents
+        run: |
+          set -euxo pipefail
+          echo "::group::DIST-LIST"
+          ls -lR dist
+          echo "::endgroup::"
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: linux-amd64
-          path: build/app-linux-amd64.tar.gz
+          name: build-artifacts
+          path: dist/**
           if-no-files-found: error
           retention-days: 90
 
@@ -70,12 +115,22 @@ jobs:
       - run: flutter build windows --release
       - shell: pwsh
         run: |
-          cd build/windows/x64/runner/Release
-          Compress-Archive -Path * -DestinationPath ../../../app-windows-amd64.zip
-      - uses: actions/upload-artifact@v4
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path dist/windows-amd64 | Out-Null
+          $zipPath = "dist/windows-amd64/FlClash-windows-amd64.zip"
+          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath $zipPath -Force
+      - name: List dist contents
+        shell: bash
+        run: |
+          set -euxo pipefail
+          echo "::group::DIST-LIST"
+          ls -lR dist
+          echo "::endgroup::"
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: windows-amd64
-          path: build/app-windows-amd64.zip
+          name: build-artifacts
+          path: dist/**
           if-no-files-found: error
           retention-days: 90
 
@@ -91,16 +146,25 @@ jobs:
       - run: flutter pub get
       - run: flutter build macos --release
       - run: |
+          set -euxo pipefail
           APP_PATH=$(ls -1 build/macos/Build/Products/Release/*.app | head -n1)
           APP_NAME=$(basename "$APP_PATH" .app)
-          DMG="build/${APP_NAME}-macos-arm64.dmg"
-          mkdir -p build/dmgroot
+          mkdir -p dist/macos-arm64 build/dmgroot
+          DMG="dist/macos-arm64/${APP_NAME}-macos-arm64.dmg"
+          rm -rf build/dmgroot/*
           cp -R "$APP_PATH" build/dmgroot/
           ln -s /Applications build/dmgroot/Applications || true
           hdiutil create -volname "$APP_NAME" -srcfolder build/dmgroot -ov -format UDZO "$DMG"
-      - uses: actions/upload-artifact@v4
+      - name: List dist contents
+        run: |
+          set -euxo pipefail
+          echo "::group::DIST-LIST"
+          ls -lR dist
+          echo "::endgroup::"
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: macos-arm64
-          path: build/*-macos-arm64.dmg
+          name: build-artifacts
+          path: dist/**
           if-no-files-found: error
           retention-days: 90
