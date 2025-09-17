@@ -1,106 +1,170 @@
 name: build
+
 on:
   workflow_dispatch: {}
-  push:
-    branches: [ main ]
-    paths:
-      - 'ci-trigger.txt'
-      - '.github/workflows/build.yml'
+  pull_request:
+    branches:
+      - '**'
+
 env:
   FLUTTER_CHANNEL: stable
+
 jobs:
-  android-arm64:
-    runs-on: ubuntu-latest
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: android-apk
+            os: ubuntu-latest
+            target: android
+          - name: linux-deb
+            os: ubuntu-latest
+            target: linux
+          - name: windows-zip
+            os: windows-latest
+            target: windows
+          - name: macos-dmg
+            os: macos-14
+            target: macos
     steps:
       - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
           channel: ${{ env.FLUTTER_CHANNEL }}
           cache: true
           java-version: '17'
-      - run: flutter pub get
-      - run: flutter build appbundle --release --target-platform=android-arm64
-      - run: flutter build apk --release --target-platform=android-arm64 --split-per-abi
-      - name: Package android arm64 artifacts
+
+      - name: Install Linux dependencies
+        if: matrix.target == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libkeybinder-3.0-0 libkeybinder-3.0-dev
+
+      - name: Enable Linux desktop
+        if: matrix.target == 'linux'
+        run: flutter config --enable-linux-desktop
+
+      - name: Enable Windows desktop
+        if: matrix.target == 'windows'
+        run: flutter config --enable-windows-desktop
+
+      - name: Enable macOS desktop
+        if: matrix.target == 'macos'
+        run: flutter config --enable-macos-desktop
+
+      - name: Fetch dependencies
+        run: flutter pub get
+
+      - name: Build Android release
+        if: matrix.target == 'android'
         run: |
           set -euxo pipefail
-          mkdir -p build/artifacts
-          AAB=$(ls -1 build/app/outputs/bundle/release/*.aab | head -n1)
-          APK=$(ls -1 build/app/outputs/flutter-apk/*arm64-v8a*.apk | head -n1)
-          cp "$AAB" build/artifacts/
-          cp "$APK" build/artifacts/
-          (cd build/artifacts && zip -9 -r ../android-arm64.zip .)
-      - uses: actions/upload-artifact@v4
-        with:
-          name: android-arm64
-          path: build/android-arm64.zip
-          if-no-files-found: error
-          retention-days: 90
+          flutter build appbundle --release --target-platform=android-arm64
+          flutter build apk --release --target-platform=android-arm64 --split-per-abi
+          mkdir -p dist/android
+          find build/app/outputs/bundle/release -name '*.aab' -print0 | xargs -0 -I{} cp {} dist/android/
+          find build/app/outputs/flutter-apk -name '*release*.apk' -print0 | xargs -0 -I{} cp {} dist/android/
 
-  linux-amd64:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: ${{ env.FLUTTER_CHANNEL }}
-          cache: true
-      - run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libkeybinder-3.0-0 libkeybinder-3.0-dev
-      - run: flutter config --enable-linux-desktop
-      - run: flutter pub get
-      - run: flutter build linux --release
-      - run: tar -C build/linux/x64/release/bundle -czf build/app-linux-amd64.tar.gz .
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linux-amd64
-          path: build/app-linux-amd64.tar.gz
-          if-no-files-found: error
-          retention-days: 90
-
-  windows-amd64:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: ${{ env.FLUTTER_CHANNEL }}
-          cache: true
-      - run: flutter config --enable-windows-desktop
-      - run: flutter pub get
-      - run: flutter build windows --release
-      - shell: pwsh
+      - name: Build Linux release
+        if: matrix.target == 'linux'
         run: |
-          cd build/windows/x64/runner/Release
-          Compress-Archive -Path * -DestinationPath ../../../app-windows-amd64.zip
-      - uses: actions/upload-artifact@v4
-        with:
-          name: windows-amd64
-          path: build/app-windows-amd64.zip
-          if-no-files-found: error
-          retention-days: 90
+          set -euxo pipefail
+          flutter build linux --release
 
-  macos-arm64:
-    runs-on: macos-14  # Apple Silicon runner to produce arm64 binaries
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: ${{ env.FLUTTER_CHANNEL }}
-          cache: true
-      - run: flutter config --enable-macos-desktop
-      - run: flutter pub get
-      - run: flutter build macos --release
-      - run: |
+      - name: Package Linux .deb
+        if: matrix.target == 'linux'
+        run: |
+          set -euxo pipefail
+          APP_NAME=$(grep '^name:' pubspec.yaml | awk '{print $2}' | tr -d '\r')
+          VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | tr -d '\r')
+          PKG_NAME=$(echo "$APP_NAME" | tr '_' '-')
+          BUILD_DIR="build/linux/x64/release/bundle"
+          DIST_DIR="dist/linux"
+          STAGING="$DIST_DIR/${PKG_NAME}_${VERSION}_amd64"
+          rm -rf "$DIST_DIR"
+          mkdir -p "$STAGING/DEBIAN"
+          cat <<EOF_CONTROL > "$STAGING/DEBIAN/control"
+Package: $PKG_NAME
+Version: $VERSION
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: Zhuque Team <support@example.com>
+Description: Zhuque accelerator desktop client.
+EOF_CONTROL
+          install -d "$STAGING/usr/share/$APP_NAME"
+          cp -r "$BUILD_DIR"/* "$STAGING/usr/share/$APP_NAME/"
+          install -d "$STAGING/usr/bin"
+          cat <<EOF_LAUNCHER > "$STAGING/usr/bin/$APP_NAME"
+#!/bin/bash
+exec /usr/share/$APP_NAME/$APP_NAME "\$@"
+EOF_LAUNCHER
+          chmod +x "$STAGING/usr/bin/$APP_NAME"
+          install -d "$STAGING/usr/share/applications"
+          cat <<EOF_DESKTOP > "$STAGING/usr/share/applications/$APP_NAME.desktop"
+[Desktop Entry]
+Name=Zhuque 加速
+Comment=Zhuque accelerator desktop client
+Exec=/usr/bin/$APP_NAME
+Icon=$APP_NAME
+Terminal=false
+Type=Application
+Categories=Network;
+EOF_DESKTOP
+          ICON_SOURCE="assets/images/icon.png"
+          if [ -f "$ICON_SOURCE" ]; then
+            install -d "$STAGING/usr/share/icons/hicolor/256x256/apps"
+            cp "$ICON_SOURCE" "$STAGING/usr/share/icons/hicolor/256x256/apps/$APP_NAME.png"
+          fi
+          dpkg-deb --build "$STAGING" "$DIST_DIR/${PKG_NAME}_${VERSION}_amd64.deb"
+
+      - name: Build Windows release
+        if: matrix.target == 'windows'
+        shell: pwsh
+        run: |
+          flutter build windows --release
+
+      - name: Package Windows zip
+        if: matrix.target == 'windows'
+        shell: pwsh
+        run: |
+          $versionLine = (Get-Content pubspec.yaml | Where-Object { $_ -match '^version:' })
+          $version = $versionLine.Split(':')[1].Trim()
+          $packageName = (Get-Content pubspec.yaml | Where-Object { $_ -match '^name:' }).Split(':')[1].Trim()
+          $zipName = "$packageName-$version-windows-x64.zip"
+          New-Item -ItemType Directory -Path dist/windows -Force | Out-Null
+          $bundlePath = Join-Path "build" "windows\x64\runner\Release"
+          $zipPath = Join-Path "dist/windows" $zipName
+          if (Test-Path $zipPath) { Remove-Item $zipPath }
+          Compress-Archive -Path (Join-Path $bundlePath '*') -DestinationPath $zipPath
+
+      - name: Build macOS release
+        if: matrix.target == 'macos'
+        run: |
+          set -euxo pipefail
+          flutter build macos --release
+
+      - name: Package macOS DMG
+        if: matrix.target == 'macos'
+        run: |
+          set -euxo pipefail
           APP_PATH=$(ls -1 build/macos/Build/Products/Release/*.app | head -n1)
           APP_NAME=$(basename "$APP_PATH" .app)
-          DMG="build/${APP_NAME}-macos-arm64.dmg"
+          mkdir -p dist/macos
+          DMG="dist/macos/${APP_NAME}-macos-arm64.dmg"
+          rm -f "$DMG"
           mkdir -p build/dmgroot
+          rm -rf build/dmgroot/*
           cp -R "$APP_PATH" build/dmgroot/
           ln -s /Applications build/dmgroot/Applications || true
           hdiutil create -volname "$APP_NAME" -srcfolder build/dmgroot -ov -format UDZO "$DMG"
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: macos-arm64
-          path: build/*-macos-arm64.dmg
+          name: build-artifacts
+          path: dist/**
           if-no-files-found: error
-          retention-days: 90
