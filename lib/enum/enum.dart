@@ -240,6 +240,7 @@ enum ActionMethod {
   shutdown,
   validateConfig,
   updateConfig,
+  setupConfig,
   getProxies,
   changeProxy,
   getTraffic,

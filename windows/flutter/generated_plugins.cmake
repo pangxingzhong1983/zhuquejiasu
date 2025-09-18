@@ -9,6 +9,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   file_selector_windows
   hotkey_manager_windows
   proxy
+  proxy_manager
   screen_retriever_windows
   tray_manager
   url_launcher_windows

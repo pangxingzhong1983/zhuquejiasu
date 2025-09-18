@@ -11,7 +11,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: any
-  path_provider: ^2.1.0
+  path_provider: ^2.1.1
   path: ^1.9.0
   shared_preferences: ^2.5.1
   window_manager: ^0.4.3
@@ -35,7 +35,7 @@ dependencies:
   freezed_annotation: ^2.4.1
   image_picker: ^1.1.2
   webdav_client: ^1.2.2
-  dio: ^5.8.0+1
+  dio: ^5.8.0
   win32: ^5.5.1
   ffi: ^2.1.2
   re_editor: ^0.6.0
@@ -56,7 +56,6 @@ dependencies:
   riverpod: ^2.6.1
   google_fonts: ^6.2.1
 
-
   # 本地持久化
   sp_util: ^2.0.3
   # 通用工具类
@@ -71,12 +70,14 @@ dependencies:
 
   provider: ^6.1.2
 
-  # 自动安装包
-  #install_plugin: ^2.1.0
-
   open_file: ^3.5.10
 
   encrypt: ^5.0.3
+
+  # 新增依赖
+  socks5_proxy: ^1.0.4
+  proxy_manager: ^0.0.3
+  logger: ^2.0.2+1
 
 
 
@@ -99,7 +100,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/data/
     - assets/fonts/
     - assets/images/
     - assets/images/avatars/

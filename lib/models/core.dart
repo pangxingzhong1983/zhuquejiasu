@@ -69,6 +69,39 @@ class ConfigExtendedParams with _$ConfigExtendedParams {
       _$ConfigExtendedParamsFromJson(json);
 }
 
+class SetupParams {
+  const SetupParams({
+    required this.config,
+    required this.selectedMap,
+    required this.testUrl,
+  });
+
+  final Map<String, dynamic> config;
+  final Map<String, String> selectedMap;
+  final String testUrl;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'config': config,
+      'selected-map': selectedMap,
+      'test-url': testUrl,
+    };
+  }
+
+  factory SetupParams.fromJson(Map<String, dynamic> json) {
+    return SetupParams(
+      config: json['config'] as Map<String, dynamic>,
+      selectedMap: Map<String, String>.from(json['selected-map']),
+      testUrl: json['test-url'] as String,
+    );
+  }
+
+  @override
+  String toString() {
+    return 'SetupParams(config: ${config.keys.length} keys, selectedMap: $selectedMap, testUrl: $testUrl)';
+  }
+}
+
 @freezed
 class UpdateConfigParams with _$UpdateConfigParams {
   const factory UpdateConfigParams({
