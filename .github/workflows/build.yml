@@ -1,10 +1,1 @@
-name: build
-on:
-  workflow_dispatch: {}
-  push:
-    branches: ["**"]
-    paths:
-      - 'ci-trigger.txt'
-      - '.github/workflows/build.yml'
-env:
-  FLUTTER_CHANNEL: stable
+# 这里粘贴完整的 build.yml 配置（含 on:、env:、jobs: android/linux/windows/macos 四个端）
