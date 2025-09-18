@@ -67,7 +67,7 @@ jobs:
           DIST_DIR="dist/linux-amd64"
           STAGING="$DIST_DIR/${PACKAGE}_${VERSION}_amd64"
           mkdir -p "$STAGING/DEBIAN"
-          cat > "$STAGING/DEBIAN/control" <<EOF
+          cat > "$STAGING/DEBIAN/control" <<EOF2
 Package: $PACKAGE
 Version: $VERSION
 Section: net
@@ -76,17 +76,17 @@ Architecture: amd64
 Maintainer: chen08209 <chen08209@gmail.com>
 Depends: libgtk-3-0, libayatana-appindicator3-1
 Description: FlClash desktop client
-EOF
+EOF2
           mkdir -p "$STAGING/usr/lib/$PACKAGE"
           cp -a "$BUILD_DIR"/* "$STAGING/usr/lib/$PACKAGE/"
           mkdir -p "$STAGING/usr/bin"
-          cat > "$STAGING/usr/bin/$PACKAGE" <<'EOF'
+          cat > "$STAGING/usr/bin/$PACKAGE" <<'EOF3'
 #!/bin/sh
 exec /usr/lib/flclash/FlClash "$@"
-EOF
+EOF3
           chmod 755 "$STAGING/usr/bin/$PACKAGE"
-          mkdir -p dist/linux-amd64
-          dpkg-deb --build --root-owner-group "$STAGING"
+          mkdir -p "$DIST_DIR"
+          dpkg-deb --build "$STAGING"
           rm -rf "$STAGING"
       - name: List dist contents
         run: |
@@ -135,7 +135,7 @@ EOF
           retention-days: 90
 
   macos-arm64:
-    runs-on: macos-14  # Apple Silicon runner to produce arm64 binaries
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
