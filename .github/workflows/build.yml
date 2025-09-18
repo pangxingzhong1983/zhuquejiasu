@@ -8,11 +8,15 @@ on:
       - '.github/workflows/build.yml'
 env:
   FLUTTER_CHANNEL: stable
+
 jobs:
   android-arm64:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          lfs: true
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -21,10 +25,14 @@ jobs:
         with:
           channel: ${{ env.FLUTTER_CHANNEL }}
           cache: true
+      - run: yes | "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" --licenses
+      - run: "${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;34.0.0" "platform-tools"
+      - run: flutter doctor -v
       - run: flutter pub get
-      - run: flutter build appbundle --release --target-platform=android-arm64
-      - run: flutter build apk --release --target-platform=android-arm64 --split-per-abi
-      - run: mkdir -p dist/android-arm64 && cp build/app/outputs/bundle/release/*.aab dist/android-arm64/ && cp build/app/outputs/flutter-apk/*arm64*.apk dist/android-arm64/
+      - run: flutter build appbundle --release --target-platform=android-arm64 --verbose
+      - run: flutter build apk --release --target-platform=android-arm64 --split-per-abi --verbose
+      - run: mkdir -p dist/android-arm64 && cp build/app/outputs/bundle/release/*.aab dist/android-arm64/ || true
+      - run: cp build/app/outputs/flutter-apk/*arm64*.apk dist/android-arm64/ || true
       - uses: actions/upload-artifact@v4
         with:
           name: artifacts-android-arm64
@@ -36,15 +44,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          lfs: true
       - uses: subosito/flutter-action@v2
         with:
           channel: ${{ env.FLUTTER_CHANNEL }}
           cache: true
-      - run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libkeybinder-3.0-0 libkeybinder-3.0-dev fakeroot
+      - run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            clang cmake ninja-build pkg-config \
+            libgtk-3-dev liblzma-dev libglu1-mesa-dev \
+            libsecret-1-dev libsqlite3-dev \
+            libayatana-appindicator3-dev libappindicator3-dev
       - run: flutter config --enable-linux-desktop
+      - run: flutter doctor -v
       - run: flutter pub get
-      - run: flutter build linux --release
-      - run: mkdir -p dist/linux-amd64 && fakeroot tar -czf dist/linux-amd64/linux-amd64.tar.gz -C build/linux/x64/release/bundle .
+      - run: flutter build linux --release --verbose
+      - run: mkdir -p dist/linux-amd64 && tar -czf dist/linux-amd64/linux-amd64.tar.gz -C build/linux/x64/release/bundle .
       - uses: actions/upload-artifact@v4
         with:
           name: artifacts-linux-amd64
@@ -56,13 +75,21 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          lfs: true
       - uses: subosito/flutter-action@v2
         with:
           channel: ${{ env.FLUTTER_CHANNEL }}
           cache: true
-      - run: flutter config --enable-windows-desktop
-      - run: flutter pub get
-      - run: flutter build windows --release
+      - shell: pwsh
+        run: flutter config --enable-windows-desktop
+      - shell: pwsh
+        run: flutter doctor -v
+      - shell: pwsh
+        run: flutter pub get
+      - shell: pwsh
+        run: flutter build windows --release -v
       - shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist/windows-amd64 | Out-Null
@@ -78,14 +105,27 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          lfs: true
       - uses: subosito/flutter-action@v2
         with:
           channel: ${{ env.FLUTTER_CHANNEL }}
           cache: true
+      - run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+      - run: xcodebuild -version
       - run: flutter config --enable-macos-desktop
+      - run: flutter doctor -v
       - run: flutter pub get
-      - run: flutter build macos --release
-      - run: mkdir -p dist/macos-arm64 && hdiutil create -volname FlClash -srcfolder build/macos/Build/Products/Release -ov -format UDZO dist/macos-arm64/macos-arm64.dmg
+      - run: flutter build macos --release --verbose
+      - run: |
+          set -euo pipefail
+          APP=$(ls -1 build/macos/Build/Products/Release/*.app | head -n1)
+          NAME=$(basename "$APP" .app)
+          mkdir -p dist/macos-arm64 dmgroot
+          rm -rf dmgroot/* && cp -R "$APP" dmgroot/
+          ln -s /Applications dmgroot/Applications || true
+          hdiutil create -volname "$NAME" -srcfolder dmgroot -ov -format UDZO "dist/macos-arm64/${NAME}-macos-arm64.dmg"
       - uses: actions/upload-artifact@v4
         with:
           name: artifacts-macos-arm64
