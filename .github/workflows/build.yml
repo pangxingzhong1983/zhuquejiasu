@@ -1,1 +1,94 @@
-[在这里粘贴完整的 build.yml，包含 on/env/jobs 四个端]
+name: build
+on:
+  workflow_dispatch: {}
+  push:
+    branches: ["**"]
+    paths:
+      - 'ci-trigger.txt'
+      - '.github/workflows/build.yml'
+env:
+  FLUTTER_CHANNEL: stable
+jobs:
+  android-arm64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - run: flutter pub get
+      - run: flutter build appbundle --release --target-platform=android-arm64
+      - run: flutter build apk --release --target-platform=android-arm64 --split-per-abi
+      - run: mkdir -p dist/android-arm64 && cp build/app/outputs/bundle/release/*.aab dist/android-arm64/ && cp build/app/outputs/flutter-apk/*arm64*.apk dist/android-arm64/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-android-arm64
+          path: dist/**
+          if-no-files-found: error
+          retention-days: 90
+
+  linux-amd64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libkeybinder-3.0-0 libkeybinder-3.0-dev fakeroot
+      - run: flutter config --enable-linux-desktop
+      - run: flutter pub get
+      - run: flutter build linux --release
+      - run: mkdir -p dist/linux-amd64 && fakeroot tar -czf dist/linux-amd64/linux-amd64.tar.gz -C build/linux/x64/release/bundle .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-linux-amd64
+          path: dist/**
+          if-no-files-found: error
+          retention-days: 90
+
+  windows-amd64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - run: flutter config --enable-windows-desktop
+      - run: flutter pub get
+      - run: flutter build windows --release
+      - shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist/windows-amd64 | Out-Null
+          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath dist/windows-amd64/windows-amd64.zip -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-windows-amd64
+          path: dist/**
+          if-no-files-found: error
+          retention-days: 90
+
+  macos-arm64:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - run: flutter config --enable-macos-desktop
+      - run: flutter pub get
+      - run: flutter build macos --release
+      - run: mkdir -p dist/macos-arm64 && hdiutil create -volname FlClash -srcfolder build/macos/Build/Products/Release -ov -format UDZO dist/macos-arm64/macos-arm64.dmg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-macos-arm64
+          path: dist/**
+          if-no-files-found: error
+          retention-days: 90
