@@ -2,6 +2,7 @@ name: build
 on:
   workflow_dispatch: {}
   push:
+    branches: [ main ]
     paths:
       - 'ci-trigger.txt'
       - '.github/workflows/build.yml'
@@ -35,9 +36,7 @@ jobs:
       - name: list-dist
         run: |
           set -euo pipefail
-          echo "::group::DIST-LIST"
-          ls -lR dist
-          echo "::endgroup::"
+          echo "::group::DIST-LIST"; ls -lR dist; echo "::endgroup::"
       - uses: actions/upload-artifact@v4
         with:
           name: artifacts-android-arm64
@@ -90,9 +89,7 @@ EOF3
       - name: list-dist
         run: |
           set -euo pipefail
-          echo "::group::DIST-LIST"
-          ls -lR dist
-          echo "::endgroup::"
+          echo "::group::DIST-LIST"; ls -lR dist; echo "::endgroup::"
       - uses: actions/upload-artifact@v4
         with:
           name: artifacts-linux-amd64
@@ -157,9 +154,7 @@ EOF3
       - name: list-dist
         run: |
           set -euo pipefail
-          echo "::group::DIST-LIST"
-          ls -lR dist
-          echo "::endgroup::"
+          echo "::group::DIST-LIST"; ls -lR dist; echo "::endgroup::"
       - uses: actions/upload-artifact@v4
         with:
           name: artifacts-macos-arm64
