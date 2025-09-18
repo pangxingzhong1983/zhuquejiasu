@@ -1,1 +1,1 @@
-# 这里粘贴完整的 build.yml 配置（含 on:、env:、jobs: android/linux/windows/macos 四个端）
+[这里粘贴完整的 build.yml 配置，含 on/env/jobs 四个端]
