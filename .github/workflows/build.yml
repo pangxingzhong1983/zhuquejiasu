@@ -14,6 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Git LFS bootstrap
+        run: |
+          git lfs install
+          git lfs pull || true
+          git submodule foreach --recursive "git lfs pull || true"
         with:
           submodules: recursive
           lfs: true
@@ -44,6 +49,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Git LFS bootstrap
+        run: |
+          git lfs install
+          git lfs pull || true
+          git submodule foreach --recursive "git lfs pull || true"
         with:
           submodules: recursive
           lfs: true
@@ -75,6 +85,11 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Git LFS bootstrap
+        run: |
+          git lfs install
+          git lfs pull || true
+          git submodule foreach --recursive "git lfs pull || true"
         with:
           submodules: recursive
           lfs: true
@@ -105,6 +120,17 @@ jobs:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+      - name: Git LFS bootstrap
+      - name: Verify FlClashCore presence
+        run: |
+          set -euo pipefail
+          ls -l libclash || true
+          test -e libclash/macos/FlClashCore || { echo "FATAL: libclash/macos/FlClashCore missing"; exit 2; }
+          chmod +x libclash/macos/FlClashCore || true
+        run: |
+          git lfs install
+          git lfs pull || true
+          git submodule foreach --recursive "git lfs pull || true"
         with:
           submodules: recursive
           lfs: true
