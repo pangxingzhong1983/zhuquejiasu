@@ -2,7 +2,6 @@ name: build
 on:
   workflow_dispatch: {}
   push:
-    branches: [ main ]
     paths:
       - 'ci-trigger.txt'
       - '.github/workflows/build.yml'
@@ -13,35 +12,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
       - uses: subosito/flutter-action@v2
         with:
           channel: ${{ env.FLUTTER_CHANNEL }}
           cache: true
-          java-version: '17'
       - run: flutter pub get
       - run: flutter build appbundle --release --target-platform=android-arm64
       - run: flutter build apk --release --target-platform=android-arm64 --split-per-abi
-      - name: Collect android arm64 artifacts
+      - name: collect-android
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           mkdir -p dist/android-arm64
           AAB=$(ls -1 build/app/outputs/bundle/release/*.aab | head -n1)
           APK=$(ls -1 build/app/outputs/flutter-apk/*arm64-v8a*.apk 2>/dev/null | head -n1 || true)
-          if [ -z "$APK" ]; then
-            APK=$(ls -1 build/app/outputs/flutter-apk/*arm64*.apk | head -n1)
-          fi
+          if [ -z "${APK:-}" ]; then APK=$(ls -1 build/app/outputs/flutter-apk/*arm64*.apk | head -n1); fi
           cp "$AAB" dist/android-arm64/
           cp "$APK" dist/android-arm64/
-      - name: List dist contents
+      - name: list-dist
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           echo "::group::DIST-LIST"
           ls -lR dist
           echo "::endgroup::"
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: build-artifacts
+          name: artifacts-android-arm64
           path: dist/**
           if-no-files-found: error
           retention-days: 90
@@ -54,13 +53,13 @@ jobs:
         with:
           channel: ${{ env.FLUTTER_CHANNEL }}
           cache: true
-      - run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libkeybinder-3.0-0 libkeybinder-3.0-dev
+      - run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libkeybinder-3.0-0 libkeybinder-3.0-dev fakeroot
       - run: flutter config --enable-linux-desktop
       - run: flutter pub get
       - run: flutter build linux --release
-      - name: Package linux amd64 deb
+      - name: package-deb
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           VERSION=$(grep '^version:' pubspec.yaml | head -n1 | awk '{print $2}' | cut -d+ -f1)
           PACKAGE=flclash
           BUILD_DIR="build/linux/x64/release/bundle"
@@ -86,18 +85,17 @@ exec /usr/lib/flclash/FlClash "$@"
 EOF3
           chmod 755 "$STAGING/usr/bin/$PACKAGE"
           mkdir -p "$DIST_DIR"
-          dpkg-deb --build "$STAGING"
+          fakeroot dpkg-deb --build "$STAGING"
           rm -rf "$STAGING"
-      - name: List dist contents
+      - name: list-dist
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           echo "::group::DIST-LIST"
           ls -lR dist
           echo "::endgroup::"
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: build-artifacts
+          name: artifacts-linux-amd64
           path: dist/**
           if-no-files-found: error
           retention-days: 90
@@ -117,19 +115,20 @@ EOF3
         run: |
           $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force -Path dist/windows-amd64 | Out-Null
-          $zipPath = "dist/windows-amd64/FlClash-windows-amd64.zip"
-          Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath $zipPath -Force
-      - name: List dist contents
-        shell: bash
+          $exe = Get-ChildItem -Path build/windows -Recurse -Filter *.exe | Where-Object { $_.FullName -match 'Runner\\.*Release' } | Select-Object -First 1
+          if ($exe) {
+            $folder = Split-Path $exe.FullName
+            Compress-Archive -Path "$folder\*" -DestinationPath "dist/windows-amd64/FlClash-windows-amd64.zip" -Force
+          }
+      - name: list-dist
+        shell: pwsh
         run: |
-          set -euxo pipefail
-          echo "::group::DIST-LIST"
-          ls -lR dist
-          echo "::endgroup::"
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+          Write-Output "::group::DIST-LIST"
+          Get-ChildItem -Recurse dist | Format-List
+          Write-Output "::endgroup::"
+      - uses: actions/upload-artifact@v4
         with:
-          name: build-artifacts
+          name: artifacts-windows-amd64
           path: dist/**
           if-no-files-found: error
           retention-days: 90
@@ -146,7 +145,7 @@ EOF3
       - run: flutter pub get
       - run: flutter build macos --release
       - run: |
-          set -euxo pipefail
+          set -euo pipefail
           APP_PATH=$(ls -1 build/macos/Build/Products/Release/*.app | head -n1)
           APP_NAME=$(basename "$APP_PATH" .app)
           mkdir -p dist/macos-arm64 build/dmgroot
@@ -155,16 +154,15 @@ EOF3
           cp -R "$APP_PATH" build/dmgroot/
           ln -s /Applications build/dmgroot/Applications || true
           hdiutil create -volname "$APP_NAME" -srcfolder build/dmgroot -ov -format UDZO "$DMG"
-      - name: List dist contents
+      - name: list-dist
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           echo "::group::DIST-LIST"
           ls -lR dist
           echo "::endgroup::"
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: build-artifacts
+          name: artifacts-macos-arm64
           path: dist/**
           if-no-files-found: error
           retention-days: 90
