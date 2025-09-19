@@ -1,3 +1,7 @@
+## Unreleased
+
+- Ensure CI build workflow uploads unified dist artifacts for all platforms.
+
 ## v0.8.80
 
 - Optimize dashboard performance
