@@ -777,6 +777,10 @@
 
 - Fix the problem that the proxy group is empty in global mode.
 
+## Unreleased
+
+- Enable full 4-target build workflow with dist/ artifacts and checksum release automation.
+
 ## v0.7.4
 
 - Add ProxyProvider2
