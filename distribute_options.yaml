@@ -1,6 +1,33 @@
 app_name: '朱雀加速'
 output: 'dist/'
 releases:
+  - name: android
+    jobs:
+      - name: aab
+        package:
+          platform: android
+          target: aab
+          build_args:
+            dart-define:
+              APP_ENV: prod
+            target-platform: android-arm64
+      - name: apk
+        package:
+          platform: android
+          target: apk
+          build_args:
+            dart-define:
+              APP_ENV: prod
+            target-platform: android-arm64
+  - name: linux
+    jobs:
+      - name: deb
+        package:
+          platform: linux
+          target: deb
+          build_args:
+            dart-define:
+              APP_ENV: prod
   - name: windows
     jobs:
       - name: exe
@@ -19,5 +46,25 @@ releases:
               setup_icon_file: "assets/icons/app_icon.ico"
               publisher: "zhuque"
               app_id: "com.clash.zhuque"
-              setup_languages: ["default"]  # 添加这行
-              path: "C:/Program Files (x86)/Inno Setup 6/ISCC.exe"  # 使用正斜杠
+              setup_languages: ["default"]
+              path: "C:/Program Files (x86)/Inno Setup 6/ISCC.exe"
+      - name: zip
+        package:
+          platform: windows
+          target: zip
+          build_args:
+            dart-define:
+              APP_ENV: prod
+        distribute:
+          - name: zip
+            path: build/windows/runner/Release
+            file_name: '朱雀加速-windows-amd64'
+  - name: macos
+    jobs:
+      - name: dmg
+        package:
+          platform: macos
+          target: dmg
+          build_args:
+            dart-define:
+              APP_ENV: prod

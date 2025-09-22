@@ -486,10 +486,6 @@ class BuildCommand extends Command {
         };
         final targets = [
           "deb",
-          if (arch == Arch.amd64) ...[
-            "appimage",
-            "rpm",
-          ],
         ].join(",");
         final defaultTarget = targetMap[arch];
         await _getLinuxDependencies(arch!);
@@ -511,8 +507,8 @@ class BuildCommand extends Command {
         final defaultTargets = defaultArches.map((e) => targetMap[e]).toList();
         _buildDistributor(
           target: target,
-          // Build Play-ready App Bundle (.aab) only for arm64
-          targets: "aab",
+          // Build Play-ready App Bundle (.aab) and a matching APK for distribution
+          targets: "aab,apk",
           args:
               "--build-target-platform ${defaultTargets.join(",")}",
         );
