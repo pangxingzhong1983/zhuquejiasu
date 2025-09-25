@@ -83,8 +83,26 @@ jobs:
               cleanup_props
             fi
           else
-            echo "Android signing secrets missing or incomplete, using debug signing"
-            cleanup_props
+            echo "Android signing secrets missing or incomplete, generating debug keystore"
+            debug_alias="androiddebugkey"
+            debug_pass="android"
+            if keytool -genkeypair \
+              -keystore android/app/keystore.jks \
+              -alias "$debug_alias" \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=CI Debug,O=CI,C=US" \
+              -storepass "$debug_pass" \
+              -keypass "$debug_pass" >/dev/null 2>&1; then
+              printf 'keyAlias=%s\n' "$debug_alias" >> android/local.properties
+              printf 'storePassword=%s\n' "$debug_pass" >> android/local.properties
+              printf 'keyPassword=%s\n' "$debug_pass" >> android/local.properties
+              echo "Generated debug keystore for CI artifacts"
+            else
+              echo "Debug keystore generation failed, Android build may remain unsigned"
+              rm -f android/app/keystore.jks
+            fi
           fi
 
 
