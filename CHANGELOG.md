@@ -1,6 +1,6 @@
 ## Unreleased
 
-- 调整 GitHub Actions，确保生成 Android AAB/APK、Linux DEB、Windows ZIP、macOS DMG 四类产物。
+- 调整 GitHub Actions，确保生成 Android AAB/APK、Linux DEB、Windows ZIP、macOS DMG 四类产物，并去除多余的 Windows EXE。
 - 更新打包脚本与配置，只编译所需架构并统一产物命名。
 
 ## v0.8.80

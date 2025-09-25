@@ -475,7 +475,7 @@ class BuildCommand extends Command {
       case Target.windows:
         _buildDistributor(
           target: target,
-          targets: "exe,zip",
+          targets: "zip",
           args: "--description $archName",
         );
         return;
