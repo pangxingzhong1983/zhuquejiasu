@@ -405,7 +405,7 @@ class BuildCommand extends Command {
       name: name,
       Build.getExecutable(
         // Add common Flutter build optimizations to reduce app size
-        "flutter_distributor package --skip-clean --platform ${target.name} --targets $targets --flutter-build-args=verbose,\--tree-shake-icons,\--split-debug-info=build/symbols/${target.name} $args",
+        "flutter_distributor package --skip-clean --platform ${target.name} --targets $targets --flutter-build-args=--verbose,--tree-shake-icons,--split-debug-info=build/symbols/${target.name} $args",
       ),
     );
   }
