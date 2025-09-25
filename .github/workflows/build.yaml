@@ -47,15 +47,44 @@ jobs:
           link-to-sdk: true
 
       - name: Setup Android Signing
-        if: startsWith(matrix.platform,'android') && secrets.KEYSTORE != ''
+        if: startsWith(matrix.platform,'android')
+        shell: bash
         run: |
-          echo "${{ secrets.KEYSTORE }}" | base64 --decode > android/app/keystore.jks
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/local.properties
-          echo "storePassword=${{ secrets.STORE_PASSWORD }}" >> android/local.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/local.properties
-          if ! keytool -list -keystore android/app/keystore.jks -storepass "${{ secrets.STORE_PASSWORD }}" >/dev/null 2>&1; then
-            echo "Keystore validation failed, falling back to debug signing"
-            rm -f android/app/keystore.jks
+          touch android/local.properties
+          cleanup_props() {
+            if [ -f android/local.properties ]; then
+              tmp="$(mktemp)"
+              if ! grep -vE '^(keyAlias|storePassword|keyPassword)=' android/local.properties > "$tmp"; then
+                :
+              fi
+              mv "$tmp" android/local.properties
+            fi
+          }
+
+          cleanup_props
+          rm -f android/app/keystore.jks
+
+          if [[ -n "${{ secrets.KEYSTORE }}" && -n "${{ secrets.KEY_ALIAS }}" && -n "${{ secrets.STORE_PASSWORD }}" && -n "${{ secrets.KEY_PASSWORD }}" ]]; then
+            echo "Preparing Android release keystore"
+            if echo "${{ secrets.KEYSTORE }}" | base64 --decode > android/app/keystore.jks 2>/dev/null; then
+              if keytool -list -keystore android/app/keystore.jks -storepass "${{ secrets.STORE_PASSWORD }}" >/dev/null 2>&1; then
+                printf 'keyAlias=%s\n' "${{ secrets.KEY_ALIAS }}" >> android/local.properties
+                printf 'storePassword=%s\n' "${{ secrets.STORE_PASSWORD }}" >> android/local.properties
+                printf 'keyPassword=%s\n' "${{ secrets.KEY_PASSWORD }}" >> android/local.properties
+                echo "Android release signing enabled"
+              else
+                echo "Keystore validation failed, using debug signing"
+                rm -f android/app/keystore.jks
+                cleanup_props
+              fi
+            else
+              echo "Keystore payload could not be decoded, using debug signing"
+              rm -f android/app/keystore.jks
+              cleanup_props
+            fi
+          else
+            echo "Android signing secrets missing or incomplete, using debug signing"
+            cleanup_props
           fi
 
 
