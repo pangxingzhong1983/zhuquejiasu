@@ -20,7 +20,7 @@ jobs:
             os: ubuntu-latest
             arch: amd64
           - platform: macos
-            os: macos-latest
+            os: macos-14
             arch: arm64
 
     steps:
