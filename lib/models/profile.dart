@@ -4,7 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:fl_clash/clash/core.dart';
-import 'package:fl_clash/common/FileCrypto.dart';
+import 'package:fl_clash/common/fileCrypto.dart';
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';

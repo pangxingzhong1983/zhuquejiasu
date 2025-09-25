@@ -15,7 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'common/FileCrypto.dart';
+import 'common/fileCrypto.dart';
 import 'common/common.dart';
 import 'fragments/UpdateDialog.dart';
 import 'models/models.dart';
