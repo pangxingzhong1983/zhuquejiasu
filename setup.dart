@@ -513,7 +513,7 @@ class BuildCommand extends Command {
         );
         return;
       case Target.android:
-        patchFlutterGradleForKotlin();
+        Build.patchFlutterGradleForKotlin();
         final targetMap = {
           Arch.arm: "android-arm",
           Arch.arm64: "android-arm64",
