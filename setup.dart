@@ -179,7 +179,10 @@ class Build {
       pattern,
       "\n                    $marker\n",
     );
-    pluginFile.writeAsStringSync(updated, flush: true);
+    if (updated != content) {
+      pluginFile.writeAsStringSync(updated, flush: true);
+      print("patched flutter gradle filePermissions");
+    }
   }
 
   static String _getCc(BuildItem buildItem) {
