@@ -145,6 +145,43 @@ class Build {
 
   static String get distPath => join(current, "dist");
 
+  static void patchFlutterGradleForKotlin() {
+    final flutterRoot = Platform.environment["FLUTTER_ROOT"];
+    if (flutterRoot == null) {
+      return;
+    }
+    final pluginFile = File(join(
+      flutterRoot,
+      "packages",
+      "flutter_tools",
+      "gradle",
+      "src",
+      "main",
+      "kotlin",
+      "FlutterPlugin.kt",
+    ));
+    if (!pluginFile.existsSync()) {
+      return;
+    }
+    const marker = "// zq_patch_remove_filePermissions";
+    final content = pluginFile.readAsStringSync();
+    if (content.contains(marker)) {
+      return;
+    }
+    final pattern = RegExp(
+      r"\s+filePermissions\s*\{\s*user\s*\{[^{}]*?\}\s*\}\s*",
+      multiLine: true,
+    );
+    if (!pattern.hasMatch(content)) {
+      return;
+    }
+    final updated = content.replaceFirst(
+      pattern,
+      "\n                    $marker\n",
+    );
+    pluginFile.writeAsStringSync(updated, flush: true);
+  }
+
   static String _getCc(BuildItem buildItem) {
     final environment = Platform.environment;
     if (buildItem.target == Target.android) {
@@ -473,6 +510,7 @@ class BuildCommand extends Command {
         );
         return;
       case Target.android:
+        patchFlutterGradleForKotlin();
         final targetMap = {
           Arch.arm: "android-arm",
           Arch.arm64: "android-arm64",
