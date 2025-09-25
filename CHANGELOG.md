@@ -2,6 +2,7 @@
 
 - 调整 GitHub Actions，确保生成 Android AAB/APK、Linux DEB、Windows ZIP、macOS DMG 四类产物，并去除多余的 Windows EXE；新增手动触发入口。
 - 更新打包脚本与配置，只编译所需架构并统一产物命名。
+- 精简 Linux 构建依赖，移除 RPM/AppImage 相关安装步骤。
 
 ## v0.8.80
 

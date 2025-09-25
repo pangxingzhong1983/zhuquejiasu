@@ -387,30 +387,6 @@ class BuildCommand extends Command {
     await Build.exec(
       Build.getExecutable("sudo apt install -y locate"),
     );
-    if (arch == Arch.amd64) {
-      await Build.exec(
-        Build.getExecutable("sudo apt install -y rpm patchelf"),
-      );
-      await Build.exec(
-        Build.getExecutable("sudo apt install -y libfuse2"),
-      );
-      final downloadName = arch == Arch.amd64 ? "x86_64" : "aarch_64";
-      await Build.exec(
-        Build.getExecutable(
-          "wget -O appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-$downloadName.AppImage",
-        ),
-      );
-      await Build.exec(
-        Build.getExecutable(
-          "chmod +x appimagetool",
-        ),
-      );
-    }
-    await Build.exec(
-      Build.getExecutable(
-        "sudo mv appimagetool /usr/local/bin/",
-      ),
-    );
   }
 
   _getMacosDependencies() async {
