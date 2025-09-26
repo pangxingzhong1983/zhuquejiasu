@@ -249,7 +249,7 @@ jobs:
           done
 
       - name: Push to telegram
-        if: secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_API_ID != '' && secrets.TELEGRAM_API_HASH != ''
+        if: ${{ secrets.TELEGRAM_BOT_TOKEN != '' && secrets.TELEGRAM_API_ID != '' && secrets.TELEGRAM_API_HASH != '' }}
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TAG: ${{ github.ref_name }}
