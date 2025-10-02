@@ -212,6 +212,8 @@ jobs:
       CF_R2_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
       CF_R2_BUCKET: ${{ secrets.CF_R2_BUCKET }}
       CF_R2_PUBLIC_DOMAIN: ${{ secrets.CF_R2_PUBLIC_DOMAIN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     services:
       telegram-bot-api:
         image: aiogram/telegram-bot-api:latest
@@ -234,14 +236,15 @@ jobs:
           merge-multiple: true
 
       - name: Upload to Cloudflare R2
-        if: ${{ env.CF_R2_ACCOUNT_ID != '' && env.CF_R2_ACCESS_KEY_ID != '' && env.CF_R2_SECRET_ACCESS_KEY != '' && env.CF_R2_BUCKET != '' }}
+        if: ${{ (env.CF_R2_ACCOUNT_ID != '' && env.CF_R2_ACCESS_KEY_ID != '' && env.CF_R2_SECRET_ACCESS_KEY != '') || (env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '') }}
         env:
-          AWS_ACCESS_KEY_ID: ${{ env.CF_R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ env.CF_R2_SECRET_ACCESS_KEY }}
-          AWS_REGION: auto
-          R2_ENDPOINT: https://${{ env.CF_R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          CF_R2_ACCOUNT_ID: ${{ env.CF_R2_ACCOUNT_ID }}
+          CF_R2_ACCESS_KEY_ID: ${{ env.CF_R2_ACCESS_KEY_ID }}
+          CF_R2_SECRET_ACCESS_KEY: ${{ env.CF_R2_SECRET_ACCESS_KEY }}
           R2_BUCKET: ${{ env.CF_R2_BUCKET }}
           R2_PUBLIC_DOMAIN: ${{ env.CF_R2_PUBLIC_DOMAIN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ env.CLOUDFLARE_API_TOKEN }}
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -275,23 +278,60 @@ jobs:
           cp "${linux_source[0]}" r2_upload/zhuquejiasu.deb
           cp "${macos_source[0]}" r2_upload/zhuquejiasu.dmg
 
-          for file in r2_upload/*; do
-            key="$(basename "$file")"
-            mime="application/octet-stream"
-            case "$key" in
-              *.apk) mime="application/vnd.android.package-archive" ;;
-              *.zip) mime="application/zip" ;;
-              *.deb) mime="application/vnd.debian.binary-package" ;;
-              *.dmg) mime="application/x-apple-diskimage" ;;
-            esac
-            aws s3 cp "$file" "s3://$R2_BUCKET/$key" --endpoint-url "$R2_ENDPOINT" --content-type "$mime"
-          done
+          bucket="${R2_BUCKET:-zhuquejiasu}"
+          public_domain="${R2_PUBLIC_DOMAIN:-hao.zhuquejiasu.uk}"
 
-          if [[ -n "${R2_PUBLIC_DOMAIN:-}" ]]; then
+          if [[ -z "$bucket" ]]; then
+            echo "Cloudflare R2 bucket name missing" >&2
+            exit 1
+          fi
+
+          upload_with_aws() {
+            local endpoint="https://${CF_R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+            export AWS_ACCESS_KEY_ID="${CF_R2_ACCESS_KEY_ID}"
+            export AWS_SECRET_ACCESS_KEY="${CF_R2_SECRET_ACCESS_KEY}"
+            export AWS_REGION="auto"
+            for file in r2_upload/*; do
+              key="$(basename "$file")"
+              mime="application/octet-stream"
+              case "$key" in
+                *.apk) mime="application/vnd.android.package-archive" ;;
+                *.zip) mime="application/zip" ;;
+                *.deb) mime="application/vnd.debian.binary-package" ;;
+                *.dmg) mime="application/x-apple-diskimage" ;;
+              esac
+              aws s3 cp "$file" "s3://$bucket/$key" --endpoint-url "$endpoint" --content-type "$mime"
+            done
+          }
+
+          upload_with_wrangler() {
+            for file in r2_upload/*; do
+              key="$(basename "$file")"
+              mime="application/octet-stream"
+              case "$key" in
+                *.apk) mime="application/vnd.android.package-archive" ;;
+                *.zip) mime="application/zip" ;;
+                *.deb) mime="application/vnd.debian.binary-package" ;;
+                *.dmg) mime="application/x-apple-diskimage" ;;
+              esac
+              CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID}" CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN}" npx --yes wrangler@4.40.3 r2 object put "$bucket/$key" --file "$file" --content-type "$mime" --remote
+            done
+          }
+
+          if [[ -n "${CF_R2_ACCOUNT_ID:-}" && -n "${CF_R2_ACCESS_KEY_ID:-}" && -n "${CF_R2_SECRET_ACCESS_KEY:-}" ]]; then
+            upload_with_aws
+          elif [[ -n "${CLOUDFLARE_ACCOUNT_ID:-}" && -n "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+            upload_with_wrangler
+          else
+            echo "Cloudflare R2 credentials missing" >&2
+            exit 1
+          fi
+
+          if [[ -n "$public_domain" ]]; then
             {
               echo "### Cloudflare R2 Downloads"
               for key in zhuquejiasu.apk zhuquejiasu.zip zhuquejiasu.deb zhuquejiasu.dmg; do
-                echo "- [$key](https://${R2_PUBLIC_DOMAIN}/$key)"
+                echo "- [$key](https://$public_domain/$key)"
               done
             } >> "$GITHUB_STEP_SUMMARY"
           fi

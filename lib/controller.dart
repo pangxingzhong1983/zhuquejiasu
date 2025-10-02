@@ -841,6 +841,15 @@ class AppController {
     }
   }
 
+  // Add updateTray so other managers can call it without compile errors
+  void updateTray([bool focus = false]) {
+    try {
+      tray?.update(trayState: _ref.read(trayStateProvider), focus: focus);
+    } catch (_) {
+      commonPrint.log('updateTray is not supported on this platform');
+    }
+  }
+
   updateMode() {
     _ref.read(patchClashConfigProvider.notifier).updateState(
       (state) {
@@ -872,80 +881,99 @@ class AppController {
   }
 
   Future<List<int>> backupData() async {
-    final homeDirPath = await appPath.homeDirPath;
-    final profilesPath = await appPath.profilesPath;
-    final configJson = globalState.config.toJson();
-    return Isolate.run<List<int>>(() async {
-      final archive = Archive();
-      archive.add("config.json", configJson);
-      await archive.addDirectoryToArchive(profilesPath, homeDirPath);
-      final zipEncoder = ZipEncoder();
-      return zipEncoder.encode(archive) ?? [];
-    });
-  }
+     final homeDirPath = await appPath.homeDirPath;
+     final profilesPath = await appPath.profilesPath;
+     final configJson = globalState.config.toJson();
+     return Isolate.run<List<int>>(() async {
+       final archive = Archive();
+       // encrypt full config and add as config.enc
+      final encConfig = FileCrypto.encryptContent(json.encode(configJson));
+      archive.addFile(ArchiveFile.string('config.enc', encConfig));
 
-  updateTray([bool focus = false]) async {
-    tray.update(
-      trayState: _ref.read(trayStateProvider),
-    );
-  }
+      // add profiles but mark names with .enc so remote backups don't expose YAML names
+      final profilesDir = Directory(profilesPath);
+      if (await profilesDir.exists()) {
+        final entities = profilesDir.listSync(recursive: true);
+        for (final entity in entities) {
+          if (entity is File) {
+            final relativePath = relative(entity.path, from: homeDirPath);
+            final data = entity.readAsBytesSync();
+            // add original name (backward compatibility)
+            final archiveFileOrig = ArchiveFile(relativePath, data.length, data);
+            archive.addFile(archiveFileOrig);
+            // also add .enc variant so newer clients see explicit enc files
+            if (!relativePath.endsWith('.enc')) {
+              final archiveFileEnc = ArchiveFile('$relativePath.enc', data.length, data);
+              archive.addFile(archiveFileEnc);
+            }
+          }
+        }
+      }
+       final zipEncoder = ZipEncoder();
+       return zipEncoder.encode(archive) ?? [];
+     });
+   }
 
   recoveryData(
-      List<int> data,
-      RecoveryOption recoveryOption,
-      ) async {
-    final archive = await Isolate.run<Archive>(() {
-      final zipDecoder = ZipDecoder();
-      return zipDecoder.decodeBytes(data);
-    });
-    final homeDirPath = await appPath.homeDirPath;
-    final configs =
-    archive.files.where((item) => item.name.endsWith(".enc")).toList();
-    final profiles = archive.files.where((item) => !item.name.endsWith(".enc"));
-    final configIndex =
-    configs.indexWhere((config) => config.name == "config.enc");
-    if (configIndex == -1) throw "invalid backup file";
-    final configFile = configs[configIndex];
+       List<int> data,
+       RecoveryOption recoveryOption,
+       ) async {
+     final archive = await Isolate.run<Archive>(() {
+       final zipDecoder = ZipDecoder();
+       return zipDecoder.decodeBytes(data);
+     });
+     final homeDirPath = await appPath.homeDirPath;
+     final configs = archive.files.where((item) => item.name.endsWith('.enc')).toList();
+     final profiles = archive.files.where((item) => !item.name.endsWith('.enc'));
+     final configIndex =
+     configs.indexWhere((config) => config.name == "config.enc");
+     if (configIndex == -1) throw "invalid backup file";
+     final configFile = configs[configIndex];
 
-    // 先将 Uint8List 转换为字符串
-    final contentString = String.fromCharCodes(configFile.content);
-    final cleanContent = contentString.replaceAll(RegExp(r'^"|"$'), '');
-    var dec = FileCrypto.decryptContent(cleanContent);
-    var tempConfig = Config.compatibleFromJson(
-      json.decode(dec),
-    );
-    for (final profile in profiles) {
-      final filePath = join(homeDirPath, profile.name);
-      final file = File(filePath);
+     // 先将 Uint8List 转换为字符串
+     final contentString = String.fromCharCodes(configFile.content);
+     final cleanContent = contentString.replaceAll(RegExp(r'^"|"$'), '');
+     var dec = FileCrypto.decryptContent(cleanContent);
+     var tempConfig = Config.compatibleFromJson(
+       json.decode(dec),
+     );
+     for (final profile in profiles) {
+       final filePath = join(homeDirPath, profile.name);
+       final file = File(filePath);
+       await file.create(recursive: true);
+       await file.writeAsBytes(profile.content);
+     }
+     // restore profiles archived as .enc (new behavior)
+    final encProfileFiles = configs.where((f) => f.name.startsWith('profiles/') && f.name != 'config.enc' && f.name != 'clashConfig.json.enc').toList();
+    for (final encFile in encProfileFiles) {
+      var relativeName = encFile.name.substring('profiles/'.length);
+      if (relativeName.endsWith('.enc')) {
+        relativeName = relativeName.substring(0, relativeName.length - 4);
+      }
+      final destPath = join(homeDirPath, relativeName);
+      final file = File(destPath);
       await file.create(recursive: true);
-
-      // 转换为字符串
-      // final encryptedContent = utf8.decode(profile.content);
-      // final contentString =  String.fromCharCodes(profile.content);
-      // final cleanContent = contentString.replaceAll(RegExp(r'^"|"$'), '');
-      // var dec = FileCrypto.decryptContent(encryptedContent);
-      await file.writeAsBytes(profile.content);
-      // await file.writeAsString(dec);
+      await file.writeAsBytes(encFile.content);
     }
-    final clashConfigIndex =
-    configs.indexWhere((config) => config.name == "clashConfig.json");
-    if (clashConfigIndex != -1) {
-      final clashConfigFile = configs[clashConfigIndex];
-      tempConfig = tempConfig.copyWith(
-        patchClashConfig: ClashConfig.fromJson(
-          json.decode(
-            FileCrypto.decryptContent(utf8.decode(
-              clashConfigFile.content,
-            )),
-          ),
-        ),
-      );
-    }
-    _recovery(
-      tempConfig,
-      recoveryOption,
-    );
-  }
+     final clashConfigIndex =
+     configs.indexWhere((config) => config.name == "clashConfig.json");
+     if (clashConfigIndex != -1) {
+       final clashConfigFile = configs[clashConfigIndex];
+       tempConfig = tempConfig.copyWith(
+         patchClashConfig: ClashConfig.fromJson(
+           json.decode(
+             FileCrypto.decryptContent(utf8.decode(
+               clashConfigFile.content,
+             )),
+           ),
+         ),
+       );
+     }
+     _recovery(
+       tempConfig,
+       recoveryOption,
+     );
+   }
 
   bool hasWebDAV(){
     return _ref.read(profilesProvider) != null;
