@@ -214,6 +214,7 @@ jobs:
       CF_R2_PUBLIC_DOMAIN: ${{ secrets.CF_R2_PUBLIC_DOMAIN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      WRANGLER_CONFIG_TOML: ${{ secrets.WRANGLER_CONFIG_TOML }}
     services:
       telegram-bot-api:
         image: aiogram/telegram-bot-api:latest
@@ -284,6 +285,11 @@ jobs:
           if [[ -z "$bucket" ]]; then
             echo "Cloudflare R2 bucket name missing" >&2
             exit 1
+          fi
+
+          if [[ -n "${WRANGLER_CONFIG_TOML:-}" ]]; then
+            mkdir -p "$HOME/.wrangler/config"
+            printf '%s' "$WRANGLER_CONFIG_TOML" > "$HOME/.wrangler/config/default.toml"
           fi
 
           upload_with_aws() {
@@ -406,4 +412,3 @@ jobs:
           target-branch: action-pr
           commit-message: Update from ${{ github.ref_name }}
           target-directory: /tmp/
-
