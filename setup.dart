@@ -522,12 +522,22 @@ class BuildCommand extends Command {
         // Only keep arm64-v8a by default; can override with --arch
         final defaultArches = [arch ?? Arch.arm64];
         final defaultTargets = defaultArches.map((e) => targetMap[e]).toList();
+        final selectedArch = defaultArches.first;
+        final archDescriptor = Build.buildItems
+            .firstWhere(
+              (element) =>
+                  element.target == Target.android && element.arch == selectedArch,
+            )
+            .archName;
+        final androidArgs = [
+          "--build-target-platform ${defaultTargets.join(",")}",
+          if (archDescriptor != null) "--description $archDescriptor",
+        ].where((e) => e.isNotEmpty).join(" ");
         _buildDistributor(
           target: target,
           // Build a single APK artifact to match store/release expectations
           targets: "apk",
-          args:
-              "--build-target-platform ${defaultTargets.join(",")}",
+          args: androidArgs,
         );
         return;
       case Target.macos:
