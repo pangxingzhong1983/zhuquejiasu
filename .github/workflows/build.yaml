@@ -320,13 +320,17 @@ jobs:
                 *.deb) mime="application/vnd.debian.binary-package" ;;
                 *.dmg) mime="application/x-apple-diskimage" ;;
               esac
-              CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID}" CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN}" npx --yes wrangler@4.40.3 r2 object put "$bucket/$key" --file "$file" --content-type "$mime" --remote
+              if [[ -n "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+                CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID}" CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN}" npx --yes wrangler@4.40.3 r2 object put "$bucket/$key" --file "$file" --content-type "$mime" --remote
+              else
+                CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID}" npx --yes wrangler@4.40.3 r2 object put "$bucket/$key" --file "$file" --content-type "$mime" --remote
+              fi
             done
           }
 
           if [[ -n "${CF_R2_ACCOUNT_ID:-}" && -n "${CF_R2_ACCESS_KEY_ID:-}" && -n "${CF_R2_SECRET_ACCESS_KEY:-}" ]]; then
             upload_with_aws
-          elif [[ -n "${CLOUDFLARE_ACCOUNT_ID:-}" && -n "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+          elif [[ -n "${CLOUDFLARE_ACCOUNT_ID:-}" && ( -n "${CLOUDFLARE_API_TOKEN:-}" || -n "${WRANGLER_CONFIG_TOML:-}" ) ]]; then
             upload_with_wrangler
           else
             echo "Cloudflare R2 credentials missing" >&2
