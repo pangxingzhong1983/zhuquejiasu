@@ -207,6 +207,11 @@ jobs:
       TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
       TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
       SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
+      CF_R2_ACCOUNT_ID: ${{ secrets.CF_R2_ACCOUNT_ID }}
+      CF_R2_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
+      CF_R2_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
+      CF_R2_BUCKET: ${{ secrets.CF_R2_BUCKET }}
+      CF_R2_PUBLIC_DOMAIN: ${{ secrets.CF_R2_PUBLIC_DOMAIN }}
     services:
       telegram-bot-api:
         image: aiogram/telegram-bot-api:latest
@@ -227,6 +232,69 @@ jobs:
           path: ./dist/
           pattern: artifact-*
           merge-multiple: true
+
+      - name: Upload to Cloudflare R2
+        if: ${{ env.CF_R2_ACCOUNT_ID != '' && env.CF_R2_ACCESS_KEY_ID != '' && env.CF_R2_SECRET_ACCESS_KEY != '' && env.CF_R2_BUCKET != '' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ env.CF_R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.CF_R2_SECRET_ACCESS_KEY }}
+          AWS_REGION: auto
+          R2_ENDPOINT: https://${{ env.CF_R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          R2_BUCKET: ${{ env.CF_R2_BUCKET }}
+          R2_PUBLIC_DOMAIN: ${{ env.CF_R2_PUBLIC_DOMAIN }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          mkdir -p r2_upload
+
+          android_source=(./dist/*android-arm64-v8a*.apk)
+          windows_source=(./dist/*windows-amd64*.zip)
+          linux_source=(./dist/*linux-amd64*.deb)
+          macos_source=(./dist/*macos-arm64*.dmg)
+
+          if [[ ${#android_source[@]} -eq 0 ]]; then
+            echo "Android APK not found in dist" >&2
+            exit 1
+          fi
+          if [[ ${#windows_source[@]} -eq 0 ]]; then
+            echo "Windows ZIP not found in dist" >&2
+            exit 1
+          fi
+          if [[ ${#linux_source[@]} -eq 0 ]]; then
+            echo "Linux DEB not found in dist" >&2
+            exit 1
+          fi
+          if [[ ${#macos_source[@]} -eq 0 ]]; then
+            echo "macOS DMG not found in dist" >&2
+            exit 1
+          fi
+
+          cp "${android_source[0]}" r2_upload/zhuquejiasu.apk
+          cp "${windows_source[0]}" r2_upload/zhuquejiasu.zip
+          cp "${linux_source[0]}" r2_upload/zhuquejiasu.deb
+          cp "${macos_source[0]}" r2_upload/zhuquejiasu.dmg
+
+          for file in r2_upload/*; do
+            key="$(basename "$file")"
+            mime="application/octet-stream"
+            case "$key" in
+              *.apk) mime="application/vnd.android.package-archive" ;;
+              *.zip) mime="application/zip" ;;
+              *.deb) mime="application/vnd.debian.binary-package" ;;
+              *.dmg) mime="application/x-apple-diskimage" ;;
+            esac
+            aws s3 cp "$file" "s3://$R2_BUCKET/$key" --endpoint-url "$R2_ENDPOINT" --content-type "$mime"
+          done
+
+          if [[ -n "${R2_PUBLIC_DOMAIN:-}" ]]; then
+            {
+              echo "### Cloudflare R2 Downloads"
+              for key in zhuquejiasu.apk zhuquejiasu.zip zhuquejiasu.deb zhuquejiasu.dmg; do
+                echo "- [$key](https://${R2_PUBLIC_DOMAIN}/$key)"
+              done
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Generate release.md
         run: |
