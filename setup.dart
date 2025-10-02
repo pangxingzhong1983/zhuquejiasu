@@ -524,8 +524,8 @@ class BuildCommand extends Command {
         final defaultTargets = defaultArches.map((e) => targetMap[e]).toList();
         _buildDistributor(
           target: target,
-          // Build Play-ready App Bundle (.aab) and a matching APK for distribution
-          targets: "aab,apk",
+          // Build a single APK artifact to match store/release expectations
+          targets: "apk",
           args:
               "--build-target-platform ${defaultTargets.join(",")}",
         );
