@@ -540,7 +540,10 @@ jobs:
           echo "OHOS_SDK_HOME=$OHOS_SDK_HOME"
           echo "FLUTTER_OHOS=$FLUTTER_OHOS"
           "$FLUTTER_OHOS" --version
-          "$FLUTTER_OHOS" doctor -v
+          # Skip flutter doctor -v for now to avoid hanging
+          echo "Flutter OHOS SDK configuration:"
+          echo "  HOS_SDK_HOME=$HOS_SDK_HOME"
+          echo "  OHOS_SDK_HOME=$OHOS_SDK_HOME"
 
       - name: Install HarmonyOS dependencies
         run: |
