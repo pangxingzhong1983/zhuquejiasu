@@ -1,0 +1,16 @@
+{
+  "name": "ohos",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "flutter-hvigor-plugin": "file:../../../../flutter_flutter_gitcode/packages/flutter_tools/hvigor"
+  }
+}
