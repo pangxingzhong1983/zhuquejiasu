@@ -474,6 +474,12 @@ jobs:
       - macos
       - ohos
     steps:
+      - name: Configure Git Proxy
+        run: |
+          git config --global http.proxy http://127.0.0.1:1983
+          git config --global https.proxy http://127.0.0.1:1983
+          echo "Git proxy configured for GitHub access"
+      
       - name: Checkout
         uses: actions/checkout@v4
         with:
