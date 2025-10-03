@@ -201,6 +201,7 @@ jobs:
   upload:
     permissions: write-all
     needs: [ build, build-ohos ]
+    if: always() && (needs.build.result == 'success')
     runs-on: ubuntu-latest
     env:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -237,6 +238,7 @@ jobs:
           merge-multiple: true
 
       - name: Download OHOS artifact
+        if: needs.build-ohos.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: zhuquejiasu-ohos-release
@@ -282,15 +284,21 @@ jobs:
             exit 1
           fi
           if [[ ${#ohos_source[@]} -eq 0 ]]; then
-            echo "OHOS HAP not found in dist" >&2
-            exit 1
+            echo "OHOS HAP not found in dist (build may have failed)" >&2
+            if [[ "${{ needs.build-ohos.result }}" == "success" ]]; then
+              exit 1
+            else
+              echo "Skipping OHOS upload due to build failure"
+            fi
           fi
 
           cp "${android_source[0]}" r2_upload/zhuquejiasu.apk
           cp "${windows_source[0]}" r2_upload/zhuquejiasu.zip
           cp "${linux_source[0]}" r2_upload/zhuquejiasu.deb
           cp "${macos_source[0]}" r2_upload/zhuquejiasu.dmg
-          cp "${ohos_source[0]}" r2_upload/zhuquejiasu.hap
+          if [[ ${#ohos_source[@]} -gt 0 ]]; then
+            cp "${ohos_source[0]}" r2_upload/zhuquejiasu.hap
+          fi
 
           bucket="${R2_BUCKET:-zhuquejiasu}"
           public_domain="${R2_PUBLIC_DOMAIN:-hao.zhuquejiasu.uk}"
@@ -474,15 +482,21 @@ jobs:
       - name: Prepare ASCII workspace
         run: |
           set -euxo pipefail
-          BUILD_ROOT="${HAP_BUILD_ROOT:-/tmp/zhuquejiasu-ohos}"
+          BUILD_ROOT="${HAP_BUILD_ROOT:-/private/tmp/zhuquejiasu-ohos}"
           rm -rf "$BUILD_ROOT"
           mkdir -p "$BUILD_ROOT"
           rsync -a --delete --exclude='.git' ./ "$BUILD_ROOT/"
+          # Verify critical files exist
+          if [[ ! -f "$BUILD_ROOT/ohos/har/flutter.har" ]]; then
+            echo "ERROR: flutter.har not found after copy"
+            ls -la "$BUILD_ROOT/ohos/har/" || echo "har directory missing"
+            exit 1
+          fi
 
       - name: Display versions
         run: |
           set -euxo pipefail
-          BUILD_ROOT="${HAP_BUILD_ROOT:-/tmp/zhuquejiasu-ohos}"
+          BUILD_ROOT="${HAP_BUILD_ROOT:-/private/tmp/zhuquejiasu-ohos}"
           TOOL_HOME="${TOOL_HOME:-/Applications/DevEco-Studio.app/Contents}"
           DEVECO_SDK_HOME="${DEVECO_SDK_HOME:-$TOOL_HOME/sdk}"
           FLUTTER_OHOS="${FLUTTER_OHOS:-$HOME/flutter_flutter_gitcode/bin/flutter}"
@@ -498,7 +512,7 @@ jobs:
       - name: Install HarmonyOS dependencies
         run: |
           set -euxo pipefail
-          BUILD_ROOT="${HAP_BUILD_ROOT:-/tmp/zhuquejiasu-ohos}"
+          BUILD_ROOT="${HAP_BUILD_ROOT:-/private/tmp/zhuquejiasu-ohos}"
           TOOL_HOME="${TOOL_HOME:-/Applications/DevEco-Studio.app/Contents}"
           export PATH="$TOOL_HOME/tools/ohpm/bin:$TOOL_HOME/tools/hvigor/bin:$PATH"
           cd "$BUILD_ROOT/ohos"
@@ -511,7 +525,7 @@ jobs:
           FLUTTER_STORAGE_BASE_URL: ${{ env.FLUTTER_STORAGE_BASE_URL }}
         run: |
           set -euxo pipefail
-          BUILD_ROOT="${HAP_BUILD_ROOT:-/tmp/zhuquejiasu-ohos}"
+          BUILD_ROOT="${HAP_BUILD_ROOT:-/private/tmp/zhuquejiasu-ohos}"
           TOOL_HOME="${TOOL_HOME:-/Applications/DevEco-Studio.app/Contents}"
           DEVECO_SDK_HOME="${DEVECO_SDK_HOME:-$TOOL_HOME/sdk}"
           FLUTTER_OHOS="${FLUTTER_OHOS:-$HOME/flutter_flutter_gitcode/bin/flutter}"
@@ -526,7 +540,7 @@ jobs:
       - name: Collect artifact
         run: |
           set -euxo pipefail
-          BUILD_ROOT="${HAP_BUILD_ROOT:-/tmp/zhuquejiasu-ohos}"
+          BUILD_ROOT="${HAP_BUILD_ROOT:-/private/tmp/zhuquejiasu-ohos}"
           mkdir -p artifacts
           cp "$BUILD_ROOT/ohos/entry/build/default/outputs/default/entry-default-signed.hap" artifacts/zhuquejiasu-ohos-release.hap
           ls -lh artifacts
