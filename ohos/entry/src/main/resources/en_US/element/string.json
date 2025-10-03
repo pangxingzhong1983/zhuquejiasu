@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "Zhuque Jiasu module"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "Main ability for Zhuque Jiasu"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "Zhuque Jiasu"
+    }
+  ]
+}

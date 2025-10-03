@@ -444,3 +444,121 @@ jobs:
           target-branch: action-pr
           commit-message: Update from ${{ github.ref_name }}
           target-directory: /tmp/
+
+  build-ohos:
+    name: build-ohos
+    runs-on:
+      - self-hosted
+      - macos
+      - ohos
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Prepare ASCII workspace
+        run: |
+          set -euxo pipefail
+          BUILD_ROOT="${HAP_BUILD_ROOT:-/tmp/zhuquejiasu-ohos}"
+          rm -rf "$BUILD_ROOT"
+          mkdir -p "$BUILD_ROOT"
+          rsync -a --delete --exclude='.git' ./ "$BUILD_ROOT/"
+
+      - name: Display versions
+        run: |
+          set -euxo pipefail
+          BUILD_ROOT="${HAP_BUILD_ROOT:-/tmp/zhuquejiasu-ohos}"
+          TOOL_HOME="${TOOL_HOME:-/Applications/DevEco-Studio.app/Contents}"
+          DEVECO_SDK_HOME="${DEVECO_SDK_HOME:-$TOOL_HOME/sdk}"
+          FLUTTER_OHOS="${FLUTTER_OHOS:-$HOME/flutter_flutter_gitcode/bin/flutter}"
+          export PATH="$TOOL_HOME/tools/ohpm/bin:$TOOL_HOME/tools/hvigor/bin:$PATH"
+          cd "$BUILD_ROOT"
+          echo "WORKSPACE=$(pwd)"
+          echo "TOOL_HOME=$TOOL_HOME"
+          echo "DEVECO_SDK_HOME=$DEVECO_SDK_HOME"
+          echo "FLUTTER_OHOS=$FLUTTER_OHOS"
+          "$FLUTTER_OHOS" --version
+          "$FLUTTER_OHOS" doctor -v
+
+      - name: Install HarmonyOS dependencies
+        run: |
+          set -euxo pipefail
+          BUILD_ROOT="${HAP_BUILD_ROOT:-/tmp/zhuquejiasu-ohos}"
+          TOOL_HOME="${TOOL_HOME:-/Applications/DevEco-Studio.app/Contents}"
+          export PATH="$TOOL_HOME/tools/ohpm/bin:$TOOL_HOME/tools/hvigor/bin:$PATH"
+          cd "$BUILD_ROOT/ohos"
+          ohpm install
+          npm install flutter-hvigor-plugin@file:$HOME/flutter_flutter_gitcode/packages/flutter_tools/hvigor
+
+      - name: Resolve Flutter packages & build Hap
+        env:
+          PUB_HOSTED_URL: ${{ env.PUB_HOSTED_URL }}
+          FLUTTER_STORAGE_BASE_URL: ${{ env.FLUTTER_STORAGE_BASE_URL }}
+        run: |
+          set -euxo pipefail
+          BUILD_ROOT="${HAP_BUILD_ROOT:-/tmp/zhuquejiasu-ohos}"
+          TOOL_HOME="${TOOL_HOME:-/Applications/DevEco-Studio.app/Contents}"
+          DEVECO_SDK_HOME="${DEVECO_SDK_HOME:-$TOOL_HOME/sdk}"
+          FLUTTER_OHOS="${FLUTTER_OHOS:-$HOME/flutter_flutter_gitcode/bin/flutter}"
+          export PATH="$TOOL_HOME/tools/ohpm/bin:$TOOL_HOME/tools/hvigor/bin:$PATH"
+          export PUB_HOSTED_URL="${PUB_HOSTED_URL:-https://pub.flutter-io.cn}"
+          export FLUTTER_STORAGE_BASE_URL="${FLUTTER_STORAGE_BASE_URL:-https://storage.flutter-io.cn}"
+          cd "$BUILD_ROOT"
+          "$FLUTTER_OHOS" config --enable-ohos
+          "$FLUTTER_OHOS" pub get
+          "$FLUTTER_OHOS" build hap --release --target-platform=ohos-arm64
+
+      - name: Collect artifact
+        run: |
+          set -euxo pipefail
+          BUILD_ROOT="${HAP_BUILD_ROOT:-/tmp/zhuquejiasu-ohos}"
+          mkdir -p artifacts
+          cp "$BUILD_ROOT/ohos/entry/build/default/outputs/default/entry-default-signed.hap" artifacts/zhuquejiasu-ohos-release.hap
+          ls -lh artifacts
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zhuquejiasu-ohos-release
+          path: artifacts/zhuquejiasu-ohos-release.hap
+
+      - name: Upload artifact to Cloudflare R2
+        run: |
+          set -euxo pipefail
+          ARTIFACTS_DIR="$(pwd)/artifacts"
+          ARTIFACT="$ARTIFACTS_DIR/zhuquejiasu-ohos-release.hap"
+          if [[ ! -f "$ARTIFACT" ]]; then
+            echo "artifact not found: $ARTIFACT" >&2
+            exit 1
+          fi
+          BUCKET="${R2_BUCKET:-zhuquejiasu}"
+          KEY="${R2_OBJECT_KEY:-zhuquejiasu-ohos-release.hap}"
+          PREFIX="${R2_PREFIX:-}"
+          if [[ -n "$PREFIX" ]]; then
+            KEY="$PREFIX/$KEY"
+          fi
+          if [[ -n "${CF_R2_ACCOUNT_ID:-}" && -n "${CF_R2_ACCESS_KEY_ID:-}" && -n "${CF_R2_SECRET_ACCESS_KEY:-}" ]]; then
+            ENDPOINT="${CF_R2_ENDPOINT:-https://$CF_R2_ACCOUNT_ID.r2.cloudflarestorage.com}"
+            export AWS_ACCESS_KEY_ID="$CF_R2_ACCESS_KEY_ID"
+            export AWS_SECRET_ACCESS_KEY="$CF_R2_SECRET_ACCESS_KEY"
+            aws s3 cp "$ARTIFACT" "s3://$BUCKET/$KEY" --endpoint-url "$ENDPOINT" --content-type application/octet-stream
+          elif [[ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
+            mime="application/octet-stream"
+            maybe_config="${WRANGLER_CONFIG_TOML:-$HOME/.wrangler/config/default.toml}"
+            echo "Uploading via wrangler to bucket=$BUCKET key=$KEY"
+            if [[ -n "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+              CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID}" CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN}" \
+                npx --yes wrangler@4.40.3 r2 object put "$BUCKET/$KEY" --file "$ARTIFACT" --content-type "$mime" --remote
+            elif [[ -f "$maybe_config" ]]; then
+              WRANGLER_CONFIG="$maybe_config" CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID}" \
+                npx --yes wrangler@4.40.3 r2 object put "$BUCKET/$KEY" --file "$ARTIFACT" --content-type "$mime" --remote
+            else
+              echo "Cloudflare R2 credentials missing (provide CLOUDFLARE_API_TOKEN or WRANGLER_CONFIG_TOML)" >&2
+              exit 1
+            fi
+          else
+            echo "Cloudflare R2 credentials missing" >&2
+            exit 1
+          fi
+          echo "Upload completed"

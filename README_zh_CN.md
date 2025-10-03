@@ -125,3 +125,14 @@ on Mobile:
         <img alt="start" width=50% src="https://api.star-history.com/svg?repos=chen08209/FlClash&Date"/>
     </a>
 </p>
+## CI 构建 HarmonyOS HAP
+
+- GitHub 工作流已新增 `build-ohos` 自托管任务（`self-hosted`/`macos` 标签），不会影响现有 Android/Windows/macOS/Linux matrix。确保 Runner 上安装 DevEco Studio 或 CLI SDK 与 `flutter_flutter_gitcode`，并设置：
+  - `TOOL_HOME=/Applications/DevEco-Studio.app/Contents`
+  - `DEVECO_SDK_HOME=$TOOL_HOME/sdk`
+  - `FLUTTER_OHOS=$HOME/flutter_flutter_gitcode/bin/flutter`
+  - 可选：`PUB_HOSTED_URL`、`FLUTTER_STORAGE_BASE_URL`、`HAP_BUILD_ROOT`（自定义临时构建目录）。
+- Cloudflare R2 凭据需通过 GitHub/Gitee Secrets 或 Runner 环境变量注入：`CLOUDFLARE_ACCOUNT_ID`、`CLOUDFLARE_API_TOKEN`（或 `WRANGLER_CONFIG_TOML`），也支持 `CF_R2_ACCOUNT_ID`/`CF_R2_ACCESS_KEY_ID`/`CF_R2_SECRET_ACCESS_KEY`。可用 `R2_BUCKET`、`R2_PREFIX`、`R2_OBJECT_KEY` 调整目标路径。
+- 构建脚本会自动把仓库内容同步至 `/tmp/zhuquejiasu-ohos` 等纯英文目录再执行 Hvigor，避免因路径包含中文而失败。
+- 首次运行前在 Runner 上执行一次 `ohos/` 目录内的 `ohpm install` 与 `npm install flutter-hvigor-plugin@file:$HOME/flutter_flutter_gitcode/packages/flutter_tools/hvigor`，确保依赖缓存。
+- 构建产物保存为 `artifacts/zhuquejiasu-ohos-release.hap`，GitHub 会额外上传为工作流工件，并同步至 Cloudflare R2。
