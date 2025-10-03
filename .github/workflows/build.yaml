@@ -200,7 +200,7 @@ jobs:
 
   upload:
     permissions: write-all
-    needs: [ build ]
+    needs: [ build, build-ohos ]
     runs-on: ubuntu-latest
     env:
       TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -236,6 +236,12 @@ jobs:
           pattern: artifact-*
           merge-multiple: true
 
+      - name: Download OHOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: zhuquejiasu-ohos-release
+          path: ./dist/
+
       - name: Upload to Cloudflare R2
         if: ${{ (env.CF_R2_ACCOUNT_ID != '' && env.CF_R2_ACCESS_KEY_ID != '' && env.CF_R2_SECRET_ACCESS_KEY != '') || (env.CLOUDFLARE_ACCOUNT_ID != '' && (env.CLOUDFLARE_API_TOKEN != '' || env.WRANGLER_CONFIG_TOML != '')) }}
         env:
@@ -257,6 +263,7 @@ jobs:
           windows_source=(./dist/*windows-amd64*.zip)
           linux_source=(./dist/*linux-amd64*.deb)
           macos_source=(./dist/*macos-arm64*.dmg)
+          ohos_source=(./dist/*ohos*.hap)
 
           if [[ ${#android_source[@]} -eq 0 ]]; then
             echo "Android APK not found in dist" >&2
@@ -274,11 +281,16 @@ jobs:
             echo "macOS DMG not found in dist" >&2
             exit 1
           fi
+          if [[ ${#ohos_source[@]} -eq 0 ]]; then
+            echo "OHOS HAP not found in dist" >&2
+            exit 1
+          fi
 
           cp "${android_source[0]}" r2_upload/zhuquejiasu.apk
           cp "${windows_source[0]}" r2_upload/zhuquejiasu.zip
           cp "${linux_source[0]}" r2_upload/zhuquejiasu.deb
           cp "${macos_source[0]}" r2_upload/zhuquejiasu.dmg
+          cp "${ohos_source[0]}" r2_upload/zhuquejiasu.hap
 
           bucket="${R2_BUCKET:-zhuquejiasu}"
           public_domain="${R2_PUBLIC_DOMAIN:-hao.zhuquejiasu.uk}"
@@ -306,6 +318,7 @@ jobs:
                 *.zip) mime="application/zip" ;;
                 *.deb) mime="application/vnd.debian.binary-package" ;;
                 *.dmg) mime="application/x-apple-diskimage" ;;
+                *.hap) mime="application/octet-stream" ;;
               esac
               local success=0
               for attempt in 1 2 3; do
@@ -332,6 +345,7 @@ jobs:
                 *.zip) mime="application/zip" ;;
                 *.deb) mime="application/vnd.debian.binary-package" ;;
                 *.dmg) mime="application/x-apple-diskimage" ;;
+                *.hap) mime="application/octet-stream" ;;
               esac
               local success=0
               for attempt in 1 2 3; do
@@ -368,7 +382,7 @@ jobs:
           if [[ -n "$public_domain" ]]; then
             {
               echo "### Cloudflare R2 Downloads"
-              for key in zhuquejiasu.apk zhuquejiasu.zip zhuquejiasu.deb zhuquejiasu.dmg; do
+              for key in zhuquejiasu.apk zhuquejiasu.zip zhuquejiasu.deb zhuquejiasu.dmg zhuquejiasu.hap; do
                 echo "- [$key](https://$public_domain/$key)"
               done
             } >> "$GITHUB_STEP_SUMMARY"
@@ -523,42 +537,4 @@ jobs:
           name: zhuquejiasu-ohos-release
           path: artifacts/zhuquejiasu-ohos-release.hap
 
-      - name: Upload artifact to Cloudflare R2
-        run: |
-          set -euxo pipefail
-          ARTIFACTS_DIR="$(pwd)/artifacts"
-          ARTIFACT="$ARTIFACTS_DIR/zhuquejiasu-ohos-release.hap"
-          if [[ ! -f "$ARTIFACT" ]]; then
-            echo "artifact not found: $ARTIFACT" >&2
-            exit 1
-          fi
-          BUCKET="${R2_BUCKET:-zhuquejiasu}"
-          KEY="${R2_OBJECT_KEY:-zhuquejiasu-ohos-release.hap}"
-          PREFIX="${R2_PREFIX:-}"
-          if [[ -n "$PREFIX" ]]; then
-            KEY="$PREFIX/$KEY"
-          fi
-          if [[ -n "${CF_R2_ACCOUNT_ID:-}" && -n "${CF_R2_ACCESS_KEY_ID:-}" && -n "${CF_R2_SECRET_ACCESS_KEY:-}" ]]; then
-            ENDPOINT="${CF_R2_ENDPOINT:-https://$CF_R2_ACCOUNT_ID.r2.cloudflarestorage.com}"
-            export AWS_ACCESS_KEY_ID="$CF_R2_ACCESS_KEY_ID"
-            export AWS_SECRET_ACCESS_KEY="$CF_R2_SECRET_ACCESS_KEY"
-            aws s3 cp "$ARTIFACT" "s3://$BUCKET/$KEY" --endpoint-url "$ENDPOINT" --content-type application/octet-stream
-          elif [[ -n "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
-            mime="application/octet-stream"
-            maybe_config="${WRANGLER_CONFIG_TOML:-$HOME/.wrangler/config/default.toml}"
-            echo "Uploading via wrangler to bucket=$BUCKET key=$KEY"
-            if [[ -n "${CLOUDFLARE_API_TOKEN:-}" ]]; then
-              CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID}" CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN}" \
-                npx --yes wrangler@4.40.3 r2 object put "$BUCKET/$KEY" --file "$ARTIFACT" --content-type "$mime" --remote
-            elif [[ -f "$maybe_config" ]]; then
-              WRANGLER_CONFIG="$maybe_config" CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID}" \
-                npx --yes wrangler@4.40.3 r2 object put "$BUCKET/$KEY" --file "$ARTIFACT" --content-type "$mime" --remote
-            else
-              echo "Cloudflare R2 credentials missing (provide CLOUDFLARE_API_TOKEN or WRANGLER_CONFIG_TOML)" >&2
-              exit 1
-            fi
-          else
-            echo "Cloudflare R2 credentials missing" >&2
-            exit 1
-          fi
-          echo "Upload completed"
+
