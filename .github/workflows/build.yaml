@@ -585,7 +585,7 @@ jobs:
           set -euxo pipefail
           BUILD_ROOT="${HAP_BUILD_ROOT:-/private/tmp/zhuquejiasu-ohos}"
           mkdir -p artifacts
-          cp "$BUILD_ROOT/ohos/entry/build/default/outputs/default/entry-default-signed.hap" artifacts/zhuquejiasu-ohos-release.hap
+          cp "$BUILD_ROOT/ohos/entry/build/default/outputs/default/entry-default-unsigned.hap" artifacts/zhuquejiasu-ohos-release.hap
           ls -lh artifacts
 
       - name: Upload artifact
