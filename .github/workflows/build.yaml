@@ -1,4 +1,4 @@
-name: zhuquejiasu-build
+name: build
 
 on:
   push:
@@ -468,7 +468,7 @@ jobs:
           target-directory: /tmp/
 
   build-ohos:
-    name: build-ohos
+    name: build (ohos, self-hosted, macos)
     runs-on:
       - self-hosted
       - macos
