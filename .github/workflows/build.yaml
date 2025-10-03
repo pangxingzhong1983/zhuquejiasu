@@ -529,7 +529,8 @@ jobs:
           DEVECO_SDK_HOME="${DEVECO_SDK_HOME:-/Applications/DevEco-Studio.app/Contents/sdk/default}"
           FLUTTER_OHOS="${FLUTTER_OHOS:-$HOME/flutter_flutter_gitcode/bin/flutter}"
           # Set critical OHOS SDK environment variables
-          export HOS_SDK_HOME="${DEVECO_SDK_HOME}/hmscore"
+          export DEVECO_SDK_HOME="${DEVECO_SDK_HOME}"
+          export HOS_SDK_HOME="${DEVECO_SDK_HOME}"
           export OHOS_SDK_HOME="${DEVECO_SDK_HOME}/openharmony"
           export PATH="$TOOL_HOME/tools/ohpm/bin:$TOOL_HOME/tools/hvigor/bin:$PATH"
           cd "$BUILD_ROOT"
@@ -552,6 +553,7 @@ jobs:
           TOOL_HOME="${TOOL_HOME:-/Applications/DevEco-Studio.app/Contents}"
           DEVECO_SDK_HOME="${DEVECO_SDK_HOME:-/Applications/DevEco-Studio.app/Contents/sdk/default}"
           # Set critical OHOS SDK environment variables
+          export DEVECO_SDK_HOME="${DEVECO_SDK_HOME}"
           export HOS_SDK_HOME="${DEVECO_SDK_HOME}"
           export OHOS_SDK_HOME="${DEVECO_SDK_HOME}/openharmony"
           export PATH="$TOOL_HOME/tools/ohpm/bin:$TOOL_HOME/tools/hvigor/bin:$PATH"
@@ -572,13 +574,14 @@ jobs:
           FLUTTER_OHOS="${FLUTTER_OHOS:-$HOME/flutter_flutter_gitcode/bin/flutter}"
           # Set critical OHOS SDK environment variables  
           # Flutter OHOS requires HOS_SDK_HOME to point to complete SDK directory
+          export DEVECO_SDK_HOME="${DEVECO_SDK_HOME}"
           export HOS_SDK_HOME="${HMS_SDK_HOME}"
           export OHOS_SDK_HOME="${DEVECO_SDK_HOME}/openharmony"
           export HMOS_SDK_HOME="${HMS_SDK_HOME}"
           export HMOS_SDK_ROOT="${HMS_SDK_HOME}"
           export DEVECO_SDK_NATIVE="${HMS_SDK_HOME}/hms/native"
-          # Add all required SDK tools to PATH
-          export PATH="$TOOL_HOME/tools/ohpm/bin:$TOOL_HOME/tools/hvigor/bin:$DEVECO_SDK_HOME/hvigor/bin:$DEVECO_SDK_HOME/ohpm/bin:$DEVECO_SDK_HOME/tools:$DEVECO_SDK_HOME/native/llvm/bin:$PATH"
+          # Add required DevEco Studio tools to PATH
+          export PATH="$TOOL_HOME/tools/ohpm/bin:$TOOL_HOME/tools/hvigor/bin:$HMS_SDK_HOME/toolchains:$PATH"
           export PUB_HOSTED_URL="${PUB_HOSTED_URL:-https://pub.flutter-io.cn}"
           export FLUTTER_STORAGE_BASE_URL="${FLUTTER_STORAGE_BASE_URL:-https://storage.flutter-io.cn}"
           cd "$BUILD_ROOT"
