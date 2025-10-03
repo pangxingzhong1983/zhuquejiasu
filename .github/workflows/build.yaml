@@ -291,7 +291,6 @@ jobs:
           if [[ -n "${WRANGLER_CONFIG_TOML:-}" ]]; then
             mkdir -p "$HOME/.wrangler/config"
             printf '%s' "$WRANGLER_CONFIG_TOML" > "$HOME/.wrangler/config/default.toml"
-            unset CLOUDFLARE_API_TOKEN
           fi
 
           upload_with_aws() {
