@@ -526,11 +526,11 @@ jobs:
           set -euxo pipefail
           BUILD_ROOT="${HAP_BUILD_ROOT:-/private/tmp/zhuquejiasu-ohos}"
           TOOL_HOME="${TOOL_HOME:-/Applications/DevEco-Studio.app/Contents}"
-          DEVECO_SDK_HOME="${DEVECO_SDK_HOME:-$HOME/Library/OpenHarmony/Sdk}"
+          DEVECO_SDK_HOME="${DEVECO_SDK_HOME:-/Applications/DevEco-Studio.app/Contents/sdk/default}"
           FLUTTER_OHOS="${FLUTTER_OHOS:-$HOME/flutter_flutter_gitcode/bin/flutter}"
           # Set critical OHOS SDK environment variables
-          export HOS_SDK_HOME="${DEVECO_SDK_HOME}"
-          export OHOS_SDK_HOME="${DEVECO_SDK_HOME}"
+          export HOS_SDK_HOME="${DEVECO_SDK_HOME}/hmscore"
+          export OHOS_SDK_HOME="${DEVECO_SDK_HOME}/openharmony"
           export PATH="$TOOL_HOME/tools/ohpm/bin:$TOOL_HOME/tools/hvigor/bin:$PATH"
           cd "$BUILD_ROOT"
           echo "WORKSPACE=$(pwd)"
@@ -547,10 +547,10 @@ jobs:
           set -euxo pipefail
           BUILD_ROOT="${HAP_BUILD_ROOT:-/private/tmp/zhuquejiasu-ohos}"
           TOOL_HOME="${TOOL_HOME:-/Applications/DevEco-Studio.app/Contents}"
-          DEVECO_SDK_HOME="${DEVECO_SDK_HOME:-$HOME/Library/OpenHarmony/Sdk}"
+          DEVECO_SDK_HOME="${DEVECO_SDK_HOME:-/Applications/DevEco-Studio.app/Contents/sdk/default}"
           # Set critical OHOS SDK environment variables
-          export HOS_SDK_HOME="${DEVECO_SDK_HOME}"
-          export OHOS_SDK_HOME="${DEVECO_SDK_HOME}"
+          export HOS_SDK_HOME="${DEVECO_SDK_HOME}/hmscore"
+          export OHOS_SDK_HOME="${DEVECO_SDK_HOME}/openharmony"
           export PATH="$TOOL_HOME/tools/ohpm/bin:$TOOL_HOME/tools/hvigor/bin:$PATH"
           cd "$BUILD_ROOT/ohos"
           ohpm install
@@ -564,13 +564,13 @@ jobs:
           set -euxo pipefail
           BUILD_ROOT="${HAP_BUILD_ROOT:-/private/tmp/zhuquejiasu-ohos}"
           TOOL_HOME="${TOOL_HOME:-/Applications/DevEco-Studio.app/Contents}"
-          DEVECO_SDK_HOME="${DEVECO_SDK_HOME:-$HOME/Library/OpenHarmony/Sdk}"
-          HMS_SDK_HOME="${HMS_SDK_HOME:-/Applications/DevEco-Studio.app/Contents/sdk/default}"
+          DEVECO_SDK_HOME="${DEVECO_SDK_HOME:-/Applications/DevEco-Studio.app/Contents/sdk/default}"
+          HMS_SDK_HOME="${HMS_SDK_HOME:-/Applications/DevEco-Studio.app/Contents/sdk/default/hmscore}"
           FLUTTER_OHOS="${FLUTTER_OHOS:-$HOME/flutter_flutter_gitcode/bin/flutter}"
           # Set critical OHOS SDK environment variables  
-          # Flutter OHOS requires HOS_SDK_HOME to point to complete DevEco SDK (contains hms + openharmony)
+          # Flutter OHOS requires HOS_SDK_HOME to point to HMS SDK directory
           export HOS_SDK_HOME="${HMS_SDK_HOME}"
-          export OHOS_SDK_HOME="${DEVECO_SDK_HOME}"
+          export OHOS_SDK_HOME="${DEVECO_SDK_HOME}/openharmony"
           export HMOS_SDK_HOME="${HMS_SDK_HOME}"
           export HMOS_SDK_ROOT="${HMS_SDK_HOME}"
           export DEVECO_SDK_NATIVE="${HMS_SDK_HOME}/hms/native"
