@@ -540,6 +540,8 @@ jobs:
           export DEVECO_SDK_HOME="/Applications/DevEco-Studio.app/Contents/sdk/default"
           export PATH="/Applications/DevEco-Studio.app/Contents/tools/ohpm/bin:/Applications/DevEco-Studio.app/Contents/tools/hvigor/bin:$PATH"
           cd "$BUILD_ROOT/ohos"
+          which ohpm || echo "ohpm not found in PATH"
+          which hvigor || echo "hvigor not found in PATH" 
           ohpm install
           npm install flutter-hvigor-plugin@file:$HOME/flutter_flutter_gitcode/packages/flutter_tools/hvigor
 
@@ -549,10 +551,11 @@ jobs:
           FLUTTER_STORAGE_BASE_URL: ${{ env.FLUTTER_STORAGE_BASE_URL }}
         run: |
           set -euxo pipefail
-          BUILD_ROOT="${HAP_BUILD_ROOT:-/private/tmp/zhuquejiasu-ohos}"
+          BUILD_ROOT="/private/tmp/zhuquejiasu-ohos"
           FLUTTER_OHOS="$HOME/flutter_flutter_gitcode/bin/flutter"
-          # 简化环境变量，直接使用本地测试通过的配置
+          # 添加必需的工具到 PATH
           export DEVECO_SDK_HOME="/Applications/DevEco-Studio.app/Contents/sdk/default" 
+          export PATH="/Applications/DevEco-Studio.app/Contents/tools/ohpm/bin:/Applications/DevEco-Studio.app/Contents/tools/hvigor/bin:$PATH"
           export PUB_HOSTED_URL="https://pub.flutter-io.cn"
           export FLUTTER_STORAGE_BASE_URL="https://storage.flutter-io.cn"
           cd "$BUILD_ROOT"
