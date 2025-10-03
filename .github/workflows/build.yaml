@@ -237,7 +237,7 @@ jobs:
           merge-multiple: true
 
       - name: Upload to Cloudflare R2
-        if: ${{ (env.CF_R2_ACCOUNT_ID != '' && env.CF_R2_ACCESS_KEY_ID != '' && env.CF_R2_SECRET_ACCESS_KEY != '') || (env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '') }}
+        if: ${{ (env.CF_R2_ACCOUNT_ID != '' && env.CF_R2_ACCESS_KEY_ID != '' && env.CF_R2_SECRET_ACCESS_KEY != '') || (env.CLOUDFLARE_ACCOUNT_ID != '' && (env.CLOUDFLARE_API_TOKEN != '' || env.WRANGLER_CONFIG_TOML != '')) }}
         env:
           CF_R2_ACCOUNT_ID: ${{ env.CF_R2_ACCOUNT_ID }}
           CF_R2_ACCESS_KEY_ID: ${{ env.CF_R2_ACCESS_KEY_ID }}
@@ -246,6 +246,7 @@ jobs:
           R2_PUBLIC_DOMAIN: ${{ env.CF_R2_PUBLIC_DOMAIN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ env.CLOUDFLARE_API_TOKEN }}
+          WRANGLER_CONFIG_TOML: ${{ env.WRANGLER_CONFIG_TOML }}
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -307,7 +308,19 @@ jobs:
                 *.deb) mime="application/vnd.debian.binary-package" ;;
                 *.dmg) mime="application/x-apple-diskimage" ;;
               esac
-              aws s3 cp "$file" "s3://$bucket/$key" --endpoint-url "$endpoint" --content-type "$mime"
+              local success=0
+              for attempt in 1 2 3; do
+                if aws s3 cp "$file" "s3://$bucket/$key" --endpoint-url "$endpoint" --content-type "$mime"; then
+                  success=1
+                  break
+                fi
+                echo "aws upload failed for $key (attempt $attempt/3), retrying..." >&2
+                sleep $((attempt * 5))
+              done
+              if [[ $success -ne 1 ]]; then
+                echo "aws upload failed for $key after 3 attempts" >&2
+                return 1
+              fi
             done
           }
 
@@ -321,10 +334,25 @@ jobs:
                 *.deb) mime="application/vnd.debian.binary-package" ;;
                 *.dmg) mime="application/x-apple-diskimage" ;;
               esac
-              if [[ -n "${CLOUDFLARE_API_TOKEN:-}" ]]; then
-                CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID}" CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN}" npx --yes wrangler@4.40.3 r2 object put "$bucket/$key" --file "$file" --content-type "$mime" --remote
-              else
-                CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID}" npx --yes wrangler@4.40.3 r2 object put "$bucket/$key" --file "$file" --content-type "$mime" --remote
+              local success=0
+              for attempt in 1 2 3; do
+                if [[ -n "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+                  if CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID}" CLOUDFLARE_API_TOKEN="${CLOUDFLARE_API_TOKEN}" npx --yes wrangler@4.40.3 r2 object put "$bucket/$key" --file "$file" --content-type "$mime" --remote; then
+                    success=1
+                    break
+                  fi
+                else
+                  if CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID}" npx --yes wrangler@4.40.3 r2 object put "$bucket/$key" --file "$file" --content-type "$mime" --remote; then
+                    success=1
+                    break
+                  fi
+                fi
+                echo "wrangler upload failed for $key (attempt $attempt/3), retrying..." >&2
+                sleep $((attempt * 5))
+              done
+              if [[ $success -ne 1 ]]; then
+                echo "wrangler upload failed for $key after 3 attempts" >&2
+                return 1
               fi
             done
           }
