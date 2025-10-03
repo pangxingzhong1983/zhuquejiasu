@@ -468,7 +468,7 @@ jobs:
           target-directory: /tmp/
 
   build-ohos:
-    name: build-ohos
+    name: build (ohos, self-hosted, arm64)
     runs-on:
       - self-hosted
       - macos
@@ -478,6 +478,12 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          fetch-depth: 1
+        env:
+          # Increase Git timeout for self-hosted runner
+          GIT_TERMINAL_PROMPT: 0
+          GIT_HTTP_LOW_SPEED_LIMIT: 1000
+          GIT_HTTP_LOW_SPEED_TIME: 600
 
       - name: Prepare ASCII workspace
         run: |
@@ -492,6 +498,17 @@ jobs:
             ls -la "$BUILD_ROOT/ohos/har/" || echo "har directory missing"
             exit 1
           fi
+
+      - name: Network connectivity check
+        run: |
+          set -euxo pipefail
+          echo "Testing network connectivity..."
+          # Test basic connectivity
+          ping -c 3 8.8.8.8 || echo "DNS connectivity issues"
+          # Test HTTPS access to critical services
+          curl -I --max-time 30 https://github.com/ || echo "GitHub access issues"
+          curl -I --max-time 30 https://pub.flutter-io.cn/ || echo "Flutter pub mirror issues"
+          curl -I --max-time 30 https://ohpm.openharmony.cn/ || echo "OpenHarmony registry issues"
 
       - name: Display versions
         run: |
@@ -516,13 +533,30 @@ jobs:
           TOOL_HOME="${TOOL_HOME:-/Applications/DevEco-Studio.app/Contents}"
           export PATH="$TOOL_HOME/tools/ohpm/bin:$TOOL_HOME/tools/hvigor/bin:$PATH"
           cd "$BUILD_ROOT/ohos"
-          ohpm install
+          
+          # Retry mechanism for ohpm install
+          for attempt in 1 2 3; do
+            echo "OHPM install attempt $attempt/3..."
+            if ohpm install; then
+              echo "OHPM install succeeded"
+              break
+            else
+              echo "OHPM install failed (attempt $attempt/3)"
+              if [[ $attempt -eq 3 ]]; then
+                echo "All OHPM install attempts failed"
+                exit 1
+              fi
+              sleep 10
+            fi
+          done
+          
+          # Install flutter-hvigor-plugin
           npm install flutter-hvigor-plugin@file:$HOME/flutter_flutter_gitcode/packages/flutter_tools/hvigor
 
       - name: Resolve Flutter packages & build Hap
         env:
-          PUB_HOSTED_URL: ${{ env.PUB_HOSTED_URL }}
-          FLUTTER_STORAGE_BASE_URL: ${{ env.FLUTTER_STORAGE_BASE_URL }}
+          PUB_HOSTED_URL: https://pub.flutter-io.cn
+          FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
         run: |
           set -euxo pipefail
           BUILD_ROOT="${HAP_BUILD_ROOT:-/private/tmp/zhuquejiasu-ohos}"
