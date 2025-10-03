@@ -524,39 +524,21 @@ jobs:
       - name: Display versions
         run: |
           set -euxo pipefail
-          BUILD_ROOT="${HAP_BUILD_ROOT:-/private/tmp/zhuquejiasu-ohos}"
-          TOOL_HOME="${TOOL_HOME:-/Applications/DevEco-Studio.app/Contents}"
-          DEVECO_SDK_HOME="${DEVECO_SDK_HOME:-/Applications/DevEco-Studio.app/Contents/sdk/default}"
-          FLUTTER_OHOS="${FLUTTER_OHOS:-$HOME/flutter_flutter_gitcode/bin/flutter}"
-          # Set critical OHOS SDK environment variables
-          export DEVECO_SDK_HOME="${DEVECO_SDK_HOME}"
-          export HOS_SDK_HOME="${DEVECO_SDK_HOME}"
-          export OHOS_SDK_HOME="${DEVECO_SDK_HOME}/openharmony"
-          export PATH="$TOOL_HOME/tools/ohpm/bin:$TOOL_HOME/tools/hvigor/bin:$PATH"
+          BUILD_ROOT="/private/tmp/zhuquejiasu-ohos"
+          FLUTTER_OHOS="$HOME/flutter_flutter_gitcode/bin/flutter"
+          export DEVECO_SDK_HOME="/Applications/DevEco-Studio.app/Contents/sdk/default"
           cd "$BUILD_ROOT"
           echo "WORKSPACE=$(pwd)"
-          echo "TOOL_HOME=$TOOL_HOME"
           echo "DEVECO_SDK_HOME=$DEVECO_SDK_HOME"
-          echo "HOS_SDK_HOME=$HOS_SDK_HOME"
-          echo "OHOS_SDK_HOME=$OHOS_SDK_HOME"
           echo "FLUTTER_OHOS=$FLUTTER_OHOS"
           "$FLUTTER_OHOS" --version
-          # Skip flutter doctor -v for now to avoid hanging
-          echo "Flutter OHOS SDK configuration:"
-          echo "  HOS_SDK_HOME=$HOS_SDK_HOME"
-          echo "  OHOS_SDK_HOME=$OHOS_SDK_HOME"
 
       - name: Install HarmonyOS dependencies
         run: |
           set -euxo pipefail
-          BUILD_ROOT="${HAP_BUILD_ROOT:-/private/tmp/zhuquejiasu-ohos}"
-          TOOL_HOME="${TOOL_HOME:-/Applications/DevEco-Studio.app/Contents}"
-          DEVECO_SDK_HOME="${DEVECO_SDK_HOME:-/Applications/DevEco-Studio.app/Contents/sdk/default}"
-          # Set critical OHOS SDK environment variables
-          export DEVECO_SDK_HOME="${DEVECO_SDK_HOME}"
-          export HOS_SDK_HOME="${DEVECO_SDK_HOME}"
-          export OHOS_SDK_HOME="${DEVECO_SDK_HOME}/openharmony"
-          export PATH="$TOOL_HOME/tools/ohpm/bin:$TOOL_HOME/tools/hvigor/bin:$PATH"
+          BUILD_ROOT="/private/tmp/zhuquejiasu-ohos"
+          export DEVECO_SDK_HOME="/Applications/DevEco-Studio.app/Contents/sdk/default"
+          export PATH="/Applications/DevEco-Studio.app/Contents/tools/ohpm/bin:/Applications/DevEco-Studio.app/Contents/tools/hvigor/bin:$PATH"
           cd "$BUILD_ROOT/ohos"
           ohpm install
           npm install flutter-hvigor-plugin@file:$HOME/flutter_flutter_gitcode/packages/flutter_tools/hvigor
@@ -568,33 +550,18 @@ jobs:
         run: |
           set -euxo pipefail
           BUILD_ROOT="${HAP_BUILD_ROOT:-/private/tmp/zhuquejiasu-ohos}"
-          TOOL_HOME="${TOOL_HOME:-/Applications/DevEco-Studio.app/Contents}"
-          DEVECO_SDK_HOME="${DEVECO_SDK_HOME:-/Applications/DevEco-Studio.app/Contents/sdk/default}"
-          HMS_SDK_HOME="${HMS_SDK_HOME:-/Applications/DevEco-Studio.app/Contents/sdk/default}"
-          FLUTTER_OHOS="${FLUTTER_OHOS:-$HOME/flutter_flutter_gitcode/bin/flutter}"
-          # Set critical OHOS SDK environment variables  
-          # Flutter OHOS requires HOS_SDK_HOME to point to complete SDK directory
-          export DEVECO_SDK_HOME="${DEVECO_SDK_HOME}"
-          export HOS_SDK_HOME="${DEVECO_SDK_HOME}/HarmonyOS-6.0.0"
-          export OHOS_SDK_HOME="${DEVECO_SDK_HOME}/HarmonyOS-6.0.0"
-          export HMOS_SDK_HOME="${DEVECO_SDK_HOME}"
-          export HMOS_SDK_ROOT="${DEVECO_SDK_HOME}"
-          export DEVECO_SDK_NATIVE="${DEVECO_SDK_HOME}/hms/native"
-          export HARMONY_HOME="${DEVECO_SDK_HOME}/HarmonyOS-6.0.0"
-          export HDC_PATH="${DEVECO_SDK_HOME}/HarmonyOS-6.0.0/toolchains/hdc"
-          export OHOS_API_VERSION="20"
-          export HARMONY_API_PATH="${DEVECO_SDK_HOME}/HarmonyOS-6.0.0/20"
-          # Clean PATH and add only existing tools
-          export PATH="$TOOL_HOME/tools/ohpm/bin:$TOOL_HOME/tools/hvigor/bin:$DEVECO_SDK_HOME/HarmonyOS-6.0.0/toolchains:$DEVECO_SDK_HOME/hms/toolchains:$DEVECO_SDK_HOME/openharmony/toolchains:$PATH"
-          export PUB_HOSTED_URL="${PUB_HOSTED_URL:-https://pub.flutter-io.cn}"
-          export FLUTTER_STORAGE_BASE_URL="${FLUTTER_STORAGE_BASE_URL:-https://storage.flutter-io.cn}"
+          FLUTTER_OHOS="$HOME/flutter_flutter_gitcode/bin/flutter"
+          # 简化环境变量，直接使用本地测试通过的配置
+          export DEVECO_SDK_HOME="/Applications/DevEco-Studio.app/Contents/sdk/default" 
+          export PUB_HOSTED_URL="https://pub.flutter-io.cn"
+          export FLUTTER_STORAGE_BASE_URL="https://storage.flutter-io.cn"
           cd "$BUILD_ROOT"
           
-          # Configure Flutter for OHOS build with SDK path
+          # 最简配置 - 本地测试通过
           "$FLUTTER_OHOS" config --enable-ohos
-          "$FLUTTER_OHOS" config --ohos-sdk "$DEVECO_SDK_HOME"
+          "$FLUTTER_OHOS" config --ohos-sdk "$DEVECO_SDK_HOME"  
           "$FLUTTER_OHOS" pub get
-          "$FLUTTER_OHOS" build hap --release --target-platform=ohos-arm64 --ohos-api-version=20
+          "$FLUTTER_OHOS" build hap --release --target-platform=ohos-arm64
 
       - name: Collect artifact
         run: |
