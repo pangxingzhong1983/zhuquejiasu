@@ -580,8 +580,10 @@ jobs:
           export HMOS_SDK_HOME="${HMS_SDK_HOME}"
           export HMOS_SDK_ROOT="${HMS_SDK_HOME}"
           export DEVECO_SDK_NATIVE="${HMS_SDK_HOME}/hms/native"
-          # Add required DevEco Studio tools to PATH
-          export PATH="$TOOL_HOME/tools/ohpm/bin:$TOOL_HOME/tools/hvigor/bin:$HMS_SDK_HOME/toolchains:$PATH"
+          export HARMONY_HOME="${DEVECO_SDK_HOME}/HarmonyOS-6.0.0"
+          export HDC_PATH="${DEVECO_SDK_HOME}/HarmonyOS-6.0.0/toolchains/hdc"
+          # Clean PATH and add only existing tools
+          export PATH="$TOOL_HOME/tools/ohpm/bin:$TOOL_HOME/tools/hvigor/bin:$DEVECO_SDK_HOME/HarmonyOS-6.0.0/toolchains:$DEVECO_SDK_HOME/hms/toolchains:$DEVECO_SDK_HOME/openharmony/toolchains:$PATH"
           export PUB_HOSTED_URL="${PUB_HOSTED_URL:-https://pub.flutter-io.cn}"
           export FLUTTER_STORAGE_BASE_URL="${FLUTTER_STORAGE_BASE_URL:-https://storage.flutter-io.cn}"
           cd "$BUILD_ROOT"
