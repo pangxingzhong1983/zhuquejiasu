@@ -491,15 +491,26 @@ jobs:
           BUILD_ROOT="${HAP_BUILD_ROOT:-/private/tmp/zhuquejiasu-ohos}"
           rm -rf "$BUILD_ROOT"
           mkdir -p "$BUILD_ROOT"
+          
+          # Copy all files except .git
           rsync -a --delete --exclude='.git' ./ "$BUILD_ROOT/"
-          # Debug: Check what files were copied
+          
+          # Ensure har directory exists and copy flutter.har separately if missing
+          mkdir -p "$BUILD_ROOT/ohos/har"
+          if [[ ! -f "$BUILD_ROOT/ohos/har/flutter.har" && -f "./ohos/har/flutter.har" ]]; then
+            echo "Copying flutter.har separately..."
+            cp "./ohos/har/flutter.har" "$BUILD_ROOT/ohos/har/flutter.har"
+          fi
+          
+          # Verify critical files exist
           echo "Checking copied files structure..."
           ls -la "$BUILD_ROOT/ohos/" || echo "ohos directory missing"
           ls -la "$BUILD_ROOT/ohos/har/" || echo "har directory missing"
           if [[ -f "$BUILD_ROOT/ohos/har/flutter.har" ]]; then
-            echo "✓ flutter.har found successfully"
+            echo "✓ flutter.har found successfully ($(ls -lh "$BUILD_ROOT/ohos/har/flutter.har" | awk '{print $5}'))"
           else
-            echo "⚠ flutter.har not found - will proceed anyway"
+            echo "✗ flutter.har still missing after manual copy!"
+            exit 1
           fi
 
       - name: Network connectivity check
