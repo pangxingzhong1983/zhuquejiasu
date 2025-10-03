@@ -486,6 +486,28 @@ jobs:
           rm -rf "$BUILD_ROOT"
           mkdir -p "$BUILD_ROOT"
           rsync -a --delete --exclude='.git' ./ "$BUILD_ROOT/"
+          mkdir -p "$BUILD_ROOT/ohos/har"
+
+          if [[ ! -f "$BUILD_ROOT/ohos/har/flutter.har" ]]; then
+            FLUTTER_BIN="${FLUTTER_OHOS:-$HOME/flutter_flutter_gitcode/bin/flutter}"
+            if [[ -x "$FLUTTER_BIN" ]]; then
+              FLUTTER_ROOT="$(cd "$(dirname "$FLUTTER_BIN")/.." && pwd)"
+              for har_path in \
+                "$FLUTTER_ROOT/bin/cache/artifacts/engine/ohos-arm64-release/flutter.har" \
+                "$FLUTTER_ROOT/bin/cache/artifacts/engine/ohos-arm64/flutter.har" \
+                "$FLUTTER_ROOT/bin/cache/artifacts/engine/ohos-x64-release/flutter.har" \
+                "$FLUTTER_ROOT/bin/cache/artifacts/engine/ohos-x64/flutter.har"; do
+                if [[ -f "$har_path" ]]; then
+                  cp "$har_path" "$BUILD_ROOT/ohos/har/flutter.har"
+                  echo "Copied flutter.har from $har_path"
+                  break
+                fi
+              done
+            else
+              echo "WARNING: Flutter OHOS binary not executable at $FLUTTER_BIN"
+            fi
+          fi
+
           # Verify critical files exist
           if [[ ! -f "$BUILD_ROOT/ohos/har/flutter.har" ]]; then
             echo "ERROR: flutter.har not found after copy"
@@ -550,5 +572,4 @@ jobs:
         with:
           name: zhuquejiasu-ohos-release
           path: artifacts/zhuquejiasu-ohos-release.hap
-
 
