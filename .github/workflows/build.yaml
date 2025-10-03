@@ -562,7 +562,8 @@ jobs:
           HMS_SDK_HOME="${HMS_SDK_HOME:-/Applications/DevEco-Studio.app/Contents/sdk/default/hms}"
           FLUTTER_OHOS="${FLUTTER_OHOS:-$HOME/flutter_flutter_gitcode/bin/flutter}"
           # Set critical OHOS SDK environment variables  
-          export HOS_SDK_HOME="${DEVECO_SDK_HOME}"
+          # Flutter OHOS requires HOS_SDK_HOME to point to HMS SDK
+          export HOS_SDK_HOME="${HMS_SDK_HOME}"
           export OHOS_SDK_HOME="${DEVECO_SDK_HOME}"
           export HMOS_SDK_HOME="${HMS_SDK_HOME}"
           export HMOS_SDK_ROOT="${HMS_SDK_HOME}"
