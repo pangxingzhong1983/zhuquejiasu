@@ -573,9 +573,9 @@ jobs:
           export FLUTTER_STORAGE_BASE_URL="${FLUTTER_STORAGE_BASE_URL:-https://storage.flutter-io.cn}"
           cd "$BUILD_ROOT"
           
-          # Configure Flutter for OHOS build with SDK path
+          # Configure Flutter for OHOS build with HMS SDK path (not OpenHarmony SDK!)
           "$FLUTTER_OHOS" config --enable-ohos
-          "$FLUTTER_OHOS" config --ohos-sdk "$DEVECO_SDK_HOME"
+          "$FLUTTER_OHOS" config --ohos-sdk "$HMS_SDK_HOME"
           "$FLUTTER_OHOS" pub get
           "$FLUTTER_OHOS" build hap --release --target-platform=ohos-arm64
 
