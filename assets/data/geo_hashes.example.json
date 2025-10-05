@@ -1,0 +1,6 @@
+{
+  "GeoIP.dat": "<sha256-checksum-here>",
+  "GeoSite.dat": "<sha256-checksum-here>",
+  "ASN.mmdb": "<sha256-checksum-here>",
+  "geoip.metadb": "<sha256-checksum-here>"
+}
