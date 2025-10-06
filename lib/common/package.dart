@@ -6,9 +6,7 @@ import 'common.dart';
 
 extension PackageInfoExtension on PackageInfo {
   String get ua => [
-        // Use ASCII-safe identifier to satisfy dart:io HttpHeaders
-        // Using packageName (bundle identifier) avoids non-ASCII app names
-        "${packageName}/v$version",
+        "$appName/v$version",
         "clash-verge",
         "Platform/${Platform.operatingSystem}",
       ].join(" ");

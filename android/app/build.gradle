@@ -33,7 +33,7 @@ def isRelease = defStoreFile.exists() && defStorePassword != null && defKeyAlias
 
 android {
     namespace "com.follow.clash"
-    compileSdkVersion 35
+    compileSdkVersion 36
     ndkVersion "27.1.12297006"
 
     compileOptions {
@@ -62,14 +62,10 @@ android {
 
     defaultConfig {
         applicationId "com.follow.clash"
-        minSdkVersion 21
-        targetSdkVersion 35
+        minSdkVersion flutter.minSdkVersion
+        targetSdkVersion 34
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
-        ndk {
-            // Only package arm64-v8a to reduce APK size
-            abiFilters 'arm64-v8a'
-        }
     }
 
     buildTypes {
@@ -78,9 +74,6 @@ android {
             applicationIdSuffix '.debug'
         }
         release {
-            // Enable shrinking and resource optimization for smaller APKs
-            minifyEnabled true
-            shrinkResources true
             if (isRelease) {
                 signingConfig signingConfigs.release
             } else {
@@ -92,13 +85,9 @@ android {
 }
 
 tasks.register('copyNativeLibs', Copy) {
-    // Clean previous JNI libs
     delete('src/main/jniLibs')
-    // Only copy arm64-v8a to include a single ABI
-    from('../../libclash/android/arm64-v8a') {
-        include 'libclash.so', 'libclash.h'
-    }
-    into('src/main/jniLibs/arm64-v8a')
+    from('../../libclash/android')
+    into('src/main/jniLibs')
 }
 
 tasks.withType(MergeSourceSetFolders).configureEach {

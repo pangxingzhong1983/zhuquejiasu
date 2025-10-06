@@ -1,13 +1,27 @@
 
 {
   "app": {
-    "signingConfigs": [],
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "storeFile": "fd",
+          "storePassword": "000000304bbe3f4a2e7d293e2047074a607cb79c48995a54ee99f150e5284e9195f3bef22deccdfdd975f8e4b1ff481e53f3be17958f81fc9c8ea7e5cc405f0f",
+          "keyPassword": "000000304bbe3f4a2e7d293e2047074a607cb79c48995a54ee99f150e5284e9195f3bef22deccdfdd975f8e4b1ff481e53f3be17958f81fc9c8ea7e5cc405f0f",
+          "keyAlias": "lifeng",
+          "signAlg": "SHA256withECDSA",
+          "profile": "ac",
+          "certpath": "ce"
+        }
+      }
+    ],
     "products": [
       {
         "name": "default",
-
+        "signingConfig": "default",
         "compatibleSdkVersion": "5.0.0(12)",
-        "runtimeOS": "HarmonyOS",
+        "runtimeOS": "HarmonyOS"
       }
     ]
   },

@@ -7,6 +7,8 @@ import 'package:fl_clash/plugins/app.dart';
 import 'package:fl_clash/state.dart';
 import 'package:fl_clash/widgets/input.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:isolate';
 
 class System {
   static System? _instance;
@@ -105,6 +107,17 @@ class System {
 
   exit() async {
     if (Platform.isAndroid) {
+      // During local debugging on Android we want to avoid actually exiting the
+      // whole process so we can capture logs and diagnose crashes. When running
+      // in debug mode on Android, suppress the real exit and only log the call.
+      if (Platform.isAndroid && kDebugMode) {
+        debugPrint('[System] exit() suppressed in debug mode on Android');
+        // Print stack trace and isolate info to help find the caller during debugging
+        debugPrint('[System] exit() call stack:\n${StackTrace.current}');
+        debugPrint('[System] exit() current isolate: ${Isolate.current.debugName ?? Isolate.current.hashCode}');
+        return;
+      }
+
       await SystemNavigator.pop();
     }
     await window?.close();

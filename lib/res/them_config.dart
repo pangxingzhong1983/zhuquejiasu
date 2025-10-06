@@ -92,10 +92,9 @@ class ThemConfig {
         brightness: isDarkMode ? Brightness.dark : Brightness.light,
       ),
       visualDensity: VisualDensity.standard,
-      // 调用 copyWith 兼容不同 Flutter 版本的 bottomAppBarTheme 实现
-      bottomAppBarTheme: ThemeData()
-          .bottomAppBarTheme
-          .copyWith(color: MyColors.bottomAppBarBgColorWith(isDarkMode)),
+      // Flutter 3.35: ThemeData.bottomAppBarTheme 接受 BottomAppBarThemeData
+      bottomAppBarTheme: BottomAppBarThemeData(
+          color: MyColors.bottomAppBarBgColorWith(isDarkMode)),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
           backgroundColor: MyColors.bottomAppBarBgColorWith(isDarkMode),
           selectedItemColor: MyColors.app_main,

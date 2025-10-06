@@ -1,0 +1,22 @@
+name: Verify Geo Assets
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  verify-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Run geo assets verification
+        run: |
+          chmod +x tools/verify_geo_assets.sh
+          tools/verify_geo_assets.sh

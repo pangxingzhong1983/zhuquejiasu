@@ -1,6 +1,8 @@
 package com.follow.clash.plugins
 
 import com.follow.clash.FlClashApplication
+import android.util.Log
+import android.os.SystemClock
 import com.follow.clash.GlobalState
 import com.follow.clash.models.VpnOptions
 import com.google.gson.Gson
@@ -14,8 +16,12 @@ data object ServicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     private lateinit var flutterMethodChannel: MethodChannel
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+        val t0 = SystemClock.elapsedRealtime()
+        Log.d("ZhuqueGlobal", "ServicePlugin.onAttachedToEngine: start at ${t0}ms thread=${Thread.currentThread().name}")
         flutterMethodChannel = MethodChannel(flutterPluginBinding.binaryMessenger, "service")
         flutterMethodChannel.setMethodCallHandler(this)
+        val t1 = SystemClock.elapsedRealtime()
+        Log.d("ZhuqueGlobal", "ServicePlugin.onAttachedToEngine: done in ${t1 - t0}ms")
     }
 
     override fun onDetachedFromEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
@@ -36,9 +42,11 @@ data object ServicePlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         }
 
         "init" -> {
-            GlobalState.getCurrentAppPlugin()
-                ?.requestNotificationsPermission()
+            val calledAt = SystemClock.elapsedRealtime()
+            Log.d("ZhuqueGlobal", "ServicePlugin.init method called at ${calledAt}ms thread=${Thread.currentThread().name}")
+            GlobalState.getCurrentAppPlugin()?.requestNotificationsPermission()
             GlobalState.initServiceEngine()
+            Log.d("ZhuqueGlobal", "ServicePlugin.init: dispatched initServiceEngine")
             result.success(true)
         }
 

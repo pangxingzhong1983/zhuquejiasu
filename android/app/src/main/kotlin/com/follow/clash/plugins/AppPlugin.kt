@@ -27,6 +27,8 @@ import com.follow.clash.extensions.getBase64
 import com.follow.clash.models.Package
 import com.google.gson.Gson
 import io.flutter.embedding.android.FlutterActivity
+import android.util.Log
+import android.os.SystemClock
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -38,6 +40,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import java.io.File
 import java.lang.ref.WeakReference
 import java.util.zip.ZipFile
@@ -49,6 +53,17 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
     private lateinit var channel: MethodChannel
 
     private lateinit var scope: CoroutineScope
+
+    // Detailed debug tag for AppPlugin heavy-path tracing
+    private val APPPLUGIN_TAG = "ZhuqueGlobal[APPPLUGIN]"
+
+    // Cached results to avoid doing heavy work during cold-start.
+    // If a request comes in very early after plugin attach, we return quickly and
+    // schedule a background computation to populate the cache.
+    private var cachedChinaPackagesJson: String? = null
+    private var computingChinaPackages: Boolean = false
+    private var pluginAttachedAt: Long = 0L
+
 
     private var vpnCallBack: (() -> Unit)? = null
 
@@ -118,9 +133,14 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
     private var isBlockNotification: Boolean = false
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+        val t0 = SystemClock.elapsedRealtime()
+        Log.d("ZhuqueGlobal", "AppPlugin.onAttachedToEngine: start at ${t0}ms thread=${Thread.currentThread().name}")
         scope = CoroutineScope(Dispatchers.Default)
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "app")
         channel.setMethodCallHandler(this)
+        pluginAttachedAt = t0
+        val t1 = SystemClock.elapsedRealtime()
+        Log.d("ZhuqueGlobal", "AppPlugin.onAttachedToEngine: done in ${t1 - t0}ms")
     }
 
     private fun initShortcuts(label: String) {
@@ -171,13 +191,52 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
 
             "getPackages" -> {
                 scope.launch {
-                    result.success(getPackagesToJson())
+                    val start = SystemClock.elapsedRealtime()
+                    Log.d("ZhuqueGlobal", "AppPlugin.getPackages: start at ${start}ms")
+                    val json = getPackagesToJson()
+                    val end = SystemClock.elapsedRealtime()
+                    Log.d("ZhuqueGlobal", "AppPlugin.getPackages: completed in ${end - start}ms")
+                    result.success(json)
                 }
             }
 
             "getChinaPackageNames" -> {
                 scope.launch {
-                    result.success(getChinaPackageNames())
+                    val callTs = SystemClock.elapsedRealtime()
+                    // Fast-path: if we already have cached result, return it immediately.
+                    cachedChinaPackagesJson?.let {
+                        Log.d("ZhuqueGlobal", "${APPPLUGIN_TAG} getChinaPackageNames: returning cached result (age=${callTs - pluginAttachedAt}ms)")
+                        result.success(it)
+                        return@launch
+                    }
+
+                    // If this call happens very early after plugin attach, don't perform
+                    // the heavy computation synchronously. Instead schedule it on IO and
+                    // return an empty list immediately so the cold-start path stays fast.
+                    val EARLY_WINDOW_MS = 4000L
+                    if (!computingChinaPackages && callTs - pluginAttachedAt <= EARLY_WINDOW_MS) {
+                        Log.d("ZhuqueGlobal", "${APPPLUGIN_TAG} getChinaPackageNames: early-call detected (age=${callTs - pluginAttachedAt}ms), scheduling background compute and returning fast")
+                        computingChinaPackages = true
+                        // Background compute and populate cache
+                        scope.launch(Dispatchers.IO) {
+                            try {
+                                val json = computeChinaPackageNames()
+                                cachedChinaPackagesJson = json
+                                Log.d("ZhuqueGlobal", "${APPPLUGIN_TAG} computeChinaPackageNames: background compute completed, cached length=${json.length}")
+                            } catch (e: Exception) {
+                                Log.w("ZhuqueGlobal", "${APPPLUGIN_TAG} computeChinaPackageNames: background compute FAILED", e)
+                            } finally {
+                                computingChinaPackages = false
+                            }
+                        }
+                        result.success(Gson().toJson(emptyList<String>()))
+                        return@launch
+                    }
+
+                    // Otherwise do a normal computation and cache result for future calls.
+                    val json = computeChinaPackageNames()
+                    cachedChinaPackagesJson = json
+                    result.success(json)
                 }
             }
 
@@ -290,6 +349,8 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
 
     private fun getPackages(): List<Package> {
         val packageManager = FlClashApplication.getAppContext().packageManager
+        val t0 = SystemClock.elapsedRealtime()
+        Log.d("ZhuqueGlobal", "${APPPLUGIN_TAG} getPackages: invoked at ${t0}ms thread=${Thread.currentThread().name} (cached=${packages.isNotEmpty()})")
         if (packages.isNotEmpty()) return packages
         packageManager?.getInstalledPackages(PackageManager.GET_META_DATA)?.filter {
             it.packageName != FlClashApplication.getAppContext().packageName
@@ -304,6 +365,8 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
                 lastUpdateTime = it.lastUpdateTime
             )
         }?.let { packages.addAll(it) }
+        val t1 = SystemClock.elapsedRealtime()
+        Log.d("ZhuqueGlobal", "${APPPLUGIN_TAG} getPackages: loaded ${packages.size} packages in ${t1 - t0}ms")
         return packages
     }
 
@@ -313,11 +376,31 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
         }
     }
 
-    private suspend fun getChinaPackageNames(): String {
+    // Original heavy computation extracted so it can be invoked either inline or
+    // in background without duplicating logic. Behavior is unchanged.
+    private suspend fun computeChinaPackageNames(): String {
+        val start = SystemClock.elapsedRealtime()
+        Log.d("ZhuqueGlobal", "AppPlugin.computeChinaPackageNames: start at ${start}ms thread=${Thread.currentThread().name}")
+        Log.d("ZhuqueGlobal", "${APPPLUGIN_TAG} computeChinaPackageNames: scheduling checks thread=${Thread.currentThread().name}")
         return withContext(Dispatchers.Default) {
-            val packages: List<String> =
-                getPackages().map { it.packageName }.filter { isChinaPackage(it) }
-            Gson().toJson(packages)
+            val pkgNames = getPackages().map { it.packageName }
+            Log.d("ZhuqueGlobal", "${APPPLUGIN_TAG} computeChinaPackageNames: total candidates=${pkgNames.size}")
+            val deferreds = pkgNames.map { pkg ->
+                async(Dispatchers.IO) {
+                    val asyncStart = SystemClock.elapsedRealtime()
+                    Log.d("ZhuqueGlobal", "${APPPLUGIN_TAG} isChinaPackage async START package=${pkg} at ${asyncStart}ms thread=${Thread.currentThread().name}")
+                    val hit = isChinaPackage(pkg)
+                    val asyncEnd = SystemClock.elapsedRealtime()
+                    Log.d("ZhuqueGlobal", "${APPPLUGIN_TAG} isChinaPackage async END package=${pkg} result=${hit} duration=${asyncEnd - asyncStart}ms")
+                    if (hit) Log.d("ZhuqueGlobal", "AppPlugin.computeChinaPackageNames: package flagged china=${pkg}")
+                    hit
+                }
+            }
+            val results = deferreds.awaitAll()
+            val chinaList = pkgNames.zip(results).filter { it.second }.map { it.first }
+            val end = SystemClock.elapsedRealtime()
+            Log.d("ZhuqueGlobal", "AppPlugin.computeChinaPackageNames: completed in ${end - start}ms (candidates=${chinaList.size})")
+            Gson().toJson(chinaList)
         }
     }
 
@@ -325,6 +408,7 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
         vpnCallBack = callBack
         val intent = VpnService.prepare(FlClashApplication.getAppContext())
         if (intent != null) {
+            Log.d("ZhuqueGlobal", "AppPlugin.requestVpnPermission: starting activity for result at ${SystemClock.elapsedRealtime()}ms")
             activityRef?.get()?.startActivityForResult(intent, VPN_PERMISSION_REQUEST_CODE)
             return
         }
@@ -341,6 +425,7 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
                 if (isBlockNotification) return
                 if (activityRef?.get() == null) return
                 activityRef?.get()?.let {
+                    Log.d("ZhuqueGlobal", "AppPlugin.requestNotificationsPermission: requesting at ${SystemClock.elapsedRealtime()}ms")
                     ActivityCompat.requestPermissions(
                         it,
                         arrayOf(Manifest.permission.POST_NOTIFICATIONS),
@@ -358,10 +443,14 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
         }
     }
 
-    private fun isChinaPackage(packageName: String): Boolean {
-        val packageManager = FlClashApplication.getAppContext().packageManager ?: return false
-        skipPrefixList.forEach {
-            if (packageName == it || packageName.startsWith("$it.")) return false
+    private suspend fun isChinaPackage(packageName: String): Boolean {
+        val startTs = SystemClock.elapsedRealtime()
+        Log.d("ZhuqueGlobal", "AppPlugin.isChinaPackage: start check ${packageName} at ${startTs}ms thread=${Thread.currentThread().name}")
+        return withContext(Dispatchers.IO) {
+        val packageManager = FlClashApplication.getAppContext().packageManager ?: return@withContext false
+        // Fast path: if the package name matches any skip prefix, bail out quickly.
+        if (skipPrefixList.any { packageName == it || packageName.startsWith("$it.") }) {
+            return@withContext false
         }
         val packageManagerFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             PackageManager.MATCH_UNINSTALLED_PACKAGES or PackageManager.GET_ACTIVITIES or PackageManager.GET_SERVICES or PackageManager.GET_RECEIVERS or PackageManager.GET_PROVIDERS
@@ -370,7 +459,8 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
             PackageManager.GET_UNINSTALLED_PACKAGES or PackageManager.GET_ACTIVITIES or PackageManager.GET_SERVICES or PackageManager.GET_RECEIVERS or PackageManager.GET_PROVIDERS
         }
         if (packageName.matches(chinaAppRegex)) {
-            return true
+            Log.d("ZhuqueGlobal", "${APPPLUGIN_TAG} isChinaPackage: quick match by package regex for ${packageName}")
+            return@withContext true
         }
         try {
             val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -383,46 +473,63 @@ class AppPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware 
                     packageName, packageManagerFlags
                 )
             }
+            Log.d("ZhuqueGlobal", "${APPPLUGIN_TAG} isChinaPackage: got packageInfo for ${packageName} publicSource=${packageInfo.applicationInfo?.publicSourceDir} activities=${packageInfo.activities?.size ?: 0} services=${packageInfo.services?.size ?: 0}")
             mutableListOf<ComponentInfo>().apply {
                 packageInfo.services?.let { addAll(it) }
                 packageInfo.activities?.let { addAll(it) }
                 packageInfo.receivers?.let { addAll(it) }
                 packageInfo.providers?.let { addAll(it) }
             }.forEach {
-                if (it.name.matches(chinaAppRegex)) return true
+                if (it.name.matches(chinaAppRegex)) return@withContext true
             }
-            ZipFile(File(packageInfo.applicationInfo?.publicSourceDir)).use {
-                for (packageEntry in it.entries()) {
-                    if (packageEntry.name.startsWith("firebase-")) return false
+            val publicSource = packageInfo.applicationInfo?.publicSourceDir
+            Log.d("ZhuqueGlobal", "AppPlugin.isChinaPackage: inspecting apk publicSource=${publicSource}")
+            ZipFile(File(publicSource)).use { zip ->
+                val entries = zip.entries().toList()
+                Log.d("ZhuqueGlobal", "${APPPLUGIN_TAG} isChinaPackage: zip entries=${entries.size} for ${packageName}")
+                // Quick scan for firebase markers first.
+                if (entries.any { it.name.startsWith("firebase-") }) {
+                    Log.d("ZhuqueGlobal", "${APPPLUGIN_TAG} isChinaPackage: firebase markers found in ${packageName}, quick-skip")
+                    return@withContext false
                 }
-                for (packageEntry in it.entries()) {
+                // Iterate dex entries; parse each on IO dispatcher only.
+                for (packageEntry in entries) {
                     if (!(packageEntry.name.startsWith("classes") && packageEntry.name.endsWith(
                             ".dex"
                         ))
                     ) {
                         continue
                     }
-                    if (packageEntry.size > 15000000) {
-                        return true
+                    if (packageEntry.size > 15_000_000) {
+                        return@withContext true
                     }
-                    val input = it.getInputStream(packageEntry).buffered()
+                    val input = zip.getInputStream(packageEntry).buffered()
+                    val dexStart = SystemClock.elapsedRealtime()
+                    Log.d("ZhuqueGlobal", "${APPPLUGIN_TAG} isChinaPackage: parsing dex entry=${packageEntry.name} size=${packageEntry.size} for ${packageName} start=${dexStart}ms")
                     val dexFile = try {
                         DexBackedDexFile.fromInputStream(null, input)
                     } catch (e: Exception) {
-                        return false
+                        Log.w("ZhuqueGlobal", "${APPPLUGIN_TAG} isChinaPackage: failed to parse dex for ${packageName}: ${e.message}", e)
+                        return@withContext false
                     }
+                    val dexEnd = SystemClock.elapsedRealtime()
+                    Log.d("ZhuqueGlobal", "${APPPLUGIN_TAG} isChinaPackage: parsed dex entry=${packageEntry.name} in ${dexEnd - dexStart}ms for ${packageName}")
                     for (clazz in dexFile.classes) {
                         val clazzName =
                             clazz.type.substring(1, clazz.type.length - 1).replace("/", ".")
                                 .replace("$", ".")
-                        if (clazzName.matches(chinaAppRegex)) return true
+                        if (clazzName.matches(chinaAppRegex)) return@withContext true
                     }
                 }
             }
-        } catch (_: Exception) {
-            return false
+        } catch (e: Exception) {
+            Log.w("ZhuqueGlobal", "${APPPLUGIN_TAG} isChinaPackage: unexpected failure when inspecting ${packageName}", e)
+            return@withContext false
         }
-        return false
+        val endTs = SystemClock.elapsedRealtime()
+        Log.d("ZhuqueGlobal", "${APPPLUGIN_TAG} isChinaPackage: completed check ${packageName} duration=${endTs - startTs}ms result=false")
+        return@withContext false
+    }
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {

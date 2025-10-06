@@ -340,8 +340,6 @@ class _ModalSideSheetState<T> extends State<_ModalSideSheet<T>> {
       case TargetPlatform.linux:
       case TargetPlatform.windows:
         return localizations.dialogLabel;
-      default:
-        return localizations.dialogLabel;
     }
   }
 

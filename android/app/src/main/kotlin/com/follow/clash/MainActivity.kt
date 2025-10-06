@@ -4,6 +4,8 @@ import com.follow.clash.plugins.AppPlugin
 import com.follow.clash.plugins.ServicePlugin
 import com.follow.clash.plugins.TilePlugin
 import io.flutter.embedding.android.FlutterActivity
+import android.util.Log
+import android.os.SystemClock
 import io.flutter.embedding.engine.FlutterEngine
 
 import io.flutter.plugin.common.MethodChannel
@@ -14,11 +16,20 @@ import java.io.File
 
 class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
-        super.configureFlutterEngine(flutterEngine)
-        flutterEngine.plugins.add(AppPlugin())
-        flutterEngine.plugins.add(ServicePlugin)
-        flutterEngine.plugins.add(TilePlugin())
-        GlobalState.flutterEngine = flutterEngine
+        val start = SystemClock.elapsedRealtime()
+        Log.d("ZhuqueGlobal", "MainActivity.configureFlutterEngine: start at ${start}ms thread=${Thread.currentThread().name}")
+    super.configureFlutterEngine(flutterEngine)
+    // Expose the primary FlutterEngine to GlobalState early so plugin
+    // method calls that run during startup can observe that the main
+    // engine is present. This avoids a race where initServiceEngine
+    // treats the main engine as absent and forces a "quick" service
+    // startup mode that may terminate the whole process.
+    GlobalState.flutterEngine = flutterEngine
+    flutterEngine.plugins.add(AppPlugin())
+    flutterEngine.plugins.add(ServicePlugin)
+    flutterEngine.plugins.add(TilePlugin())
+        val end = SystemClock.elapsedRealtime()
+        Log.d("ZhuqueGlobal", "MainActivity.configureFlutterEngine: completed in ${end - start}ms")
 
         // 添加安装APK的通道
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.example.app/install")

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 import 'package:dio/dio.dart';
+import 'package:fl_clash/common/common.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -75,8 +76,8 @@ class _UpdateDialogState extends State<UpdateDialog> {
                             content: const Text('请重启应用以完成更新'),
                             actions: [
                               TextButton(
-                                onPressed: () {
-                                  exit(0); // 退出应用
+                                onPressed: () async {
+                                  await system.exit(); // 退出应用 (debug suppressed on Android)
                                 },
                                 child: const Text('立即重启'),
                               ),

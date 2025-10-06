@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
+import 'package:dio/dio.dart';
+import 'package:fl_clash/clash/geo_manager.dart';
 
 import 'package:fl_clash/clash/clash.dart';
 import 'package:fl_clash/clash/interface.dart';
@@ -32,7 +34,7 @@ class ClashCore {
     return clashInterface.preload();
   }
 
-  static Future<void> initGeo() async {
+  static Future<bool> initGeo() async {
     final homePath = await appPath.homeDirPath;
     final homeDir = Directory(homePath);
     final isExists = await homeDir.exists();
@@ -45,26 +47,75 @@ class ClashCore {
       geoSiteFileName,
       asnFileName,
     ];
-    try {
-      for (final geoFileName in geoFileNameList) {
-        final geoFile = File(
-          join(homePath, geoFileName),
-        );
-        final isExists = await geoFile.exists();
-        if (isExists) {
-          continue;
+    // Try to ensure each asset exists under the app home path. Prefer local
+    // bundled assets; if missing try to download from trusted mirrors.
+    final mirrors = [
+      'https://dav.zhuquejiasu.uk/FlClash/assets/data/',
+    ];
+    final dio = Dio(BaseOptions(responseType: ResponseType.bytes, connectTimeout: const Duration(seconds: 10), receiveTimeout: const Duration(seconds: 20)));
+
+    bool anyFailed = false;
+    for (final geoFileName in geoFileNameList) {
+      final geoFile = File(join(homePath, geoFileName));
+      try {
+        if (await geoFile.exists()) continue;
+
+        // Try bundled asset first
+        try {
+          final data = await rootBundle.load('assets/data/$geoFileName');
+          final bytes = data.buffer.asUint8List();
+          if (bytes.isNotEmpty) {
+            await geoFile.writeAsBytes(bytes, flush: true);
+            continue;
+          }
+        } catch (assetErr) {
+          // asset not present or failed to load, fall through to download
         }
-        final data = await rootBundle.load('assets/data/$geoFileName');
-        List<int> bytes = data.buffer.asUint8List();
-        await geoFile.writeAsBytes(bytes, flush: true);
+
+        // Attempt download from mirrors with a few retries
+        bool downloaded = false;
+        for (final base in mirrors) {
+          final url = '$base$geoFileName';
+          for (int attempt = 0; attempt < 3; attempt++) {
+            try {
+              final resp = await dio.get<List<int>>(url);
+              final bytes = resp.data;
+              if (bytes != null && bytes.isNotEmpty) {
+                await geoFile.writeAsBytes(bytes, flush: true);
+                downloaded = true;
+                break;
+              }
+            } catch (e) {
+              // retry
+            }
+          }
+          if (downloaded) break;
+        }
+
+        if (!downloaded) {
+          anyFailed = true;
+          print('[ClashCore] initGeo failed for asset: assets/data/$geoFileName');
+          print('[ClashCore] error: asset missing and download attempts failed');
+        }
+      } catch (e, st) {
+        anyFailed = true;
+        print('[ClashCore] initGeo unexpected error for asset: assets/data/$geoFileName');
+        print('[ClashCore] error: $e');
+        print('[ClashCore] stack: $st');
       }
-    } catch (e) {
-      exit(0);
     }
+
+    return !anyFailed;
   }
 
   Future<bool> init() async {
-    await initGeo();
+    // Ensure geo assets are available and valid. GeoManager encapsulates
+    // bundled-asset loading, download fallback and optional checksum checks.
+    final geoOk = await GeoManager.ensureGeoAssets();
+    if (!geoOk) {
+      print('[ClashCore] init aborted: geo assets not available');
+      return false;
+    }
     final homeDirPath = await appPath.homeDirPath;
     return await clashInterface.init(homeDirPath);
   }

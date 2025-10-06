@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:common_utils/common_utils.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:sp_util/sp_util.dart';
+import '../router/app_navigator.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import '../utils/common.dart';
 import '../utils/toast_utils.dart';
@@ -131,7 +133,18 @@ class DioUtils {
       String code, String? msg, Function(String? code, String? mag)? onError) {
     // dismissProgress();
     EasyLoading.dismiss();
-    if(msg == 'Unauthenticated.'){
+    if (msg == 'Unauthenticated.') {
+      // When the server says the session is unauthenticated, avoid
+      // terminating the whole process. Instead clear the saved token,
+      // notify the user and navigate to the login page so the user can
+      // re-authenticate.
+      try {
+        SpUtil.putString('token', '');
+      } catch (_) {}
+      ToastUtils.showToast('身份已过期，请重新登录');
+      try {
+        AppNavigator.startLogin();
+      } catch (_) {}
       return;
     }
 

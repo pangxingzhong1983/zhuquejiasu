@@ -11,7 +11,7 @@ class Window {
     final props = globalState.config.windowProps;
     final acquire = await singleInstanceLock.acquire();
     if (!acquire) {
-      exit(0);
+      await system.exit();
     }
     if (Platform.isWindows) {
       protocol.register("clash");
@@ -74,7 +74,7 @@ class Window {
   }
 
   close() async {
-    exit(0);
+    await system.exit();
   }
 
   hide() async {

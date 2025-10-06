@@ -25,7 +25,7 @@ dependencies:
   json_annotation: ^4.9.0
   file_picker: ^8.0.3
   mobile_scanner: ^6.0.2
-  app_links: ^3.5.0
+  app_links: ^6.4.1
   win32_registry: ^1.1.5
   tray_manager: ^0.3.2
   collection: ^1.18.0
@@ -36,6 +36,7 @@ dependencies:
   image_picker: ^1.1.2
   webdav_client: ^1.2.2
   dio: ^5.8.0
+  crypto: ^3.0.2
   win32: ^5.5.1
   ffi: ^2.1.2
   re_editor: ^0.6.0
@@ -86,7 +87,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
-  ffigen: ^15.0.0
+  # ffigen: ^15.0.0  # 已禁用，使用预生成的FFI绑定
   json_serializable: ^6.7.1
   build_runner: ^2.4.13
   args: ^2.4.2
@@ -103,6 +104,7 @@ flutter:
     - assets/fonts/
     - assets/images/
     - assets/images/avatars/
+    - assets/data/
   fonts:
     - family: Twemoji
       fonts:
@@ -110,12 +112,13 @@ flutter:
     - family: Icons
       fonts:
         - asset: assets/fonts/Icons.ttf
-ffigen:
-  name: "ClashFFI"
-  output: 'lib/clash/generated/clash_ffi.dart'
-  headers:
-    entry-points:
-      - 'libclash/android/arm64-v8a/libclash.h'
+# ffigen配置已禁用，使用预生成的clash_ffi.dart
+# ffigen:
+#   name: "ClashFFI"
+#   output: 'lib/clash/generated/clash_ffi.dart'
+#   headers:
+#     entry-points:
+#       - 'libclash/android/arm64-v8a/libclash.h'
 flutter_intl:
   enabled: true
   class_name: AppLocalizations

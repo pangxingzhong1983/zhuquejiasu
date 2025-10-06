@@ -35,8 +35,7 @@ class _ProfilesFragmentState extends State<ProfilesFragment> with PageMixin {
 
   _updateProfiles() async {
     final profiles = globalState.config.profiles;
-    final messages = <String>[];
-    final successMessages = <String>[];
+    final messages = [];
     final updateProfiles = profiles.map<Future>(
       (profile) async {
         if (profile.type == ProfileType.file) return;
@@ -45,12 +44,8 @@ class _ProfilesFragmentState extends State<ProfilesFragment> with PageMixin {
         );
         try {
           await globalState.appController.updateProfile(profile);
-          // 更新成功
-          successMessages.add("${profile.label ?? profile.id}: 更新成功\n");
         } catch (e) {
-          // 分类错误信息，提供更友好的提示
-          String errorMessage = _formatErrorMessage(e.toString());
-          messages.add("${profile.label ?? profile.id}: $errorMessage\n");
+          messages.add("${profile.label ?? profile.id}: $e \n");
           globalState.appController.setProfile(
             profile.copyWith(
               isUpdating: false,
@@ -60,48 +55,17 @@ class _ProfilesFragmentState extends State<ProfilesFragment> with PageMixin {
       },
     );
     final titleMedium = context.textTheme.titleMedium;
-    final successStyle = titleMedium?.copyWith(color: Colors.green);
-    final errorStyle = titleMedium?.copyWith(color: Colors.red);
-    
     await Future.wait(updateProfiles);
-    
-    // 显示更新结果
-    List<TextSpan> resultSpans = [];
-    if (successMessages.isNotEmpty) {
-      resultSpans.addAll([
-        for (final message in successMessages)
-          TextSpan(text: message, style: successStyle)
-      ]);
-    }
     if (messages.isNotEmpty) {
-      resultSpans.addAll([
-        for (final message in messages)
-          TextSpan(text: message, style: errorStyle)
-      ]);
-    }
-    
-    if (resultSpans.isNotEmpty) {
       globalState.showMessage(
-        title: messages.isEmpty ? "更新完成" : "更新结果", 
-        message: TextSpan(children: resultSpans),
+        title: appLocalizations.tip,
+        message: TextSpan(
+          children: [
+            for (final message in messages)
+              TextSpan(text: message, style: titleMedium)
+          ],
+        ),
       );
-    }
-  }
-
-  /// 格式化错误信息，提供更友好的提示
-  String _formatErrorMessage(String error) {
-    if (error.contains('配置格式验证失败')) {
-      return '订阅源配置格式有误，原配置已保持不变';
-    } else if (error.contains('节点可用性验证失败')) {
-      return '订阅源中没有可用节点，原配置已保持不变';
-    } else if (error.contains('配置中未找到任何有效的代理节点')) {
-      return '新配置中没有有效代理节点，原配置已保持不变';
-    } else if (error.contains('网络') || error.contains('连接') || error.contains('timeout')) {
-      return '网络连接失败，原配置保持不变，请检查订阅链接';
-    } else if (error.contains('临时文件')) {
-      return '配置保存过程中出错，原配置保持不变';
-    } else {
-      return '更新失败，原配置保持不变: ${error.length > 40 ? error.substring(0, 40) + '...' : error}';
     }
   }
 
@@ -229,51 +193,15 @@ class ProfileItem extends StatelessWidget {
           ),
         );
         await appController.updateProfile(profile);
-        
-        // 更新成功，显示成功提示
-        globalState.showMessage(
-          title: "更新成功",
-          message: TextSpan(
-            text: "${profile.label ?? profile.id} 订阅更新成功",
-            style: TextStyle(color: Colors.green),
-          ),
-        );
       } catch (e) {
         appController.setProfile(
           profile.copyWith(
             isUpdating: false,
           ),
         );
-        
-        // 显示详细的错误信息
-        String errorMessage = _formatSingleUpdateError(e.toString());
-        globalState.showMessage(
-          title: "更新失败", 
-          message: TextSpan(
-            text: "${profile.label ?? profile.id}: $errorMessage",
-            style: TextStyle(color: Colors.red),
-          ),
-        );
         rethrow;
       }
     });
-  }
-
-  /// 格式化单个更新的错误信息
-  String _formatSingleUpdateError(String error) {
-    if (error.contains('配置格式验证失败')) {
-      return '订阅源配置格式有误，原配置保持不变，代理服务未受影响';
-    } else if (error.contains('节点可用性验证失败')) {
-      return '订阅源中没有找到可用的代理节点，原配置保持不变';
-    } else if (error.contains('配置中未找到任何有效的代理节点')) {
-      return '新的订阅配置中没有有效的代理节点，原配置保持不变';
-    } else if (error.contains('网络') || error.contains('连接') || error.contains('timeout')) {
-      return '网络连接失败，原配置保持不变，当前代理服务正常';
-    } else if (error.contains('临时文件')) {
-      return '配置保存过程出错，原配置保持不变，代理服务未受影响';
-    } else {
-      return '更新失败，原配置保持不变: ${error.length > 60 ? error.substring(0, 60) + '...' : error}';
-    }
   }
 
   _handleShowEditExtendPage(BuildContext context) {

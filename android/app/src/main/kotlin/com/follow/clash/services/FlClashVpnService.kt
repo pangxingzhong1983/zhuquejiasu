@@ -10,6 +10,9 @@ import android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
 import android.net.ProxyInfo
 import android.net.VpnService
 import android.os.Binder
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
 import android.os.Build
 import android.os.IBinder
 import android.os.Parcel
@@ -35,7 +38,10 @@ import kotlinx.coroutines.launch
 class FlClashVpnService : VpnService(), BaseServiceInterface {
     override fun onCreate() {
         super.onCreate()
-        GlobalState.initServiceEngine()
+        // Do not initialize the service FlutterEngine synchronously in onCreate()
+        // to avoid blocking the app's early startup frames. Initialization is
+        // performed lazily when the service actually starts.
+        Log.d("ZhuqueGlobal", "FlClashVpnService.onCreate: created at ${SystemClock.elapsedRealtime()}ms thread=${Thread.currentThread().name}")
     }
 
     override fun start(options: VpnOptions): Int {
@@ -102,8 +108,29 @@ class FlClashVpnService : VpnService(), BaseServiceInterface {
                     )
                 )
             }
-            establish()?.detachFd()
+            // Establish the VPN and keep the detachFd result as the lambda's
+            // final expression so this function returns Int as expected.
+            val fdResult = establish()?.detachFd()
                 ?: throw NullPointerException("Establish VPN rejected by system")
+
+            // Schedule service engine initialization a short time after the
+            // VPN is established so we avoid doing heavy native->Dart handoff
+            // during critical UI startup. GlobalState contains its own guards
+            // to make init idempotent. Scheduling is fire-and-forget; it does
+            // not change the returned fdResult.
+            try {
+                val mainHandler = Handler(Looper.getMainLooper())
+                mainHandler.postDelayed({
+                    Log.d("ZhuqueGlobal", "FlClashVpnService: scheduling initServiceEngine after VPN start at ${SystemClock.elapsedRealtime()}ms")
+                    GlobalState.initServiceEngine()
+                }, 500L)
+            } catch (e: Exception) {
+                Log.w("ZhuqueGlobal", "Failed to schedule initServiceEngine from FlClashVpnService.start", e)
+                // Best-effort fallback: call directly (GlobalState will guard duplicates)
+                GlobalState.initServiceEngine()
+            }
+
+            fdResult
         }
     }
 
