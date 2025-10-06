@@ -77,7 +77,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
                             actions: [
                               TextButton(
                                 onPressed: () async {
-                                  await system.exit(); // 退出应用 (debug suppressed on Android)
+                                  await system.terminate(); // 退出应用 (debug suppressed on Android)
                                 },
                                 child: const Text('立即重启'),
                               ),

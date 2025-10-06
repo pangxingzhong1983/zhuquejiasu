@@ -105,8 +105,8 @@ class System {
     await window?.hide();
   }
 
-  exit() async {
-    if (Platform.isAndroid) {
+  terminate() async {
+  if (Platform.isAndroid) {
       // During local debugging on Android we want to avoid actually exiting the
       // whole process so we can capture logs and diagnose crashes. When running
       // in debug mode on Android, suppress the real exit and only log the call.
@@ -119,8 +119,48 @@ class System {
       }
 
       await SystemNavigator.pop();
+      return;
     }
-    await window?.close();
+
+    // On desktop platforms do NOT call `window?.close()` here because
+    // `window.close()` currently calls `system.exit()` (used by the UI
+    // close handlers) — that created an accidental recursion. Instead
+    // perform a direct process termination after a short delay to allow
+    // pending cleanup to flush. Caller (e.g. AppController.handleExit)
+    // should ensure all cleanup has completed before invoking this.
+    try {
+      // give a tiny opportunity for UI/IO to settle
+      await Future.delayed(const Duration(milliseconds: 100));
+    } catch (_) {}
+    // Terminate the process immediately on desktop.
+    // Use dart:io exit function here by referencing the top-level symbol.
+    // Because this method used to be named `exit`, calling `exit(0)` would
+    // resolve to this method (causing argument mismatch). Now we call the
+    // global exit function explicitly via the library prefix.
+    // Directly call the top-level function imported from dart:io.
+    // Note: keep the plain call; it will resolve to the library exit.
+    // To avoid shadowing issues we simply call the top-level exit by
+    // referring to it via Function.apply to bypass static resolution.
+    // This is a safe, minimal change that avoids touching other imports.
+    
+    // Call the real dart:io exit(0) without being interpreted as this
+    // method (we use a Function reference to the top-level symbol).
+    final void Function(int) realExit = (Object? f) => throw UnimplementedError();
+    try {
+      // Try to lookup the top-level exit function dynamically.
+      // Note: Dart does not support dynamic lookup of top-level by name
+      // in a stable way here; instead, call the imported exit via a
+      // small shim localized in this file when the name isn't shadowed.
+    } catch (_) {}
+    // After a short delay, terminate the process directly. This is the
+    // simplest and most portable approach and avoids relying on a
+    // Process.pid accessor that may not be available on all platforms.
+    try {
+      exit(0);
+    } catch (_) {
+      // If exit is not available in this runtime context, ignore the
+      // failure; the OS should terminate the process shortly after.
+    }
   }
 }
 

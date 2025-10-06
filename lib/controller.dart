@@ -402,7 +402,7 @@ class AppController {
       await proxy?.stopProxy();
       await savePreferences();
     } finally {
-      system.exit();
+      system.terminate();
     }
   }
 
