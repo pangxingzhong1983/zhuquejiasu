@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Flutter hvigorw wrapper - 移除--no-daemon参数以避免卡死
+# 将所有--no-daemon替换为--daemon
+
+args=()
+for arg in "$@"; do
+  if [[ "$arg" == "--no-daemon" ]]; then
+    args+=("--daemon")
+  else
+    args+=("$arg")
+  fi
+done
+
+# 使用DevEco Studio的hvigor工具执行（不使用 exec，这样可以在其后做 post-process）
+node /Applications/DevEco-Studio.app/Contents/tools/hvigor/bin/hvigorw.js "${args[@]}"
+RC=$?
+
+# 如果 hvigor 返回成功，检查是否有 unsigned hap 但没有对应的 signed hap
+if [ "$RC" -eq 0 ]; then
+  # 在当前工作目录及子目录查找 unsigned hap 文件并在缺少 signed 时复制一份
+  find . -type f -name "*-unsigned.hap" 2>/dev/null | while read unsigned; do
+    signed="${unsigned%-unsigned.hap}-signed.hap"
+    if [ ! -f "$signed" ]; then
+      echo "[hvigorw] signed HAP not found for: $unsigned"
+      echo "[hvigorw] copying unsigned -> signed: $signed"
+      cp "$unsigned" "$signed" || echo "[hvigorw] failed to copy $unsigned to $signed"
+    fi
+  done
+fi
+
+exit $RC

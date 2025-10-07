@@ -13,14 +13,7 @@
 **/BuildProfile.ets
 **/oh-package-lock.json5
 
-# do not commit signing materials
-signing/
-
-# ignore temporary material symlinks created for hvigor signing
-fd/
-ac/
-ce/
-material/
+# signing artifacts removed from project; cleanup of signing ignore patterns
 
 **/src/main/resources/rawfile/flutter_assets/
 **/libs/arm64-v8a/libapp.so

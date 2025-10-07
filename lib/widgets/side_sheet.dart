@@ -331,16 +331,23 @@ class _ModalSideSheetState<T> extends State<_ModalSideSheet<T>> {
   ParametricCurve<double> animationCurve = _modalBottomSheetCurve;
 
   String _getRouteLabel(MaterialLocalizations localizations) {
-    switch (Theme.of(context).platform) {
-      case TargetPlatform.iOS:
-      case TargetPlatform.macOS:
-        return '';
-      case TargetPlatform.android:
-      case TargetPlatform.fuchsia:
-      case TargetPlatform.linux:
-      case TargetPlatform.windows:
-        return localizations.dialogLabel;
+    final platform = Theme.of(context).platform;
+    // 平台判断：避免直接引用可能不存在的 TargetPlatform.ohos 常量，改用运行时字符串检查
+    if (platform == TargetPlatform.iOS || platform == TargetPlatform.macOS) {
+      return '';
     }
+    if (platform == TargetPlatform.android ||
+        platform == TargetPlatform.fuchsia ||
+        platform == TargetPlatform.linux ||
+        platform == TargetPlatform.windows) {
+      return localizations.dialogLabel;
+    }
+    // 兼容：有些 Flutter 版本没有 TargetPlatform.ohos，使用字符串比较以支持鸿蒙平台标识
+    if (platform.toString() == 'TargetPlatform.ohos') {
+      return localizations.dialogLabel;
+    }
+    // 默认返回
+    return localizations.dialogLabel;
   }
 
   EdgeInsets _getNewClipDetails(Size topLayerSize) {

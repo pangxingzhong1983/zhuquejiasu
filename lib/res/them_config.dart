@@ -92,9 +92,8 @@ class ThemConfig {
         brightness: isDarkMode ? Brightness.dark : Brightness.light,
       ),
       visualDensity: VisualDensity.standard,
-      // Flutter 3.35: ThemeData.bottomAppBarTheme 接受 BottomAppBarThemeData
-      bottomAppBarTheme: BottomAppBarThemeData(
-          color: MyColors.bottomAppBarBgColorWith(isDarkMode)),
+    // ThemeData.bottomAppBarTheme 接受不同 Flutter 版本中的不同类型，为兼容性设置为 null
+    bottomAppBarTheme: null, // 使用默认颜色以避免兼容性问题
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
           backgroundColor: MyColors.bottomAppBarBgColorWith(isDarkMode),
           selectedItemColor: MyColors.app_main,
