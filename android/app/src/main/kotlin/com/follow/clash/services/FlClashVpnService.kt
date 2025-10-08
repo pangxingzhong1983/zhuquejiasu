@@ -120,10 +120,10 @@ class FlClashVpnService : VpnService(), BaseServiceInterface {
             // not change the returned fdResult.
             try {
                 val mainHandler = Handler(Looper.getMainLooper())
-                mainHandler.postDelayed({
-                    Log.d("ZhuqueGlobal", "FlClashVpnService: scheduling initServiceEngine after VPN start at ${SystemClock.elapsedRealtime()}ms")
+                mainHandler.post {
+                    Log.d("ZhuqueGlobal", "FlClashVpnService: initializing service engine immediately after VPN start at ${SystemClock.elapsedRealtime()}ms")
                     GlobalState.initServiceEngine()
-                }, 500L)
+                }
             } catch (e: Exception) {
                 Log.w("ZhuqueGlobal", "Failed to schedule initServiceEngine from FlClashVpnService.start", e)
                 // Best-effort fallback: call directly (GlobalState will guard duplicates)

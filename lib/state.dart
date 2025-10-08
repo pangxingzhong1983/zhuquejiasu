@@ -34,6 +34,8 @@ class GlobalState {
   final navigatorKey = GlobalKey<NavigatorState>();
   late AppController appController;
 
+  Completer<void>? _prewarmCompleter;
+
   late User user;
 
   GlobalKey<CommonScaffoldState> homeScaffoldKey = GlobalKey();
@@ -57,6 +59,7 @@ class GlobalState {
       totalTraffic: Traffic(),
     );
     await init();
+    schedulePrewarm();
   }
 
   init() async {
@@ -100,6 +103,7 @@ class GlobalState {
 
   handleStart([UpdateTasks? tasks]) async {
     startTime ??= DateTime.now();
+    await ensurePrewarm();
     await clashCore.startListener();
     await service?.startVpn();
     startUpdateTasks(tasks);
@@ -263,6 +267,60 @@ class GlobalState {
         testUrl: config.appSetting.testUrl,
       ),
     );
+  }
+
+  void schedulePrewarm({bool force = false}) {
+    if (!force &&
+        _prewarmCompleter != null &&
+        !(_prewarmCompleter?.isCompleted ?? true)) {
+      return;
+    }
+    final completer = Completer<void>();
+    _prewarmCompleter = completer;
+    Future(() async {
+      try {
+        await clashCore.preload();
+        await ClashCore.initGeo();
+        final params = getUpdateConfigParams();
+        final hasProfile = params.profileId.isNotEmpty ||
+            config.profiles.isNotEmpty ||
+            config.currentProfileId != null;
+        if (!hasProfile) {
+          return;
+        }
+        final res = await clashCore.updateConfig(params);
+        if (res.isNotEmpty) {
+          commonPrint.log('[Prewarm] updateConfig failed: $res');
+        }
+      } catch (e, st) {
+        commonPrint.log('[Prewarm] error: $e');
+        commonPrint.log('$st');
+      } finally {
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
+      }
+    });
+  }
+
+  Future<void> ensurePrewarm() async {
+    if (_prewarmCompleter == null) {
+      schedulePrewarm();
+    }
+    try {
+      await _prewarmCompleter?.future;
+    } catch (_) {}
+  }
+
+  void markPrewarmReady() {
+    final completer = _prewarmCompleter;
+    if (completer == null) {
+      _prewarmCompleter = Completer<void>()..complete();
+      return;
+    }
+    if (!completer.isCompleted) {
+      completer.complete();
+    }
   }
 }
 

@@ -114,13 +114,9 @@ object GlobalState {
             serviceEngineInitializing = true
         }
 
-    Log.d("ZhuqueGlobal", "initServiceEngine: scheduling main-thread init after first frame (preferred)")
-    // Experimental switch: when true, delay executeDartEntrypoint by this many ms after
-    // engine creation so we can validate whether moving the native->Dart handoff
-    // outside the early startup window avoids PerfMonitor kills. Toggleable and
-    // intentionally conservative; disable or reduce before landing to production.
-    val ENABLE_EXPERIMENTAL_DELAY = true
-    val EXPERIMENTAL_DELAY_MS = 1500L
+    Log.d("ZhuqueGlobal", "initServiceEngine: scheduling main-thread init immediately when possible")
+    val ENABLE_EXPERIMENTAL_DELAY = false
+    val EXPERIMENTAL_DELAY_MS = 0L
         // Prepare the actual init work as a lambda so we can call it from different scheduling paths
         // Guard to ensure performInit only runs once even if multiple scheduling paths trigger it
         val initInvoked = AtomicBoolean(false)
@@ -247,11 +243,11 @@ object GlobalState {
                         // run the init after a small delay. performInit is guarded so double-run is safe.
                         mainHandler.postDelayed({
                             performInit.run()
-                        }, 500)
+                        }, 50)
                 } catch (e: Exception) {
                     // Fallback to the old delayed handler in case Choreographer is unavailable
                     Log.w("ZhuqueGlobal", "Choreographer scheduling failed, falling back to delayed handler", e)
-                    mainHandler.postDelayed({ performInit.run() }, 500)
+                    mainHandler.postDelayed({ performInit.run() }, 50)
                 }
             }
         } catch (e: Exception) {

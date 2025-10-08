@@ -285,6 +285,7 @@ class AppController {
     if (res.isNotEmpty) throw res;
     lastTunEnable = enableTun;
     lastProfileModified = await profile?.profileLastModified;
+    globalState.markPrewarmReady();
   }
 
   Future _applyProfile() async {
@@ -292,6 +293,7 @@ class AppController {
     await updateClashConfig();
     await updateGroups();
     await updateProviders();
+    globalState.markPrewarmReady();
   }
 
   Future applyProfile({bool silence = false}) async {
@@ -498,11 +500,13 @@ class AppController {
       if (!ok) {
         // core initialization failed (missing assets / download failed).
         // Show a non-blocking message and skip core-dependent steps.
-        print('[AppController] clashCore.init() failed - skipping applyProfile');
+        print(
+            '[AppController] clashCore.init() failed - skipping applyProfile');
         try {
           globalState.showMessage(
             title: 'Error',
-            message: TextSpan(text: 'Core initialization failed: missing geo data assets.'),
+            message: TextSpan(
+                text: 'Core initialization failed: missing geo data assets.'),
             confirmText: 'OK',
           );
         } catch (e) {
@@ -907,19 +911,19 @@ class AppController {
   }
 
   recoveryData(
-      List<int> data,
-      RecoveryOption recoveryOption,
-      ) async {
+    List<int> data,
+    RecoveryOption recoveryOption,
+  ) async {
     final archive = await Isolate.run<Archive>(() {
       final zipDecoder = ZipDecoder();
       return zipDecoder.decodeBytes(data);
     });
     final homeDirPath = await appPath.homeDirPath;
     final configs =
-    archive.files.where((item) => item.name.endsWith(".enc")).toList();
+        archive.files.where((item) => item.name.endsWith(".enc")).toList();
     final profiles = archive.files.where((item) => !item.name.endsWith(".enc"));
     final configIndex =
-    configs.indexWhere((config) => config.name == "config.enc");
+        configs.indexWhere((config) => config.name == "config.enc");
     if (configIndex == -1) throw "invalid backup file";
     final configFile = configs[configIndex];
 
@@ -944,7 +948,7 @@ class AppController {
       // await file.writeAsString(dec);
     }
     final clashConfigIndex =
-    configs.indexWhere((config) => config.name == "clashConfig.json");
+        configs.indexWhere((config) => config.name == "clashConfig.json");
     if (clashConfigIndex != -1) {
       final clashConfigFile = configs[clashConfigIndex];
       tempConfig = tempConfig.copyWith(
@@ -963,7 +967,7 @@ class AppController {
     );
   }
 
-  bool hasWebDAV(){
+  bool hasWebDAV() {
     return _ref.read(profilesProvider) != null;
   }
 
