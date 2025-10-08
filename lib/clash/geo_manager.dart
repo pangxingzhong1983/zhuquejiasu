@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
+import 'package:fl_clash/common/constant.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path/path.dart' as p;
 import 'package:fl_clash/common/path.dart';
@@ -16,9 +17,10 @@ import 'package:fl_clash/common/path.dart';
 ///    validate downloaded/bundled files via SHA256.
 class GeoManager {
   static const requiredFiles = [
-    'GeoIP.dat',
-    'GeoSite.dat',
-    'ASN.mmdb',
+    geoIpFileName,
+    geoSiteFileName,
+    mmdbFileName,
+    asnFileName,
   ];
 
   // Default mirrors (can be extended or made configurable later).
