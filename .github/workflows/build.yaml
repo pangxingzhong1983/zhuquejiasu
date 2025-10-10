@@ -468,6 +468,7 @@ jobs:
           target-directory: /tmp/
 
   build-ohos:
+    if: ${{ false }} # Temporarily disable OHOS build without removing job definition
     name: build (ohos, self-hosted, macos)
     runs-on:
       - self-hosted
@@ -592,4 +593,3 @@ jobs:
         with:
           name: zhuquejiasu-ohos-release
           path: artifacts/zhuquejiasu-ohos-release.hap
-
