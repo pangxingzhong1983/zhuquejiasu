@@ -9,15 +9,15 @@
     },
     {
       "name": "_fe_analyzer_shared",
-      "rootUri": "file:///Users/pangxingzhong/.pub-cache/hosted/pub.flutter-io.cn/_fe_analyzer_shared-88.0.0",
+      "rootUri": "file:///Users/pangxingzhong/.pub-cache/hosted/pub.flutter-io.cn/_fe_analyzer_shared-89.0.0",
       "packageUri": "lib/",
-      "languageVersion": "3.7"
+      "languageVersion": "3.9"
     },
     {
       "name": "analyzer",
-      "rootUri": "file:///Users/pangxingzhong/.pub-cache/hosted/pub.flutter-io.cn/analyzer-8.1.1",
+      "rootUri": "file:///Users/pangxingzhong/.pub-cache/hosted/pub.flutter-io.cn/analyzer-8.2.0",
       "packageUri": "lib/",
-      "languageVersion": "3.7"
+      "languageVersion": "3.9"
     },
     {
       "name": "ansicolor",
@@ -261,9 +261,9 @@
     },
     {
       "name": "mustache_template",
-      "rootUri": "file:///Users/pangxingzhong/.pub-cache/hosted/pub.flutter-io.cn/mustache_template-2.0.0",
+      "rootUri": "file:///Users/pangxingzhong/.pub-cache/hosted/pub.flutter-io.cn/mustache_template-2.0.1",
       "packageUri": "lib/",
-      "languageVersion": "2.12"
+      "languageVersion": "3.7"
     },
     {
       "name": "node_preamble",
@@ -303,9 +303,9 @@
     },
     {
       "name": "pool",
-      "rootUri": "file:///Users/pangxingzhong/.pub-cache/hosted/pub.flutter-io.cn/pool-1.5.1",
+      "rootUri": "file:///Users/pangxingzhong/.pub-cache/hosted/pub.flutter-io.cn/pool-1.5.2",
       "packageUri": "lib/",
-      "languageVersion": "2.12"
+      "languageVersion": "3.4"
     },
     {
       "name": "pub_semver",
@@ -453,7 +453,7 @@
     },
     {
       "name": "watcher",
-      "rootUri": "file:///Users/pangxingzhong/.pub-cache/hosted/pub.flutter-io.cn/watcher-1.1.3",
+      "rootUri": "file:///Users/pangxingzhong/.pub-cache/hosted/pub.flutter-io.cn/watcher-1.1.4",
       "packageUri": "lib/",
       "languageVersion": "3.1"
     },

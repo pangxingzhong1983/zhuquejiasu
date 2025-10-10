@@ -467,9 +467,11 @@ class BuildCommand extends Command {
     final archName = argResults?["arch"];
     final currentArches =
         arches.where((element) => element.name == archName).toList();
-    final arch = currentArches.isEmpty ? null : currentArches.first;
+    Arch? arch = currentArches.isEmpty ? null : currentArches.first;
 
-    if (arch == null && target != Target.android) {
+    if (target == Target.android) {
+      arch ??= Arch.arm64;
+    } else if (arch == null) {
       throw "Invalid arch parameter";
     }
 
@@ -478,6 +480,30 @@ class BuildCommand extends Command {
       arch: arch,
       mode: mode,
     );
+
+    if (target == Target.android && arch != null) {
+      final keepArchName = Build.buildItems
+          .firstWhere(
+            (element) =>
+                element.target == Target.android && element.arch == arch,
+          )
+          .archName;
+      final androidLibDir = Directory(
+        join(
+          Build.outDir,
+          Target.android.name,
+        ),
+      );
+      if (androidLibDir.existsSync()) {
+        for (final entity in androidLibDir.listSync()) {
+          if (entity is Directory &&
+              (keepArchName == null ||
+                  basename(entity.path) != keepArchName)) {
+            entity.deleteSync(recursive: true);
+          }
+        }
+      }
+    }
 
     if (target == Target.windows) {
       await Build.buildHelper(target);
@@ -520,9 +546,8 @@ class BuildCommand extends Command {
           Arch.amd64: "android-x64",
         };
         // Only keep arm64-v8a by default; can override with --arch
-        final defaultArches = [arch ?? Arch.arm64];
-        final defaultTargets = defaultArches.map((e) => targetMap[e]).toList();
-        final selectedArch = defaultArches.first;
+        final defaultTargets = [targetMap[arch]].whereType<String>().toList();
+        final selectedArch = arch;
         final archDescriptor = Build.buildItems
             .firstWhere(
               (element) =>
