@@ -44,7 +44,6 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
   bool _lastWebDavSyncSuccess = false;
   String? _lastWebDavSyncStatus;
   DateTime? _lastWebDavSyncTime;
-  Future<void>? _autoLoginFuture;
 
   @override
   initState() {
@@ -63,7 +62,13 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
       if (!mounted) return; // 避免重复执行
       // 自动登录
       if (member.id == -1) {
-        _triggerAutoLogin();
+        ToastUtils.showLoading(status: '正在尝试自动登录...');
+        _getMemberInfo();
+        // 延迟 3 秒再关闭提示
+        await Future.delayed(const Duration(seconds: 3));
+        if (mounted) {
+          ToastUtils.hideLoading();
+        }
       }
 
       /// 每次打开去服务器下载配置
@@ -154,19 +159,6 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
     }
   }
 
-  Future<void> _triggerAutoLogin() {
-    _autoLoginFuture ??= _performAutoLogin();
-    return _autoLoginFuture!;
-  }
-
-  Future<void> _performAutoLogin() async {
-    try {
-      await _getMemberInfo();
-    } finally {
-      _autoLoginFuture = null;
-    }
-  }
-
   Future<void> _attemptInitialWebDavSync() async {
     if (!mounted || _hasAttemptedInitialSync) {
       return;
@@ -222,11 +214,7 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
     int timestamp = DateTime
         .now()
         .millisecondsSinceEpoch ~/ 1000;
-    var member = ref.read(memberProvider); // 监听 memberProvider
-    if (_autoLoginFuture != null) {
-      await _autoLoginFuture;
-      member = ref.read(memberProvider);
-    }
+    var member = ref.watch(memberProvider); // 监听 memberProvider
     /// 如果未登录 则提示尚未登录 ，跳转到登录页
     if (member.id == -1) {
       await showLoginBox(context);
