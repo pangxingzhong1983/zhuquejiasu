@@ -1,3 +1,7 @@
+## Unreleased
+
+- Encrypt sensitive config fields before persisting to shared preferences
+
 ## baseline-20250910
 
 - chore: stop tracking build artifacts (ignore target/ & cleanup)
