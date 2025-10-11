@@ -87,21 +87,13 @@ class AppController {
               currentLastModified > (lastProfileModified ?? 0));
       bool appliedProfile = false;
       if (shouldApplyProfile) {
-        await applyProfile(silence: true, refreshGroups: false);
+        await applyProfile(silence: true);
         appliedProfile = true;
       }
       await globalState.handleStart([
         updateRunTime,
         updateTraffic,
       ]);
-      if (appliedProfile) {
-        Future.microtask(() async {
-          try {
-            await updateGroups();
-            await updateProviders();
-          } catch (_) {}
-        });
-      }
       if (!appliedProfile) {
         addCheckIpNumDebounce();
       }
@@ -298,24 +290,22 @@ class AppController {
     globalState.markPrewarmReady();
   }
 
-  Future _applyProfile({bool refreshGroups = true}) async {
+  Future _applyProfile() async {
     await clashCore.requestGc();
     await updateClashConfig();
-    if (refreshGroups) {
-      await updateGroups();
-      await updateProviders();
-    }
+    await updateGroups();
+    await updateProviders();
     globalState.markPrewarmReady();
   }
 
-  Future applyProfile({bool silence = false, bool refreshGroups = true}) async {
+  Future applyProfile({bool silence = false}) async {
     if (silence) {
-      await _applyProfile(refreshGroups: refreshGroups);
+      await _applyProfile();
     } else {
       final commonScaffoldState = globalState.homeScaffoldKey.currentState;
       if (commonScaffoldState?.mounted != true) return;
       await commonScaffoldState?.loadingRun(() async {
-        await _applyProfile(refreshGroups: refreshGroups);
+        await _applyProfile();
       });
     }
     addCheckIpNumDebounce();
