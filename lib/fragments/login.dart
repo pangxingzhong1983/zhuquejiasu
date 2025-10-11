@@ -90,12 +90,16 @@ class _LoginFragmentState extends ConsumerState<LoginFragment> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isDesktop = size.width > 520;
+    final maxWidth = isDesktop ? 420.0 : size.width * 0.9;
     return SingleChildScrollView(
       child: Container(
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.8,
-          maxWidth: MediaQuery.of(context).size.width * 0.9,
+          maxWidth: maxWidth,
         ),
+        width: isDesktop ? maxWidth : null,
         child: Card(
           elevation: 6,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
