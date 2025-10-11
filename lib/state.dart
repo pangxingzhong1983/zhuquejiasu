@@ -292,6 +292,13 @@ class GlobalState {
         if (res.isNotEmpty) {
           commonPrint.log('[Prewarm] updateConfig failed: $res');
         }
+        try {
+          final controller = appController;
+          await controller.applyProfile(silence: true);
+          await controller.updateGroups();
+        } catch (_) {
+          // appController 尚未就绪时忽略，待后续流程处理
+        }
       } catch (e, st) {
         commonPrint.log('[Prewarm] error: $e');
         commonPrint.log('$st');
