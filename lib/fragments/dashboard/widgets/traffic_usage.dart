@@ -1,10 +1,10 @@
 import 'dart:math';
 
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/models/models.dart';
-import 'package:fl_clash/providers/app.dart';
-import 'package:fl_clash/state.dart';
-import 'package:fl_clash/widgets/widgets.dart';
+import 'package:zhuquejiasu/common/common.dart';
+import 'package:zhuquejiasu/models/models.dart';
+import 'package:zhuquejiasu/providers/app.dart';
+import 'package:zhuquejiasu/state.dart';
+import 'package:zhuquejiasu/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

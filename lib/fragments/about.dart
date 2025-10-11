@@ -1,6 +1,6 @@
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/state.dart';
-import 'package:fl_clash/widgets/list.dart';
+import 'package:zhuquejiasu/common/common.dart';
+import 'package:zhuquejiasu/state.dart';
+import 'package:zhuquejiasu/widgets/list.dart';
 import 'package:flutter/material.dart';
 
 @immutable
@@ -47,7 +47,7 @@ class AboutFragment extends StatelessWidget {
           title: const Text("Telegram"),
           onTap: () {
             globalState.openUrl(
-              "https://t.me/FlClash",
+              "https://t.me/ZhuqueJiasu",
             );
           },
           trailing: const Icon(Icons.launch),
@@ -65,7 +65,7 @@ class AboutFragment extends StatelessWidget {
           title: Text(appLocalizations.core),
           onTap: () {
             globalState.openUrl(
-              "https://github.com/chen08209/Clash.Meta/tree/FlClash",
+              "https://github.com/chen08209/Clash.Meta/tree/ZhuqueJiasu",
             );
           },
           trailing: const Icon(Icons.launch),

@@ -4,9 +4,9 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/models/models.dart';
-import 'package:fl_clash/state.dart';
+import 'package:zhuquejiasu/common/common.dart';
+import 'package:zhuquejiasu/models/models.dart';
+import 'package:zhuquejiasu/state.dart';
 import 'package:flutter/cupertino.dart';
 
 import '../enum/enum.dart';
@@ -31,7 +31,7 @@ class Request {
       final client = HttpClient();
       client.findProxy = (Uri uri) {
         client.userAgent = globalState.ua;
-        return FlClashHttpOverrides.handleFindProxy(uri);
+        return ZhuqueJiasuHttpOverrides.handleFindProxy(uri);
       };
       return client;
     });

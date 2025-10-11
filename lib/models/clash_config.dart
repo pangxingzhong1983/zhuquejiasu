@@ -1,6 +1,6 @@
 // ignore_for_file: invalid_annotation_target
 
-import 'package:fl_clash/common/common.dart';
+import 'package:zhuquejiasu/common/common.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../enum/enum.dart';
@@ -16,7 +16,7 @@ const defaultTun = Tun();
 const defaultDns = Dns();
 const defaultGeoXUrl = GeoXUrl();
 
-const defaultMixedPort = 7890;
+const defaultMixedPort = 27891;
 const defaultKeepAliveInterval = 30;
 
 const defaultBypassPrivateRouteAddress = [

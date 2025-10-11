@@ -1,8 +1,8 @@
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/models/models.dart';
-import 'package:fl_clash/state.dart';
-import 'package:fl_clash/widgets/scaffold.dart';
+import 'package:zhuquejiasu/common/common.dart';
+import 'package:zhuquejiasu/enum/enum.dart';
+import 'package:zhuquejiasu/models/models.dart';
+import 'package:zhuquejiasu/state.dart';
+import 'package:zhuquejiasu/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
 
 import 'side_sheet.dart';

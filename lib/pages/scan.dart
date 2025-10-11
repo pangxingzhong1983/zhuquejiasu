@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:math';
-import 'package:fl_clash/state.dart';
-import 'package:fl_clash/widgets/activate_box.dart';
+import 'package:zhuquejiasu/state.dart';
+import 'package:zhuquejiasu/widgets/activate_box.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 

@@ -3,13 +3,13 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 import 'package:dio/dio.dart';
-import 'package:fl_clash/clash/geo_manager.dart';
+import 'package:zhuquejiasu/clash/geo_manager.dart';
 
-import 'package:fl_clash/clash/clash.dart';
-import 'package:fl_clash/clash/interface.dart';
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/models/models.dart';
+import 'package:zhuquejiasu/clash/clash.dart';
+import 'package:zhuquejiasu/clash/interface.dart';
+import 'package:zhuquejiasu/common/common.dart';
+import 'package:zhuquejiasu/enum/enum.dart';
+import 'package:zhuquejiasu/models/models.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
 
@@ -50,7 +50,7 @@ class ClashCore {
     // Try to ensure each asset exists under the app home path. Prefer local
     // bundled assets; if missing try to download from trusted mirrors.
     final mirrors = [
-      'https://dav.zhuquejiasu.uk/FlClash/assets/data/',
+      'https://dav.zhuquejiasu.uk/ZhuqueJiasu/assets/data/',
     ];
     final dio = Dio(BaseOptions(responseType: ResponseType.bytes, connectTimeout: const Duration(seconds: 10), receiveTimeout: const Duration(seconds: 20)));
 

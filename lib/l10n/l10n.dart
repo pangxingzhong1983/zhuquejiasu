@@ -1300,10 +1300,10 @@ class AppLocalizations {
     );
   }
 
-  /// `Once enabled, the Clash kernel can be controlled on port 9090`
+  /// `Once enabled, the Clash kernel can be controlled on port 23145`
   String get externalControllerDesc {
     return Intl.message(
-      'Once enabled, the Clash kernel can be controlled on port 9090',
+      'Once enabled, the Clash kernel can be controlled on port 23145',
       name: 'externalControllerDesc',
       desc: '',
       args: [],

@@ -1,4 +1,4 @@
-mixed-port: 7890
+mixed-port: 27891
 
 dns:
   enable: true

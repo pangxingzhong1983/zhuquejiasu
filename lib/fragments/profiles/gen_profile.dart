@@ -1,8 +1,8 @@
-import 'package:fl_clash/clash/core.dart';
-import 'package:fl_clash/models/models.dart';
-import 'package:fl_clash/state.dart';
-import 'package:fl_clash/widgets/card.dart';
-import 'package:fl_clash/widgets/scaffold.dart';
+import 'package:zhuquejiasu/clash/core.dart';
+import 'package:zhuquejiasu/models/models.dart';
+import 'package:zhuquejiasu/state.dart';
+import 'package:zhuquejiasu/widgets/card.dart';
+import 'package:zhuquejiasu/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
 
 class GenProfile extends StatefulWidget {

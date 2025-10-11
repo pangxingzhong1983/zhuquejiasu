@@ -5,7 +5,7 @@
     -->
     <application android:label="朱雀加速 Debug" tools:replace="android:label">
         <service
-                android:name=".services.FlClashTileService"
+                android:name=".services.ZhuqueJiasuTileService"
                 android:label="朱雀加速 Debug"
                 tools:replace="android:label">
         </service>

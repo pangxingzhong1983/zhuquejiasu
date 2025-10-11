@@ -1,14 +1,14 @@
 import 'dart:async';
 
 import 'package:dynamic_color/dynamic_color.dart';
-import 'package:fl_clash/clash/clash.dart';
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/l10n/l10n.dart';
-import 'package:fl_clash/manager/hotkey_manager.dart';
-import 'package:fl_clash/manager/manager.dart';
-import 'package:fl_clash/plugins/app.dart';
-import 'package:fl_clash/providers/config.dart';
-import 'package:fl_clash/state.dart';
+import 'package:zhuquejiasu/clash/clash.dart';
+import 'package:zhuquejiasu/common/common.dart';
+import 'package:zhuquejiasu/l10n/l10n.dart';
+import 'package:zhuquejiasu/manager/hotkey_manager.dart';
+import 'package:zhuquejiasu/manager/manager.dart';
+import 'package:zhuquejiasu/plugins/app.dart';
+import 'package:zhuquejiasu/providers/config.dart';
+import 'package:zhuquejiasu/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';

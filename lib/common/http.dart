@@ -1,9 +1,9 @@
 import 'dart:io';
 
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/state.dart';
+import 'package:zhuquejiasu/common/common.dart';
+import 'package:zhuquejiasu/state.dart';
 
-class FlClashHttpOverrides extends HttpOverrides {
+class ZhuqueJiasuHttpOverrides extends HttpOverrides {
   static String handleFindProxy(Uri url) {
     if ([localhost].contains(url.host)) {
       return "DIRECT";

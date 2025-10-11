@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
-import 'package:fl_clash/common/constant.dart';
+import 'package:zhuquejiasu/common/constant.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path/path.dart' as p;
-import 'package:fl_clash/common/path.dart';
+import 'package:zhuquejiasu/common/path.dart';
 
 /// GeoManager: ensure required geo assets are available for the native core.
 ///
@@ -25,7 +25,7 @@ class GeoManager {
 
   // Default mirrors (can be extended or made configurable later).
   static const _mirrors = [
-    'https://dav.zhuquejiasu.uk/FlClash/assets/data/',
+    'https://dav.zhuquejiasu.uk/ZhuqueJiasu/assets/data/',
   ];
 
   /// Ensure all required geo assets exist and are valid.

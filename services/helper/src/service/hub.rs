@@ -7,7 +7,7 @@ use warp::{Filter, Reply};
 use serde::{Deserialize, Serialize};
 use once_cell::sync::Lazy;
 
-const LISTEN_PORT: u16 = 47890;
+const LISTEN_PORT: u16 = 48891;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct StartParams {

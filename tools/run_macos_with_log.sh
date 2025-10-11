@@ -13,10 +13,9 @@ rm -f log/flutter_app_*.log log/flutter_app.log || true
 
 # Optional: list existing profiles for context (do not delete silently here)
 echo "Existing profiles:"
-find "$HOME/Library/Application Support/com.follow.clash/profiles" -name '*.yaml' || true
+find "$HOME/Library/Application Support/com.follow.zhuque/profiles" -name '*.yaml' || true
 
 flutter clean
 
 # Stream output to a single file and terminal in real-time
 flutter run --release -d macos 2>&1 | tee "log/flutter_app.log"
-

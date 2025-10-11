@@ -1,5 +1,5 @@
-import 'package:fl_clash/models/models.dart';
-import 'package:fl_clash/state.dart';
+import 'package:zhuquejiasu/models/models.dart';
+import 'package:zhuquejiasu/state.dart';
 import 'package:flutter/material.dart';
 import 'card.dart';
 import 'grid.dart';

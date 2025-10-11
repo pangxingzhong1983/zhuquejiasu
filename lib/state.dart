@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:animations/animations.dart';
-import 'package:fl_clash/clash/clash.dart';
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/l10n/l10n.dart';
-import 'package:fl_clash/plugins/service.dart';
-import 'package:fl_clash/widgets/scaffold.dart';
+import 'package:zhuquejiasu/clash/clash.dart';
+import 'package:zhuquejiasu/enum/enum.dart';
+import 'package:zhuquejiasu/l10n/l10n.dart';
+import 'package:zhuquejiasu/plugins/service.dart';
+import 'package:zhuquejiasu/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';

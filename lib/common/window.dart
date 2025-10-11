@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/state.dart';
+import 'package:zhuquejiasu/common/common.dart';
+import 'package:zhuquejiasu/state.dart';
 import 'package:flutter/material.dart';
 import 'package:screen_retriever/screen_retriever.dart';
 import 'package:window_manager/window_manager.dart';
@@ -16,7 +16,7 @@ class Window {
     if (Platform.isWindows) {
       protocol.register("clash");
       protocol.register("clashmeta");
-      protocol.register("flclash");
+      protocol.register("zhuquejiasu");
     }
     await windowManager.ensureInitialized();
     WindowOptions windowOptions = WindowOptions(

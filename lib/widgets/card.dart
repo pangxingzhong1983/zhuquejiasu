@@ -1,6 +1,6 @@
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/widgets/fade_box.dart';
+import 'package:zhuquejiasu/common/common.dart';
+import 'package:zhuquejiasu/enum/enum.dart';
+import 'package:zhuquejiasu/widgets/fade_box.dart';
 import 'package:flutter/material.dart';
 
 import 'text.dart';

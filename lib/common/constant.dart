@@ -3,19 +3,19 @@ import 'dart:math';
 import 'dart:ui';
 
 import 'package:collection/collection.dart';
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/models/models.dart';
+import 'package:zhuquejiasu/common/common.dart';
+import 'package:zhuquejiasu/enum/enum.dart';
+import 'package:zhuquejiasu/models/models.dart';
 import 'package:flutter/material.dart';
 
 const appName = "朱雀加速";
-const appHelperService = "FlClashHelperService";
+const appHelperService = "ZhuqueJiasuHelperService";
 const coreName = "clash.meta";
 const browserUa =
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
-const packageName = "com.follow.clash";
-final unixSocketPath = "/tmp/FlClashSocket_${Random().nextInt(10000)}.sock";
-const helperPort = 47890;
+const packageName = "com.follow.zhuque";
+final unixSocketPath = "/tmp/ZhuqueJiasuSocket_${Random().nextInt(10000)}.sock";
+const helperPort = 48891;
 const helperTag = "2024125";
 const baseInfoEdgeInsets = EdgeInsets.symmetric(
   vertical: 16,
@@ -41,8 +41,8 @@ const clashConfigKey = "clash_config";
 const configKey = "config";
 const listItemPadding = EdgeInsets.symmetric(horizontal: 16);
 const double dialogCommonWidth = 300;
-const repository = "chen08209/FlClash";
-const defaultExternalController = "127.0.0.1:9090";
+const repository = "pangxingzhong1983/zhuqueJiasu";
+const defaultExternalController = "127.0.0.1:23145";
 const maxMobileWidth = 600;
 const maxLaptopWidth = 840;
 const defaultTestUrl = "https://www.gstatic.com/generate_204";
@@ -79,6 +79,6 @@ double getWidgetHeight(num lines) {
   return max(lines * 84 + (lines - 1) * 16, 0);
 }
 
-final mainIsolate = "FlClashMainIsolate";
+final mainIsolate = "ZhuqueJiasuMainIsolate";
 
-final serviceIsolate = "FlClashServiceIsolate";
+final serviceIsolate = "ZhuqueJiasuServiceIsolate";

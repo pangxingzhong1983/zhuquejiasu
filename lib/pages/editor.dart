@@ -1,5 +1,5 @@
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/widgets/scaffold.dart';
+import 'package:zhuquejiasu/common/common.dart';
+import 'package:zhuquejiasu/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:re_editor/re_editor.dart';

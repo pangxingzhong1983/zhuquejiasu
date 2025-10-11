@@ -131,9 +131,9 @@ class Build {
         ),
       ];
 
-  static String get appName => "FlClash";
+  static String get appName => "ZhuqueJiasu";
 
-  static String get coreName => "FlClashCore";
+  static String get coreName => "ZhuqueJiasuCore";
 
   static String get libName => "libclash";
 
@@ -319,7 +319,7 @@ class Build {
       "helper${target.executableExtensionName}",
     );
     final targetPath = join(outDir, target.name,
-        "FlClashHelperService${target.executableExtensionName}");
+        "ZhuqueJiasuHelperService${target.executableExtensionName}");
     await File(outPath).copy(targetPath);
   }
 

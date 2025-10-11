@@ -1,8 +1,8 @@
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/fragments/config/dns.dart';
-import 'package:fl_clash/fragments/config/general.dart';
-import 'package:fl_clash/fragments/config/network.dart';
-import 'package:fl_clash/widgets/widgets.dart';
+import 'package:zhuquejiasu/common/common.dart';
+import 'package:zhuquejiasu/fragments/config/dns.dart';
+import 'package:zhuquejiasu/fragments/config/general.dart';
+import 'package:zhuquejiasu/fragments/config/network.dart';
+import 'package:zhuquejiasu/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 
 class ConfigFragment extends StatefulWidget {

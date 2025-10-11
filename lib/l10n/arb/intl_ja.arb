@@ -166,7 +166,7 @@
   "allowBypass": "アプリがVPNをバイパスすることを許可",
   "allowBypassDesc": "有効化すると一部アプリがVPNをバイパス",
   "externalController": "外部コントローラー",
-  "externalControllerDesc": "有効化するとClashコアをポート9090で制御可能",
+  "externalControllerDesc": "有効化するとClashコアをポート23145で制御可能",
   "ipv6Desc": "有効化するとIPv6トラフィックを受信可能",
   "app": "アプリ",
   "general": "一般",

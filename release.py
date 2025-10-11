@@ -7,7 +7,7 @@ TAG = os.getenv("TAG")
 
 IS_RELEASE = "+" not in TAG
 
-CHAT_ID = "@FlClash"
+CHAT_ID = "@ZhuqueJiasu"
 API_URL = f"http://localhost:8081/bot{TELEGRAM_BOT_TOKEN}/sendMediaGroup"
 
 DIST_DIR = os.path.join(os.getcwd(), "dist")
@@ -34,7 +34,7 @@ if TAG:
     text += f"\n**{TAG}**\n"
 
 if IS_RELEASE:
-    text += f"\nhttps://github.com/chen08209/FlClash/releases/tag/{TAG}\n"
+    text += f"\nhttps://github.com/pangxingzhong1983/zhuqueJiasu/releases/tag/{TAG}\n"
 
 
 if os.path.exists(release):

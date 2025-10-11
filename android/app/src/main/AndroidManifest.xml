@@ -27,13 +27,13 @@
         tools:ignore="QueryAllPackagesPermission" />
 
     <application
-        android:name=".FlClashApplication"
+        android:name=".ZhuqueJiasuApplication"
         android:hardwareAccelerated="true"
         android:icon="@drawable/ic_stat_name"
-        android:label="@string/fl_clash">
-        android:largeHeap="true"  <!-- 添加这行 -->
+        android:label="@string/zhuquejiasu"
+        android:largeHeap="true">
         <activity
-            android:name="com.follow.clash.MainActivity"
+            android:name="com.follow.zhuque.MainActivity"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:exported="true"
             android:hardwareAccelerated="true"
@@ -63,7 +63,7 @@
 
                 <data android:scheme="clash" />
                 <data android:scheme="clashmeta" />
-                <data android:scheme="flclash" />
+                <data android:scheme="zhuquejiasu" />
 
                 <data android:host="install-config" />
             </intent-filter>
@@ -90,11 +90,11 @@
         </activity>
 
         <service
-            android:name=".services.FlClashTileService"
+            android:name=".services.ZhuqueJiasuTileService"
             android:exported="true"
             android:foregroundServiceType="specialUse"
             android:icon="@drawable/ic_stat_name"
-            android:label="FlClash"
+            android:label="ZhuqueJiasu"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
             tools:targetApi="n">
             <intent-filter>
@@ -128,7 +128,7 @@
         </provider>
 
         <service
-            android:name=".services.FlClashVpnService"
+            android:name=".services.ZhuqueJiasuVpnService"
             android:exported="false"
             android:foregroundServiceType="specialUse"
             android:permission="android.permission.BIND_VPN_SERVICE">
@@ -141,7 +141,7 @@
         </service>
 
         <service
-            android:name=".services.FlClashService"
+            android:name=".services.ZhuqueJiasuService"
             android:exported="false"
             android:foregroundServiceType="specialUse">
             <property

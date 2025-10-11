@@ -5,11 +5,11 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:ui';
 
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/plugins/app.dart';
-import 'package:fl_clash/plugins/tile.dart';
-import 'package:fl_clash/plugins/vpn.dart';
-import 'package:fl_clash/state.dart';
+import 'package:zhuquejiasu/enum/enum.dart';
+import 'package:zhuquejiasu/plugins/app.dart';
+import 'package:zhuquejiasu/plugins/tile.dart';
+import 'package:zhuquejiasu/plugins/vpn.dart';
+import 'package:zhuquejiasu/state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sp_util/sp_util.dart';
@@ -45,7 +45,7 @@ Future<void> main() async {
   await globalState.initApp(version);
   await android?.init();
   await window?.init(version);
-  HttpOverrides.global = FlClashHttpOverrides();
+  HttpOverrides.global = ZhuqueJiasuHttpOverrides();
 
   await SpUtil.getInstance(); // 初始化 SpUtil
 

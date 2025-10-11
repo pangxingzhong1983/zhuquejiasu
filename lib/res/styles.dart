@@ -1,5 +1,5 @@
 
-import 'package:fl_clash/res/them_config.dart';
+import 'package:zhuquejiasu/res/them_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

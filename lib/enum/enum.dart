@@ -2,8 +2,8 @@
 
 import 'dart:io';
 
-import 'package:fl_clash/fragments/dashboard/widgets/widgets.dart';
-import 'package:fl_clash/widgets/widgets.dart';
+import 'package:zhuquejiasu/fragments/dashboard/widgets/widgets.dart';
+import 'package:zhuquejiasu/widgets/widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
@@ -158,7 +158,7 @@ enum DnsMode {
 enum ExternalControllerStatus {
   @JsonValue("")
   close,
-  @JsonValue("127.0.0.1:9090")
+  @JsonValue("127.0.0.1:23145")
   open
 }
 

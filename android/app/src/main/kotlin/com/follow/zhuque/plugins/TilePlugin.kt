@@ -1,4 +1,4 @@
-package com.follow.clash.plugins
+package com.follow.zhuque.plugins
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall

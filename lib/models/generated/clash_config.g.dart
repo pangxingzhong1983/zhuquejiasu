@@ -319,5 +319,5 @@ const _$GeodataLoaderEnumMap = {
 
 const _$ExternalControllerStatusEnumMap = {
   ExternalControllerStatus.close: '',
-  ExternalControllerStatus.open: '127.0.0.1:9090',
+  ExternalControllerStatus.open: '127.0.0.1:23145',
 };

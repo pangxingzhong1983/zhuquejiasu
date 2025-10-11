@@ -1,6 +1,6 @@
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/models/models.dart';
-import 'package:fl_clash/state.dart';
+import 'package:zhuquejiasu/enum/enum.dart';
+import 'package:zhuquejiasu/models/models.dart';
+import 'package:zhuquejiasu/state.dart';
 import 'package:flutter/cupertino.dart';
 
 class CommonPrint {
@@ -14,7 +14,7 @@ class CommonPrint {
   }
 
   log(String? text) {
-    final payload = "[FlClash] $text";
+    final payload = "[ZhuqueJiasu] $text";
     debugPrint(payload);
     if (globalState.isService) {
       return;

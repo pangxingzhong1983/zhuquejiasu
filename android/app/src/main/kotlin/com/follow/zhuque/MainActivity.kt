@@ -1,8 +1,8 @@
-package com.follow.clash
+package com.follow.zhuque
 
-import com.follow.clash.plugins.AppPlugin
-import com.follow.clash.plugins.ServicePlugin
-import com.follow.clash.plugins.TilePlugin
+import com.follow.zhuque.plugins.AppPlugin
+import com.follow.zhuque.plugins.ServicePlugin
+import com.follow.zhuque.plugins.TilePlugin
 import io.flutter.embedding.android.FlutterActivity
 import android.util.Log
 import android.os.SystemClock

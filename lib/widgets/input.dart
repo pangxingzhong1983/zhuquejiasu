@@ -1,8 +1,8 @@
-import 'package:fl_clash/common/app_localizations.dart';
-import 'package:fl_clash/common/constant.dart';
-import 'package:fl_clash/models/common.dart';
-import 'package:fl_clash/state.dart';
-import 'package:fl_clash/widgets/null_status.dart';
+import 'package:zhuquejiasu/common/app_localizations.dart';
+import 'package:zhuquejiasu/common/constant.dart';
+import 'package:zhuquejiasu/models/common.dart';
+import 'package:zhuquejiasu/state.dart';
+import 'package:zhuquejiasu/widgets/null_status.dart';
 import 'package:flutter/material.dart';
 
 import 'card.dart';

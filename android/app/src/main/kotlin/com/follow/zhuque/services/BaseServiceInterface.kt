@@ -1,6 +1,6 @@
-package com.follow.clash.services
+package com.follow.zhuque.services
 
-import com.follow.clash.models.VpnOptions
+import com.follow.zhuque.models.VpnOptions
 
 interface BaseServiceInterface {
 

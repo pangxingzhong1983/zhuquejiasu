@@ -1,14 +1,14 @@
 import 'dart:typed_data';
 
-import 'package:fl_clash/common/common.dart';
-import 'package:fl_clash/common/dav_client.dart';
-import 'package:fl_clash/enum/enum.dart';
-import 'package:fl_clash/models/models.dart';
-import 'package:fl_clash/providers/config.dart';
-import 'package:fl_clash/state.dart';
-import 'package:fl_clash/widgets/fade_box.dart';
-import 'package:fl_clash/widgets/list.dart';
-import 'package:fl_clash/widgets/text.dart';
+import 'package:zhuquejiasu/common/common.dart';
+import 'package:zhuquejiasu/common/dav_client.dart';
+import 'package:zhuquejiasu/enum/enum.dart';
+import 'package:zhuquejiasu/models/models.dart';
+import 'package:zhuquejiasu/providers/config.dart';
+import 'package:zhuquejiasu/state.dart';
+import 'package:zhuquejiasu/widgets/fade_box.dart';
+import 'package:zhuquejiasu/widgets/list.dart';
+import 'package:zhuquejiasu/widgets/text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

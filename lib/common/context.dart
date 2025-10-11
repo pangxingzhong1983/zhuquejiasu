@@ -1,5 +1,5 @@
-import 'package:fl_clash/manager/manager.dart';
-import 'package:fl_clash/widgets/scaffold.dart';
+import 'package:zhuquejiasu/manager/manager.dart';
+import 'package:zhuquejiasu/widgets/scaffold.dart';
 import 'package:flutter/material.dart';
 
 extension BuildContextExtension on BuildContext {

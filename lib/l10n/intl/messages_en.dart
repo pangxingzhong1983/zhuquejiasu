@@ -220,7 +220,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "ExternalController",
     ),
     "externalControllerDesc": MessageLookupByLibrary.simpleMessage(
-      "Once enabled, the Clash kernel can be controlled on port 9090",
+      "Once enabled, the Clash kernel can be controlled on port 23145",
     ),
     "externalLink": MessageLookupByLibrary.simpleMessage("External link"),
     "externalResources": MessageLookupByLibrary.simpleMessage(
