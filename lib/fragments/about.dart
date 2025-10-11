@@ -65,7 +65,7 @@ class AboutFragment extends StatelessWidget {
           title: Text(appLocalizations.core),
           onTap: () {
             globalState.openUrl(
-              "https://github.com/chen08209/Clash.Meta/tree/ZhuqueJiasu",
+              "https://github.com/pangxingzhong1983/zhuqueJiasu/tree/main/core/Clash.Meta",
             );
           },
           trailing: const Icon(Icons.launch),
