@@ -142,7 +142,7 @@ class Other {
     required Brightness brightness,
   }) {
     if (Platform.isMacOS) {
-      return "assets/images/icon_white.png";
+      return "assets/images/tray_icon_template.png";
     }
     final suffix = Platform.isWindows ? "ico" : "png";
     return "assets/images/icon.$suffix";
