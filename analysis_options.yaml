@@ -6,3 +6,5 @@ linter:
 analyzer:
   plugins:
     - custom_lint
+  exclude:
+    - plugins/**

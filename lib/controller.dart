@@ -79,21 +79,32 @@ class AppController {
 
   updateStatus(bool isStart) async {
     if (isStart) {
+      final profile = _ref.read(currentProfileProvider);
+      final currentLastModified = await profile?.profileLastModified;
+      final shouldApplyProfile = profile != null &&
+          (currentLastModified == null ||
+              lastProfileModified == null ||
+              currentLastModified > (lastProfileModified ?? 0));
+      bool appliedProfile = false;
+      if (shouldApplyProfile) {
+        await applyProfile(silence: true, refreshGroups: false);
+        appliedProfile = true;
+      }
       await globalState.handleStart([
         updateRunTime,
         updateTraffic,
       ]);
-      final currentLastModified =
-          await _ref.read(currentProfileProvider)?.profileLastModified;
-      if (currentLastModified == null || lastProfileModified == null) {
-        addCheckIpNumDebounce();
-        return;
+      if (appliedProfile) {
+        Future.microtask(() async {
+          try {
+            await updateGroups();
+            await updateProviders();
+          } catch (_) {}
+        });
       }
-      if (currentLastModified <= (lastProfileModified ?? 0)) {
+      if (!appliedProfile) {
         addCheckIpNumDebounce();
-        return;
       }
-      applyProfileDebounce();
     } else {
       await globalState.handleStop();
       await clashCore.resetTraffic();
@@ -255,7 +266,6 @@ class AppController {
 
   Future<void> _updateClashConfig([bool? isPatch]) async {
     final profile = _ref.watch(currentProfileProvider);
-    await _ref.read(currentProfileProvider)?.checkAndUpdate();
     final patchConfig = _ref.read(patchClashConfigProvider);
     final appSetting = _ref.read(appSettingProvider);
     bool enableTun = patchConfig.tun.enable;
@@ -288,22 +298,24 @@ class AppController {
     globalState.markPrewarmReady();
   }
 
-  Future _applyProfile() async {
+  Future _applyProfile({bool refreshGroups = true}) async {
     await clashCore.requestGc();
     await updateClashConfig();
-    await updateGroups();
-    await updateProviders();
+    if (refreshGroups) {
+      await updateGroups();
+      await updateProviders();
+    }
     globalState.markPrewarmReady();
   }
 
-  Future applyProfile({bool silence = false}) async {
+  Future applyProfile({bool silence = false, bool refreshGroups = true}) async {
     if (silence) {
-      await _applyProfile();
+      await _applyProfile(refreshGroups: refreshGroups);
     } else {
       final commonScaffoldState = globalState.homeScaffoldKey.currentState;
       if (commonScaffoldState?.mounted != true) return;
       await commonScaffoldState?.loadingRun(() async {
-        await _applyProfile();
+        await _applyProfile(refreshGroups: refreshGroups);
       });
     }
     addCheckIpNumDebounce();
@@ -319,27 +331,8 @@ class AppController {
   }
 
   autoUpdateProfiles() async {
-    for (final profile in _ref.read(profilesProvider)) {
-      if (!profile.autoUpdate) continue;
-      final isNotNeedUpdate = profile.lastUpdateDate
-          ?.add(
-            profile.autoUpdateDuration,
-          )
-          .isBeforeNow;
-      if (isNotNeedUpdate == false || profile.type == ProfileType.file) {
-        continue;
-      }
-      try {
-        await updateProfile(profile);
-      } catch (e) {
-        _ref.read(logsProvider.notifier).addLog(
-              Log(
-                logLevel: LogLevel.info,
-                payload: e.toString(),
-              ),
-            );
-      }
-    }
+    // 订阅由 WebDAV 备份负责，此处不再自动拉取远程订阅链接。
+    return;
   }
 
   Future<void> updateGroups() async {
@@ -525,12 +518,12 @@ class AppController {
     /// 免责声明
     // await _handlerDisclaimer();
     await initCore();
+    await _preAuthorizeTun();
     await _initStatus();
     updateTray(true);
     autoLaunch?.updateStatus(
       _ref.read(appSettingProvider).autoLaunch,
     );
-    autoUpdateProfiles();
     autoCheckUpdate();
     if (!_ref.read(appSettingProvider).silentLaunch) {
       window?.show();
@@ -538,6 +531,25 @@ class AppController {
       window?.hide();
     }
     _ref.read(initProvider.notifier).value = true;
+    addCheckIpNumDebounce();
+  }
+
+  Future<void> _preAuthorizeTun() async {
+    if (Platform.isAndroid) {
+      return;
+    }
+    final patchConfig = _ref.read(patchClashConfigProvider);
+    if (!patchConfig.tun.enable || lastTunEnable) {
+      return;
+    }
+    final code = await system.authorizeCore();
+    if (code == AuthorizeCode.success) {
+      lastTunEnable = true;
+    } else if (code == AuthorizeCode.error) {
+      _ref.read(patchClashConfigProvider.notifier).value = patchConfig.copyWith(
+        tun: patchConfig.tun.copyWith(enable: false),
+      );
+    }
   }
 
   _initStatus() async {

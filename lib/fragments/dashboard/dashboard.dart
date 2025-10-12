@@ -39,6 +39,12 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
   bool isStart = false;
 
   Timer? _autoStopTimer; // 添加定时器变量
+  Future<bool>? _webDavSyncFuture;
+  bool _hasAttemptedInitialSync = false;
+  bool _lastWebDavSyncSuccess = false;
+  String? _lastWebDavSyncStatus;
+  DateTime? _lastWebDavSyncTime;
+  Future<void>? _autoLoginFuture;
 
   @override
   initState() {
@@ -57,13 +63,7 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
       if (!mounted) return; // 避免重复执行
       // 自动登录
       if (member.id == -1) {
-        ToastUtils.showLoading(status: '正在尝试自动登录...');
-        _getMemberInfo();
-        // 延迟 3 秒再关闭提示
-        await Future.delayed(const Duration(seconds: 3));
-        if (mounted) {
-          ToastUtils.hideLoading();
-        }
+        _triggerAutoLogin();
       }
 
       /// 每次打开去服务器下载配置
@@ -73,6 +73,8 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
       //   await _autoLoadWebDAV();
       //   ToastUtils.hideLoading();
       // }
+
+      await _attemptInitialWebDavSync();
     });
 
     return super.initState();
@@ -88,28 +90,41 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
       var user = User.fromJson(data['data']);
 
       ref.read(memberProvider.notifier).updateUser(user);
+      await _attemptInitialWebDavSync();
     } catch (e) {
       // throw Exception('请重新登录');
     }
 
   }
 
-  _autoLoadWebDAV() async {
-    // 检查是否正在执行
-    if (_isLoadingWebDAV) {
-      // ToastUtils.showToast('正在同步中，请稍候...');
-      return;
+  Future<bool> _autoLoadWebDAV({bool force = false}) {
+    if (!force &&
+        _lastWebDavSyncSuccess &&
+        _lastWebDavSyncStatus == _networkStatus) {
+      return Future.value(true);
     }
-    if (!mounted) {
-      return;
+    if (_webDavSyncFuture != null) {
+      return _webDavSyncFuture!;
     }
+    _webDavSyncFuture = _performWebDavSync();
+    return _webDavSyncFuture!;
+  }
 
+  Future<bool> _performWebDavSync() async {
+    if (!mounted) {
+      _webDavSyncFuture = null;
+      return false;
+    }
+    if (_isLoadingWebDAV) {
+      final currentFuture = _webDavSyncFuture;
+      final result = await currentFuture!;
+      return result;
+    }
+    final currentNetworkStatus = _networkStatus;
     try {
       _isLoadingWebDAV = true;
-      // 显示进度对话框
-      // ToastUtils.showLoading(status: '正在获取配置信息...');
       var data = await DioUtils.instance
-          .request(Method.post, Api.getDav, autoDismiss: false,params: {'netStatus' :_networkStatus });
+          .request(Method.post, Api.getDav, autoDismiss: false, params: {'netStatus': currentNetworkStatus});
 
       final dav = DAV(
         uri: data['data']['uri'],
@@ -117,34 +132,56 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
         password: data['data']['password'],
         fileName: 'backup.zip',
       );
-      // return;
-      // ToastUtils.showLoading(status: '正在连接WebDAV...');
       final client = DAVClient(dav);
-      // await Future.delayed(Duration(seconds: 1));
-      // ToastUtils.showLoading(status: '正在下载备份数据...');
       final tempData = await client.recovery();
-
-      // final tempData = await client.recovery(
-      //     onProgress: (count, total) {
-      //       if (total > 0) {
-      //         final progress = (count / total * 100).toStringAsFixed(1);
-      //         ToastUtils.showLoading(status: '正在下载备份数据... $progress%');
-      //       }
-      //     }
-      // );
-
-      // ToastUtils.showLoading(status: '正在恢复数据...');
       await globalState.appController
           .recoveryData(tempData, RecoveryOption.all);
-
-      // ToastUtils.hideLoading();
-      // ToastUtils.showSuccess('数据恢复成功');
+      _lastWebDavSyncSuccess = true;
+      _lastWebDavSyncStatus = currentNetworkStatus;
+      _lastWebDavSyncTime = DateTime.now();
+      return true;
     } catch (e) {
+      _lastWebDavSyncSuccess = false;
+      _lastWebDavSyncStatus = null;
+      _lastWebDavSyncTime = null;
       ToastUtils.hideLoading();
       ToastUtils.showError('数据恢复失败: $e');
+      return false;
     } finally {
       ToastUtils.hideLoading();
-      _isLoadingWebDAV = false; // 重置标志位
+      _isLoadingWebDAV = false;
+      _webDavSyncFuture = null;
+    }
+  }
+
+  Future<void> _triggerAutoLogin() {
+    _autoLoginFuture ??= _performAutoLogin();
+    return _autoLoginFuture!;
+  }
+
+  Future<void> _performAutoLogin() async {
+    try {
+      await _getMemberInfo();
+    } finally {
+      _autoLoginFuture = null;
+    }
+  }
+
+  Future<void> _attemptInitialWebDavSync() async {
+    if (!mounted || _hasAttemptedInitialSync) {
+      return;
+    }
+    _hasAttemptedInitialSync = true;
+    _webDavSyncFuture ??= _performWebDavSync();
+  }
+
+  Future<void> _ensureWebDavSyncedBeforeConnect() async {
+    while (mounted) {
+      final success = await _autoLoadWebDAV();
+      if (success) {
+        return;
+      }
+      await Future.delayed(const Duration(seconds: 2));
     }
   }
 
@@ -165,10 +202,15 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
                   .millisecondsSinceEpoch ~/ 1000;
               if (member.expired_at! > timestamp) {
                 // ToastUtils.showLoading(status: '正在加载配置...');
-                await _autoLoadWebDAV();
+                await _autoLoadWebDAV(force: true);
                 ToastUtils.hideLoading();
               } else {
                 globalState.appController.clearWebDAV();
+                setState(() {
+                  _lastWebDavSyncSuccess = false;
+                  _lastWebDavSyncStatus = null;
+                  _lastWebDavSyncTime = null;
+                });
               }
             },
           ),
@@ -180,7 +222,11 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
     int timestamp = DateTime
         .now()
         .millisecondsSinceEpoch ~/ 1000;
-    var member = ref.watch(memberProvider); // 监听 memberProvider
+    var member = ref.read(memberProvider); // 监听 memberProvider
+    if (_autoLoginFuture != null) {
+      await _autoLoginFuture;
+      member = ref.read(memberProvider);
+    }
     /// 如果未登录 则提示尚未登录 ，跳转到登录页
     if (member.id == -1) {
       await showLoginBox(context);
@@ -202,6 +248,7 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
 
     /// 每次都去重新获取下用户信息
     await _getMemberInfo();
+    member = ref.read(memberProvider);
     if (member.id != -1) {
       if (member.expired_at! < timestamp) {
         ToastUtils.hideLoading(); // 先隐藏之前的loading
@@ -248,24 +295,27 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
       return;
     }
 
-    if (isStart == globalState.appState.isStart) {
-      /// 如果当前状态是未连接状态，则先去服务器拉取webdav
-      if (!isStart) {
-        await _autoLoadWebDAV();
-        await Future.delayed(const Duration(seconds: 2));
-      }
-      isStart = !isStart;
-      globalState.appController.updateStatus(isStart);
+    if (isStart != globalState.appState.isStart) {
+      return;
+    }
 
-      // 添加定时任务逻辑
-      if (isStart) {
-        // 如果是开启状态，启动定时器
+    final targetStart = !isStart;
+    if (targetStart) {
+      await _ensureWebDavSyncedBeforeConnect();
+    }
+    try {
+      await globalState.appController.updateStatus(targetStart);
+      if (!mounted) return;
+      setState(() {
+        isStart = targetStart;
+      });
+      if (targetStart) {
         _startAutoStopTimer(member.expired_at);
       } else {
-        // 如果是关闭状态，取消定时器
         _cancelAutoStopTimer();
       }
-
+    } catch (e) {
+      ToastUtils.showError('连接状态变更失败: $e');
     }
   }
 
@@ -340,6 +390,9 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
                   onPressed: _isConnecting ? null : (int index) {  // 如果 isStart 为 true，禁用点击
                     setState(() {
                       _networkStatus = index == 0 ? "去海外" : "回大陆";
+                      _lastWebDavSyncSuccess = false;
+                      _lastWebDavSyncStatus = null;
+                      _lastWebDavSyncTime = null;
                     });
                   },
                   isSelected: [_networkStatus == "去海外", _networkStatus == "回大陆"],

@@ -36,20 +36,30 @@ class _StartButtonState extends ConsumerState<StartButton>
     super.dispose();
   }
 
-  handleSwitchStart() {
-    final member = ref.watch(memberProvider); // 监听 memberProvider
+  Future<void> handleSwitchStart() async {
+    final member = ref.read(memberProvider); // 监听 memberProvider
     /// 如果未登录 则提示尚未登录 ，跳转到登录页
     if (member.id == -1) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const LoginFragment()),
       );
+      return;
     }
 
-    if (isStart == globalState.appState.isStart) {
-      isStart = !isStart;
+    if (isStart != globalState.appState.isStart) {
+      return;
+    }
+    final targetStart = !isStart;
+    try {
+      await globalState.appController.updateStatus(targetStart);
+      if (!mounted) return;
+      setState(() {
+        isStart = targetStart;
+      });
       updateController();
-      globalState.appController.updateStatus(isStart);
+    } catch (e) {
+      globalState.showNotifier('连接状态变更失败: $e');
     }
   }
 
@@ -98,8 +108,8 @@ class _StartButtonState extends ConsumerState<StartButton>
               height: 56,
               child: FloatingActionButton(
                 heroTag: null,
-                onPressed: () {
-                  handleSwitchStart();
+                onPressed: () async {
+                  await handleSwitchStart();
                 },
                 child: Row(
                   children: [
