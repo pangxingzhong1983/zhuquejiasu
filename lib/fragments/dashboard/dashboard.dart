@@ -217,6 +217,7 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
       ];
 
   handleSwitchStart() async {
+    await globalState.appController.waitForInitCompleted();
     isStart = globalState.appState.runTime != null;
 
     int timestamp = DateTime
@@ -302,6 +303,7 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
     final targetStart = !isStart;
     if (targetStart) {
       await _ensureWebDavSyncedBeforeConnect();
+      await globalState.appController.ensureInitializationReady();
     }
     try {
       await globalState.appController.updateStatus(targetStart);

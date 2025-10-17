@@ -21,6 +21,30 @@ import 'fragments/UpdateDialog.dart';
 import 'models/models.dart';
 
 class AppController {
+  Completer<void>? _initCompleter;
+
+  Future<void> waitForInitCompleted() async {
+    final completer = _initCompleter ??= Completer<void>();
+    await completer.future;
+  }
+
+  Future<void> ensureInitializationReady() async {
+    await waitForInitCompleted();
+    await globalState.ensurePrewarm();
+    final waitStart = DateTime.now();
+    const timeout = Duration(seconds: 15);
+    while (_ref.read(groupsProvider).isEmpty) {
+      if (DateTime.now().difference(waitStart) > timeout) {
+        throw '初始化代理列表超时';
+      }
+      try {
+        await updateGroups();
+        await updateProviders();
+      } catch (_) {}
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+    }
+  }
+
   bool lastTunEnable = false;
   int? lastProfileModified;
 
@@ -85,24 +109,21 @@ class AppController {
           (currentLastModified == null ||
               lastProfileModified == null ||
               currentLastModified > (lastProfileModified ?? 0));
-      bool appliedProfile = false;
       if (shouldApplyProfile) {
         await applyProfile(silence: true, refreshGroups: false);
-        appliedProfile = true;
       }
       await globalState.handleStart([
         updateRunTime,
         updateTraffic,
       ]);
-      if (appliedProfile) {
+      if (shouldApplyProfile) {
         Future.microtask(() async {
           try {
             await updateGroups();
             await updateProviders();
           } catch (_) {}
         });
-      }
-      if (!appliedProfile) {
+      } else {
         addCheckIpNumDebounce();
       }
     } else {
@@ -513,25 +534,36 @@ class AppController {
   }
 
   init() async {
+    final initCompleter = _initCompleter ??= Completer<void>();
     await _handlePreference();
 
     /// 免责声明
     // await _handlerDisclaimer();
-    await initCore();
-    await _preAuthorizeTun();
-    await _initStatus();
-    updateTray(true);
-    autoLaunch?.updateStatus(
-      _ref.read(appSettingProvider).autoLaunch,
-    );
-    autoCheckUpdate();
-    if (!_ref.read(appSettingProvider).silentLaunch) {
-      window?.show();
-    } else {
-      window?.hide();
+    try {
+      await initCore();
+      await _preAuthorizeTun();
+      await _initStatus();
+      updateTray(true);
+      autoLaunch?.updateStatus(
+        _ref.read(appSettingProvider).autoLaunch,
+      );
+      autoCheckUpdate();
+      if (!_ref.read(appSettingProvider).silentLaunch) {
+        window?.show();
+      } else {
+        window?.hide();
+      }
+      _ref.read(initProvider.notifier).value = true;
+      addCheckIpNumDebounce();
+      if (!initCompleter.isCompleted) {
+        initCompleter.complete();
+      }
+    } catch (e, st) {
+      if (!initCompleter.isCompleted) {
+        initCompleter.completeError(e, st);
+      }
+      rethrow;
     }
-    _ref.read(initProvider.notifier).value = true;
-    addCheckIpNumDebounce();
   }
 
   Future<void> _preAuthorizeTun() async {

@@ -1,7 +1,7 @@
 name: zhuquejiasu
 description: zhuque
 publish_to: 'none'
-version: 0.9.07+2025101212
+version: 0.9.08+2025101715
 environment:
   sdk: '>=3.1.0 <4.0.0'
 
