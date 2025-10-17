@@ -65,9 +65,10 @@ class _UpdateDialogState extends State<UpdateDialog> {
                     },
                   );
 
-                  if (success && mounted) {
+                  if (success) {
+                    if (!context.mounted) return;
                     // 下载成功，显示重启提示
-                    showDialog(
+                    await showDialog(
                       context: context,
                       barrierDismissible: false,
                       builder: (context) =>
@@ -84,7 +85,8 @@ class _UpdateDialogState extends State<UpdateDialog> {
                             ],
                           ),
                     );
-                  } else if (mounted) {
+                  } else {
+                    if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('下载失败，请稍后重试')),
                     );
@@ -93,14 +95,13 @@ class _UpdateDialogState extends State<UpdateDialog> {
                     });
                   }
                 } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('更新失败，请稍后重试')),
-                    );
-                    setState(() {
-                      _isDownloading = false;
-                    });
-                  }
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('更新失败，请稍后重试')),
+                  );
+                  setState(() {
+                    _isDownloading = false;
+                  });
                 }
               },
               child: const Text('立即更新'),

@@ -8,14 +8,15 @@ class User {
   int? id;
   String? email;
   double? balance;
-  int? expired_at;
+  @JsonKey(name: 'expiredAt')
+  int? expiredAt;
   String? inviteCode;
 
   User({
     required this.id,
     required this.email,
     required this.balance,
-    required this.expired_at,
+    required this.expiredAt,
     required this.inviteCode,
   });
 

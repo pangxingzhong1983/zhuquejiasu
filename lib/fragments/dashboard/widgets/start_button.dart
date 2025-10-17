@@ -11,10 +11,10 @@ class StartButton extends ConsumerStatefulWidget {
   const StartButton({super.key});
 
   @override
-  _StartButtonState createState() => _StartButtonState();
+  StartButtonState createState() => StartButtonState();
 }
 
-class _StartButtonState extends ConsumerState<StartButton>
+class StartButtonState extends ConsumerState<StartButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   bool isStart = false;

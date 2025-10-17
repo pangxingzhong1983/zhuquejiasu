@@ -36,8 +36,9 @@ const defaultNetworkProps = NetworkProps();
 const defaultProxiesStyle = ProxiesStyle();
 const defaultWindowProps = WindowProps();
 const defaultAccessControl = AccessControl();
+const int defaultPrimaryColorValue = 0xFF795548;
 final defaultThemeProps = ThemeProps().copyWith(
-  primaryColor: defaultPrimaryColor.value,
+  primaryColor: defaultPrimaryColorValue,
   themeMode: ThemeMode.dark,
 );
 

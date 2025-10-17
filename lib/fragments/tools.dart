@@ -231,8 +231,8 @@ class _LoginItem extends ConsumerWidget {
               ),
             ],
           ),
-          subtitle: member.expired_at==0? Text('尚未购买任何套餐'): Text(DateTime.fromMillisecondsSinceEpoch(
-              member.expired_at! * 1000)
+          subtitle: member.expiredAt==0? Text('尚未购买任何套餐'): Text(DateTime.fromMillisecondsSinceEpoch(
+              member.expiredAt! * 1000)
               .toString()),
         ),
 

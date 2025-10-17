@@ -11,10 +11,10 @@ class LoginFragment extends ConsumerStatefulWidget {
   const LoginFragment({super.key});
 
   @override
-  _LoginFragmentState createState() => _LoginFragmentState();
+  LoginFragmentState createState() => LoginFragmentState();
 }
 
-class _LoginFragmentState extends ConsumerState<LoginFragment> {
+class LoginFragmentState extends ConsumerState<LoginFragment> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
@@ -48,6 +48,7 @@ class _LoginFragmentState extends ConsumerState<LoginFragment> {
     }, onSuccess: (data) async {
       SpUtil.putString("token", data['data']['token'])?.then((value) async {
         await _getMemberInfo();
+        if (!mounted) return;
         Navigator.pop(context);
       });
     }, autoDismiss: false);
@@ -75,6 +76,7 @@ class _LoginFragmentState extends ConsumerState<LoginFragment> {
     }, onSuccess: (data) async {
       SpUtil.putString("token", data['data']['token'])?.then((value) async {
         await _getMemberInfo();
+        if (!mounted) return;
         Navigator.pop(context);
       });
     }, autoDismiss: false);

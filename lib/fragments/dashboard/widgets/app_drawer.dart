@@ -164,9 +164,9 @@ class AppDrawer extends ConsumerWidget {
             child: Row(
               children: [
                 const Text("到期时间:   ", style: TextStyle(color: Colors.black54)),
-                if (member.expired_at == 0)
+                if (member.expiredAt == 0)
                   const Text('尚未购买任何套餐')
-                else if (member.expired_at! < (DateTime.now().millisecondsSinceEpoch ~/ 1000))
+                else if (member.expiredAt! < (DateTime.now().millisecondsSinceEpoch ~/ 1000))
                   ElevatedButton(
                     onPressed: () async {
                       Uri url =  Uri.parse(await request.getShort('$secondaryBaseUrl/#/plan/3'));
@@ -192,7 +192,7 @@ class AppDrawer extends ConsumerWidget {
                     ),
                   )
                 else
-                  Text(DateTime.fromMillisecondsSinceEpoch(member.expired_at! * 1000).toString()),
+                  Text(DateTime.fromMillisecondsSinceEpoch(member.expiredAt! * 1000).toString()),
               ],
             ),
           ),

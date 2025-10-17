@@ -258,6 +258,15 @@ class _ThemeModeItem extends ConsumerWidget {
   }
 }
 
+int? _colorToInt(Color? value) {
+  if (value == null) return null;
+  int channel(double c) => (c * 255.0).round() & 0xff;
+  return (channel(value.a) << 24) |
+      (channel(value.r) << 16) |
+      (channel(value.g) << 8) |
+      channel(value.b);
+}
+
 class _PrimaryColorItem extends ConsumerWidget {
   const _PrimaryColorItem();
 
@@ -290,13 +299,14 @@ class _PrimaryColorItem extends ConsumerWidget {
           scrollDirection: Axis.horizontal,
           itemBuilder: (_, index) {
             final color = primaryColors[index];
+            final selectedColorValue = _colorToInt(color);
             return ColorSchemeBox(
-              isSelected: color?.value == primaryColor,
+              isSelected: selectedColorValue == primaryColor,
               primaryColor: color,
               onPressed: () {
                 ref.read(themeSettingProvider.notifier).updateState(
                       (state) => state.copyWith(
-                        primaryColor: color?.value,
+                        primaryColor: selectedColorValue,
                       ),
                     );
               },

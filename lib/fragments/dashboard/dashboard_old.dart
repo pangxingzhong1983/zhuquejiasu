@@ -97,7 +97,7 @@
 //         ),
 //         onPressed: () async {
 //           int timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-//           if (member.expired_at! > timestamp) {
+//           if (member.expiredAt! > timestamp) {
 //             ToastUtils.showLoading(status: '正在加载配置...');
 //             await _autoLoadWebDAV();
 //             ToastUtils.hideLoading();

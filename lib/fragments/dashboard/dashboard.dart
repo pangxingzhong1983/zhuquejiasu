@@ -62,16 +62,9 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
       if (!mounted) return; // 避免重复执行
       // 自动登录
       if (member.id == -1) {
-        _triggerAutoLogin();
+        await _triggerAutoLogin();
+        if (!mounted) return;
       }
-
-      /// 每次打开去服务器下载配置
-      // var temp2 = globalState.config.profiles;
-      // if(temp2.isEmpty){
-      //   ToastUtils.showLoading(status: '正在加载配置...');
-      //   await _autoLoadWebDAV();
-      //   ToastUtils.hideLoading();
-      // }
 
       await _attemptInitialWebDavSync();
     });
@@ -197,7 +190,7 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
               int timestamp = DateTime
                   .now()
                   .millisecondsSinceEpoch ~/ 1000;
-              if (member.expired_at! > timestamp) {
+              if (member.expiredAt! > timestamp) {
                 // ToastUtils.showLoading(status: '正在加载配置...');
                 await _autoLoadWebDAV(force: true);
                 ToastUtils.hideLoading();
@@ -222,18 +215,21 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
     var member = ref.read(memberProvider); // 监听 memberProvider
     if (_autoLoginFuture != null) {
       await _autoLoginFuture;
+      if (!mounted) return;
       member = ref.read(memberProvider);
     }
     /// 如果未登录 则提示尚未登录 ，跳转到登录页
     if (member.id == -1) {
+      if (!mounted) return;
       await showLoginBox(context);
+      if (!mounted) return;
       member = ref.read(memberProvider);
     }
     // var temp2 = globalState.config.profiles;
     //
     // if(temp2.isEmpty){
     //   if(member.id != -1){
-    //     if (member.expired_at! > timestamp) {
+    //     if (member.expiredAt! > timestamp) {
     //       ToastUtils.showLoading(status: '正在加载配置...');
     //       await _autoLoadWebDAV();
     //       ToastUtils.hideLoading();
@@ -245,9 +241,10 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
 
     /// 每次都去重新获取下用户信息
     await _getMemberInfo();
+    if (!mounted) return;
     member = ref.read(memberProvider);
     if (member.id != -1) {
-      if (member.expired_at! < timestamp) {
+      if (member.expiredAt! < timestamp) {
         ToastUtils.hideLoading(); // 先隐藏之前的loading
 
         // 显示确认对话框
@@ -269,6 +266,7 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
                 ],
               ),
         );
+        if (!mounted) return;
 
         // 如果用户点击确定
         if (result == true) {
@@ -308,7 +306,7 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
         isStart = targetStart;
       });
       if (targetStart) {
-        _startAutoStopTimer(member.expired_at);
+        _startAutoStopTimer(member.expiredAt);
       } else {
         _cancelAutoStopTimer();
       }
@@ -549,10 +547,10 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
             children: [
               const Text(''),
               member.id != -1
-                  ? (member.expired_at == 0
+                  ? (member.expiredAt == 0
                   ? const Text(
                   '尚未购买任何套餐', style: TextStyle(color: Colors.orange))
-                  : member.expired_at! < (DateTime
+                  : member.expiredAt! < (DateTime
                   .now()
                   .millisecondsSinceEpoch ~/ 1000)
                   ? ElevatedButton(
@@ -584,16 +582,16 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
                   Text(
                     "到期时间：${DateFormat('yyyy-MM-dd HH:mm').format(
                         DateTime.fromMillisecondsSinceEpoch(
-                            member.expired_at! * 1000))}  ",
+                            member.expiredAt! * 1000))}  ",
                     style: TextStyle(
-                        color: member.expired_at! < (DateTime
+                        color: member.expiredAt! < (DateTime
                             .now()
                             .millisecondsSinceEpoch ~/ 1000) + 86400 * 3
                             ? Colors.orange // 剩余3天内显示橙色
                             : Colors.black87
                     ),
                   ),
-                  member.expired_at! > ( DateTime.now().add(const Duration(days: 7)).millisecondsSinceEpoch ~/ 1000)?
+                  member.expiredAt! > ( DateTime.now().add(const Duration(days: 7)).millisecondsSinceEpoch ~/ 1000)?
                   SizedBox(width: 10,):
                   ElevatedButton(
                     onPressed: () async {

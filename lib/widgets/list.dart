@@ -400,19 +400,18 @@ class ListItem<T> extends StatelessWidget {
     }
     if (delegate is RadioDelegate) {
       final radioDelegate = delegate as RadioDelegate<T>;
+      final isSelected = radioDelegate.groupValue == radioDelegate.value;
       return _buildListTile(
         onTap: () {
-          if (radioDelegate.onChanged != null) {
-            radioDelegate.onChanged!(radioDelegate.value);
-          }
+          radioDelegate.onChanged?.call(radioDelegate.value);
         },
         leading: SizedBox(
           width: 32,
           height: 32,
-          child: Radio<T>(
-            value: radioDelegate.value,
-            groupValue: radioDelegate.groupValue,
-            onChanged: radioDelegate.onChanged,
+          child: Icon(
+            isSelected
+                ? Icons.radio_button_checked
+                : Icons.radio_button_unchecked,
           ),
         ),
         trailing: trailing,
