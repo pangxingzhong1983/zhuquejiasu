@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'dart:isolate';
 import 'package:dio/dio.dart';
 import 'package:zhuquejiasu/clash/geo_manager.dart';
@@ -94,14 +95,23 @@ class ClashCore {
 
         if (!downloaded) {
           anyFailed = true;
-          print('[ClashCore] initGeo failed for asset: assets/data/$geoFileName');
-          print('[ClashCore] error: asset missing and download attempts failed');
+          developer.log(
+            'initGeo failed for asset: assets/data/$geoFileName',
+            name: 'ClashCore',
+          );
+          developer.log(
+            'error: asset missing and download attempts failed',
+            name: 'ClashCore',
+          );
         }
       } catch (e, st) {
         anyFailed = true;
-        print('[ClashCore] initGeo unexpected error for asset: assets/data/$geoFileName');
-        print('[ClashCore] error: $e');
-        print('[ClashCore] stack: $st');
+        developer.log(
+          'initGeo unexpected error for asset: assets/data/$geoFileName',
+          name: 'ClashCore',
+          error: e,
+          stackTrace: st,
+        );
       }
     }
 
@@ -113,7 +123,10 @@ class ClashCore {
     // bundled-asset loading, download fallback and optional checksum checks.
     final geoOk = await GeoManager.ensureGeoAssets();
     if (!geoOk) {
-      print('[ClashCore] init aborted: geo assets not available');
+      developer.log(
+        'init aborted: geo assets not available',
+        name: 'ClashCore',
+      );
       return false;
     }
     final homeDirPath = await appPath.homeDirPath;
@@ -139,14 +152,24 @@ class ClashCore {
   }
 
   Future<String> setupConfig(SetupParams setupParams) async {
-    print('[DEBUG] setupConfig called with params: ${setupParams.toString()}');
+    developer.log(
+      'setupConfig called with params: ${setupParams.toString()}',
+      name: 'ClashCore',
+    );
     try {
       final result = await clashInterface.setupConfig(setupParams);
-      print('[DEBUG] setupConfig success: $result');
+      developer.log(
+        'setupConfig success: $result',
+        name: 'ClashCore',
+      );
       return result;
     } catch (e) {
-      print('[DEBUG] setupConfig error: $e');
-      print('[DEBUG] setupConfig error type: ${e.runtimeType}');
+      developer.log(
+        'setupConfig error',
+        name: 'ClashCore',
+        error: e,
+        stackTrace: StackTrace.current,
+      );
       rethrow;
     }
   }

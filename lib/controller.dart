@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
 
+import 'dart:developer' as developer;
 import 'package:archive/archive.dart';
 import 'package:zhuquejiasu/clash/clash.dart';
 import 'package:zhuquejiasu/common/archive.dart';
@@ -15,9 +16,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'common/fileCrypto.dart';
+import 'common/file_crypto.dart';
 import 'common/common.dart';
-import 'fragments/UpdateDialog.dart';
+import 'fragments/update_dialog.dart';
 import 'models/models.dart';
 
 class AppController {
@@ -514,8 +515,10 @@ class AppController {
       if (!ok) {
         // core initialization failed (missing assets / download failed).
         // Show a non-blocking message and skip core-dependent steps.
-        print(
-            '[AppController] clashCore.init() failed - skipping applyProfile');
+        developer.log(
+          'clashCore.init() failed - skipping applyProfile',
+          name: 'AppController',
+        );
         try {
           globalState.showMessage(
             title: 'Error',
@@ -525,7 +528,11 @@ class AppController {
           );
         } catch (e) {
           // If UI not ready to show message, just log it.
-          print('[AppController] unable to show init failure message: $e');
+          developer.log(
+            'unable to show init failure message',
+            name: 'AppController',
+            error: e,
+          );
         }
         return;
       }
@@ -538,7 +545,6 @@ class AppController {
     await _handlePreference();
 
     /// 免责声明
-    // await _handlerDisclaimer();
     try {
       await initCore();
       await _preAuthorizeTun();
@@ -702,17 +708,6 @@ class AppController {
           ),
         ) ??
         false;
-  }
-
-  _handlerDisclaimer() async {
-    if (_ref.read(appSettingProvider).disclaimerAccepted) {
-      return;
-    }
-    final isDisclaimerAccepted = await showDisclaimer();
-    if (!isDisclaimerAccepted) {
-      await handleExit();
-    }
-    return;
   }
 
   addProfileFormURL(String url) async {
@@ -944,7 +939,7 @@ class AppController {
       archive.addJson("config.json", configJson);
       archive.addDirectoryToArchive(profilesPath, homeDirPath);
       final zipEncoder = ZipEncoder();
-      return zipEncoder.encode(archive) ?? [];
+      return zipEncoder.encode(archive);
     });
   }
 
@@ -1012,7 +1007,8 @@ class AppController {
   }
 
   bool hasWebDAV() {
-    return _ref.read(profilesProvider) != null;
+    final profiles = _ref.read(profilesProvider);
+    return profiles.isNotEmpty;
   }
 
   Future<void> clearWebDAV() async {

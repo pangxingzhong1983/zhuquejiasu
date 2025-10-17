@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:developer' as developer;
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:zhuquejiasu/common/constant.dart';
@@ -104,7 +105,10 @@ class GeoManager {
       if (!downloaded) {
         allOk = false;
         // Keep a detailed log so remote debugging is easier.
-        print('[GeoManager] asset $fileName missing and download attempts failed.');
+        developer.log(
+          'asset $fileName missing and download attempts failed.',
+          name: 'GeoManager',
+        );
       }
     }
 
@@ -117,7 +121,10 @@ class GeoManager {
       final sum = sha256.convert(bytes).toString();
       final ok = sum == expected;
       if (!ok) {
-        print('[GeoManager] checksum mismatch for $fileName expected:$expected actual:$sum');
+        developer.log(
+          'checksum mismatch for $fileName expected:$expected actual:$sum',
+          name: 'GeoManager',
+        );
       }
       return ok;
     }

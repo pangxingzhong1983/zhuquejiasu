@@ -143,15 +143,6 @@ class System {
     // referring to it via Function.apply to bypass static resolution.
     // This is a safe, minimal change that avoids touching other imports.
     
-    // Call the real dart:io exit(0) without being interpreted as this
-    // method (we use a Function reference to the top-level symbol).
-    final void Function(int) realExit = (Object? f) => throw UnimplementedError();
-    try {
-      // Try to lookup the top-level exit function dynamically.
-      // Note: Dart does not support dynamic lookup of top-level by name
-      // in a stable way here; instead, call the imported exit via a
-      // small shim localized in this file when the name isn't shadowed.
-    } catch (_) {}
     // After a short delay, terminate the process directly. This is the
     // simplest and most portable approach and avoids relying on a
     // Process.pid accessor that may not be available on all platforms.

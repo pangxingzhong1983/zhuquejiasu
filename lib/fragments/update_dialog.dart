@@ -119,7 +119,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
         // Android 下载并安装 APK
         var dir = await getExternalStorageDirectory();
         var savePath = '${dir?.path}/update.apk';
-        print('APK 保存路径: ${dir?.path}/update.apk');
+        debugPrint('APK 保存路径: ${dir?.path}/update.apk');
 
         // 如果文件已存在，先删除
         final file = File(savePath);
@@ -173,7 +173,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
       }
       return false;
     } catch (e) {
-      print('更新失败: $e');
+      debugPrint('更新失败: $e');
       return false;
     }
   }
@@ -194,7 +194,7 @@ class _UpdateDialogState extends State<UpdateDialog> {
       });
       return result;
     } catch (e) {
-      print('安装失败: $e');
+      debugPrint('安装失败: $e');
       return false;
     }
   }

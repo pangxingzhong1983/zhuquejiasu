@@ -471,21 +471,24 @@ class BuildCommand extends Command {
 
     if (target == Target.android) {
       arch ??= Arch.arm64;
-    } else if (arch == null) {
+    }
+    if (arch == null) {
       throw "Invalid arch parameter";
     }
+    final resolvedArch = arch;
 
     await Build.buildCore(
       target: target,
-      arch: arch,
+      arch: resolvedArch,
       mode: mode,
     );
 
-    if (target == Target.android && arch != null) {
+    if (target == Target.android) {
       final keepArchName = Build.buildItems
           .firstWhere(
             (element) =>
-                element.target == Target.android && element.arch == arch,
+                element.target == Target.android &&
+                element.arch == resolvedArch,
           )
           .archName;
       final androidLibDir = Directory(
@@ -529,8 +532,8 @@ class BuildCommand extends Command {
         final targets = [
           "deb",
         ].join(",");
-        final defaultTarget = targetMap[arch];
-        await _getLinuxDependencies(arch!);
+        final defaultTarget = targetMap[resolvedArch];
+        await _getLinuxDependencies(resolvedArch);
         _buildDistributor(
           target: target,
           targets: targets,
@@ -546,8 +549,9 @@ class BuildCommand extends Command {
           Arch.amd64: "android-x64",
         };
         // Only keep arm64-v8a by default; can override with --arch
-        final defaultTargets = [targetMap[arch]].whereType<String>().toList();
-        final selectedArch = arch;
+        final defaultTargets =
+            [targetMap[resolvedArch]].whereType<String>().toList();
+        final selectedArch = resolvedArch;
         final archDescriptor = Build.buildItems
             .firstWhere(
               (element) =>

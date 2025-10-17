@@ -38,7 +38,7 @@ class DioUtils {
       validateStatus: (status) {
         return true;
       },
-      // baseUrl: BASE_URL,
+      // baseUrl: baseUrl,
       baseUrl: URLManager().dynamicURL,
     );
     _dio = Dio(options);
@@ -110,13 +110,13 @@ class DioUtils {
           _onError(map["code"].toString(), map["message"], null);
           break;
         default:
-          print('_map111=====$map');
+          LogUtil.d('_map111=====$map');
           _onError(map["code"].toString(), map["message"].toString(), onError);
           break;
       }
       return map;
     } catch (e) {
-      print('er-------$e');
+      LogUtil.e('er-------$e');
       if (showLoading) ToastUtils.hideLoading();
       Error error = ExceptionHandle.handleException(e);
       _onError(error.code.toString(), error.msg, onError);
@@ -158,7 +158,7 @@ class DioUtils {
         ToastUtils.showToast(msg);
       }
     }
-    print('_onError======$code=====$msg');
+    LogUtil.e('_onError======$code=====$msg');
     // throw Error(int.parse(code), msg!);
   }
 

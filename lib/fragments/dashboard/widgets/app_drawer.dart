@@ -104,7 +104,7 @@ class AppDrawer extends ConsumerWidget {
                     if (member.inviteCode != null && member.inviteCode!.isNotEmpty) {
                       ToastUtils.showLoading();
                       var inv = member.inviteCode.toString();
-                      String url =  await request.getShort('$BASE_URL2/static/index.html?invitationCode=$inv');
+                      String url =  await request.getShort('$secondaryBaseUrl/static/index.html?invitationCode=$inv');
                       await Clipboard.setData(ClipboardData(text: url));
                       ToastUtils.showToast('邀请码已复制到剪贴板');
                       ToastUtils.hideLoading();
@@ -169,7 +169,7 @@ class AppDrawer extends ConsumerWidget {
                 else if (member.expired_at! < (DateTime.now().millisecondsSinceEpoch ~/ 1000))
                   ElevatedButton(
                     onPressed: () async {
-                      Uri url =  Uri.parse(await request.getShort('$BASE_URL2/#/plan/3'));
+                      Uri url =  Uri.parse(await request.getShort('$secondaryBaseUrl/#/plan/3'));
                       if (await canLaunchUrl(url)) {
                         await launchUrl(url, mode: LaunchMode.externalApplication);
                       }
@@ -257,7 +257,7 @@ class AppDrawer extends ConsumerWidget {
                 await launchUrl(url);
               } else {
                 // 处理无法打开链接的情况
-                print('无法打开链接: $url');
+                debugPrint('无法打开链接: $url');
               }
             },
           ),

@@ -76,7 +76,7 @@ dependencies:
   encrypt: ^5.0.3
 
   # 新增依赖
-  socks5_proxy: ^1.0.4
+  socks5_proxy: ^2.1.1
   proxy_manager: ^0.0.3
   logger: ^2.0.2+1
 
@@ -96,6 +96,9 @@ dev_dependencies:
   custom_lint: ^0.8.0
   riverpod_lint: ^3.0.3
 
+
+dependency_overrides:
+  isolate_manager: ^6.1.0
 
 
 flutter:

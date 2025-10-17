@@ -23,7 +23,7 @@ class AppNavigator {
   }
 
   static Future? to(page, {dynamic arguments ,bool preventDuplicates = true,bool isCanIntercept = true}) {
-    print('page====${page.toString()}');
+    debugPrint('AppNavigator: navigating to ${page.toString()}');
     if (isCanIntercept && canIntercept(page.toString())) {
       return null;
     }

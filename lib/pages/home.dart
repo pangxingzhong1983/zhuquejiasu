@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import '../fragments/dashboard/widgets/AppDrawer.dart';
+import '../fragments/dashboard/widgets/app_drawer.dart';
 
 typedef OnSelected = void Function(int index);
 
@@ -20,9 +20,7 @@ class HomePage extends StatelessWidget {
     return BackScope(
       child: Consumer(
         builder: (_, ref, child) {
-          final state = ref.watch(homeStateProvider);
-
-          final pageLabel = state.pageLabel;
+          ref.watch(homeStateProvider);
 
           return CommonScaffold(
             key: globalState.homeScaffoldKey,

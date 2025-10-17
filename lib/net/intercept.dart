@@ -9,7 +9,7 @@ class HeaderInterceptor extends Interceptor {
   @override
   onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
     // 添加header
-    print("请求头token------${SpUtil.getString("token")}");
+    LogUtil.d("请求头token------${SpUtil.getString("token")}");
     Map<String, String> headers = {
       'platform': Platform.isAndroid
           ? 'android'

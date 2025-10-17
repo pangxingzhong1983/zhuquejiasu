@@ -97,7 +97,6 @@ class Request {
   };
 
   Future<IpInfo?> checkIp({CancelToken? cancelToken}) async {
-    return null;
     for (final source in _ipInfoSources.entries) {
       try {
         final response = await _dio.get<Map<String, dynamic>>(

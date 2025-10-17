@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:developer';
+import 'dart:developer' as developer;
 
 import 'package:flutter/cupertino.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,7 +10,7 @@ class UserSettings extends ChangeNotifier{
     return _fontRatio;
   }
   double get fontSize{
-    print("_fontRatio-------->$_fontRatio");
+    developer.log('_fontRatio: $_fontRatio', name: 'UserSettings');
     return 13 + _fontRatio;
   }
   set fontRatio(double value){
@@ -62,10 +62,10 @@ class UserSettings extends ChangeNotifier{
   }
 
   load(String userId)async{
-    log("get:$userId");
+    developer.log('get:$userId', name: 'UserSettings');
     SharedPreferences sp = await SharedPreferences.getInstance();
     String? value = sp.getString("${userId}_settings");
-    log("get:$value");
+    developer.log('get:$value', name: 'UserSettings');
     if(value == null){
       return;
     }
@@ -81,7 +81,7 @@ class UserSettings extends ChangeNotifier{
     }
   }
   save(String userId)async{
-    log("save:$userId");
+    developer.log('save:$userId', name: 'UserSettings');
     SharedPreferences sp = await SharedPreferences.getInstance();
     var obj = {};
     obj["fontRatio"] =  fontRatio;
@@ -92,7 +92,7 @@ class UserSettings extends ChangeNotifier{
     obj["showMessageInChat"] = showMessageInChat;
     String value = const JsonEncoder().convert(obj);
     await sp.setString("${userId}_settings", value);
-    log("save:$value");
+    developer.log('save:$value', name: 'UserSettings');
 
   }
 }

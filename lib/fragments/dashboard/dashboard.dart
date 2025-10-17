@@ -43,7 +43,6 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
   bool _hasAttemptedInitialSync = false;
   bool _lastWebDavSyncSuccess = false;
   String? _lastWebDavSyncStatus;
-  DateTime? _lastWebDavSyncTime;
   Future<void>? _autoLoginFuture;
 
   @override
@@ -138,12 +137,10 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
           .recoveryData(tempData, RecoveryOption.all);
       _lastWebDavSyncSuccess = true;
       _lastWebDavSyncStatus = currentNetworkStatus;
-      _lastWebDavSyncTime = DateTime.now();
       return true;
     } catch (e) {
       _lastWebDavSyncSuccess = false;
       _lastWebDavSyncStatus = null;
-      _lastWebDavSyncTime = null;
       ToastUtils.hideLoading();
       ToastUtils.showError('数据恢复失败: $e');
       return false;
@@ -209,7 +206,6 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
                 setState(() {
                   _lastWebDavSyncSuccess = false;
                   _lastWebDavSyncStatus = null;
-                  _lastWebDavSyncTime = null;
                 });
               }
             },
@@ -277,7 +273,7 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
         // 如果用户点击确定
         if (result == true) {
           ToastUtils.showLoading(status: '正在跳转...');
-          Uri url =  Uri.parse(await request.getShort('$BASE_URL2/#/plan/3'));
+          Uri url =  Uri.parse(await request.getShort('$secondaryBaseUrl/#/plan/3'));
 
           if (await canLaunchUrl(url)) {
             await launchUrl(url, mode: LaunchMode.externalApplication);
@@ -394,7 +390,6 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
                       _networkStatus = index == 0 ? "去海外" : "回大陆";
                       _lastWebDavSyncSuccess = false;
                       _lastWebDavSyncStatus = null;
-                      _lastWebDavSyncTime = null;
                     });
                   },
                   isSelected: [_networkStatus == "去海外", _networkStatus == "回大陆"],
@@ -562,7 +557,7 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
                   .millisecondsSinceEpoch ~/ 1000)
                   ? ElevatedButton(
                 onPressed: () async {
-                  Uri url =  Uri.parse(await request.getShort('$BASE_URL2/#/plan/3'));
+                  Uri url =  Uri.parse(await request.getShort('$secondaryBaseUrl/#/plan/3'));
                   if (await canLaunchUrl(url)) {
                     await launchUrl(url, mode: LaunchMode.externalApplication);
                   }
@@ -602,7 +597,7 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
                   SizedBox(width: 10,):
                   ElevatedButton(
                     onPressed: () async {
-                      Uri url =  Uri.parse(await request.getShort('$BASE_URL2/#/plan/3'));
+                      Uri url =  Uri.parse(await request.getShort('$secondaryBaseUrl/#/plan/3'));
                       if (await canLaunchUrl(url)) {
                         await launchUrl(url, mode: LaunchMode.externalApplication);
                       }

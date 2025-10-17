@@ -5,7 +5,7 @@ import 'package:zhuquejiasu/models/models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'constant.dart';
-import 'fileCrypto.dart';
+import 'file_crypto.dart';
 
 const _encryptedPrefix = 'enc::';
 

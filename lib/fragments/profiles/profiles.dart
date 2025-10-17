@@ -11,7 +11,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'add_profile.dart';
-import 'gen_profile.dart';
 
 class ProfilesFragment extends StatefulWidget {
   const ProfilesFragment({super.key});
@@ -272,15 +271,6 @@ class ProfileItem extends StatelessWidget {
     if (res == true && context.mounted) {
       context.showNotifier(appLocalizations.exportSuccess);
     }
-  }
-
-  _handlePushGenProfilePage(BuildContext context, String id) {
-    BaseNavigator.push(
-      context,
-      GenProfile(
-        profileId: id,
-      ),
-    );
   }
 
   @override

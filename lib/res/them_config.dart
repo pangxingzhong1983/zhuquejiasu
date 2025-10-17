@@ -42,27 +42,27 @@ class ThemConfig {
 
   static ThemeData getTheme({bool isDarkMode = false}) {
     return ThemeData(
-      primaryColor: MyColors.app_main,
+      primaryColor: MyColors.appMain,
       colorScheme: ColorScheme.fromSwatch().copyWith(
         brightness: isDarkMode ? Brightness.dark : Brightness.light,
-        secondary: MyColors.app_main,
-        error: isDarkMode ? MyColors.dark_red : MyColors.red,
+        secondary: MyColors.appMain,
+        error: isDarkMode ? MyColors.darkRed : MyColors.red,
       ),
       // Tab 指示器颜色迁移至 TabBarThemeData
       tabBarTheme: const TabBarThemeData(
-        indicatorColor: MyColors.app_main,
+        indicatorColor: MyColors.appMain,
       ),
       // 页面背景色
       scaffoldBackgroundColor: MyColors.bgColorWith(isDarkMode),
       // 主要用于Material背景色
       canvasColor: MyColors.itemBgColorWith(isDarkMode),
       // 文字选择色（输入框选择文字等）
-      // textSelectionColor: MyColors.app_main.withAlpha(70),
-      // textSelectionHandleColor: MyColors.app_main,
+      // textSelectionColor: MyColors.appMain.withAlpha(70),
+      // textSelectionHandleColor: MyColors.appMain,
       textSelectionTheme: TextSelectionThemeData(
-        selectionColor: MyColors.app_main.withAlpha(70),
-        selectionHandleColor: MyColors.app_main,
-        cursorColor: MyColors.app_main,
+        selectionColor: MyColors.appMain.withAlpha(70),
+        selectionHandleColor: MyColors.appMain,
+        cursorColor: MyColors.appMain,
       ),
       textTheme: TextTheme(
         // TextField输入文字颜色
@@ -96,11 +96,11 @@ class ThemConfig {
     bottomAppBarTheme: null, // 使用默认颜色以避免兼容性问题
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
           backgroundColor: MyColors.bottomAppBarBgColorWith(isDarkMode),
-          selectedItemColor: MyColors.app_main,
-          unselectedItemColor: isDarkMode ? MyColors.app_A3A3B3 : MyColors.app_595757,
-          selectedIconTheme: const IconThemeData(color: MyColors.app_main),
+          selectedItemColor: MyColors.appMain,
+          unselectedItemColor: isDarkMode ? MyColors.appA3A3B3 : MyColors.app595757,
+          selectedIconTheme: const IconThemeData(color: MyColors.appMain),
           unselectedIconTheme: IconThemeData(
-              color: isDarkMode ? MyColors.app_A3A3B3 : MyColors.app_595757)
+              color: isDarkMode ? MyColors.appA3A3B3 : MyColors.app595757)
       ),
       dividerColor: MyColors.dividerColorWith(isDarkMode),
       iconTheme: IconThemeData(

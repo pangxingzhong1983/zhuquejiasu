@@ -1,7 +1,6 @@
-import 'dart:io';
-import 'package:encrypt/encrypt.dart';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:encrypt/encrypt.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 
 class FileCrypto {

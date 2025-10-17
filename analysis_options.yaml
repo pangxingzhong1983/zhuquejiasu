@@ -8,3 +8,7 @@ analyzer:
     - custom_lint
   exclude:
     - plugins/**
+    - lib/clash/generated/**
+    - lib/models/generated/**
+    - lib/providers/generated/**
+    - lib/l10n/intl/**

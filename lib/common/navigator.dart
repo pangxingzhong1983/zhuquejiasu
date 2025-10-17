@@ -263,7 +263,7 @@ class _CommonEdgeShadowPainter extends BoxPainter {
   _CommonEdgeShadowPainter(
     this._decoration,
     super.onChanged,
-  ) : assert(_decoration._colors == null || _decoration._colors!.length > 1);
+  ) : assert(_decoration._colors == null || _decoration._colors.length > 1);
 
   final _CommonEdgeShadowDecoration _decoration;
 

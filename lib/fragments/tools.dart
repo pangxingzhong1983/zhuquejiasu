@@ -1,9 +1,7 @@
 import 'dart:io';
 import 'package:zhuquejiasu/common/common.dart';
-import 'package:zhuquejiasu/fragments/about.dart';
 import 'package:zhuquejiasu/fragments/access.dart';
 import 'package:zhuquejiasu/fragments/application_setting.dart';
-import 'package:zhuquejiasu/fragments/config/config.dart';
 import 'package:zhuquejiasu/fragments/hotkey.dart';
 import 'package:zhuquejiasu/l10n/l10n.dart';
 import 'package:zhuquejiasu/models/models.dart';
@@ -17,7 +15,6 @@ import 'package:sp_util/sp_util.dart';
 import '../models/user.dart';
 import '../net/api.dart';
 import '../net/dioutils.dart';
-import 'backup_and_recovery.dart';
 import 'login.dart';
 import 'theme.dart';
 import 'package:path/path.dart' show dirname, join;
@@ -167,23 +164,6 @@ class _ThemeItem extends StatelessWidget {
   }
 }
 
-class _BackupItem extends StatelessWidget {
-  const _BackupItem();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListItem.open(
-      leading: const Icon(Icons.cloud_sync),
-      title: Text(appLocalizations.backupAndRecovery),
-      subtitle: Text(appLocalizations.backupAndRecoveryDesc),
-      delegate: OpenDelegate(
-        title: appLocalizations.backupAndRecovery,
-        widget: const BackupAndRecovery(),
-      ),
-    );
-  }
-}
-
 class _HotkeyItem extends StatelessWidget {
   const _HotkeyItem();
 
@@ -283,7 +263,7 @@ class _LoginItem extends ConsumerWidget {
   _getMemberInfo(WidgetRef ref) async {
     try {
       var data = await DioUtils.instance.request(Method.post, Api.getMemberInfo,autoDismiss: false);
-      print('result=======$data');
+      debugPrint('Member info: $data');
       var user = User.fromJson(data['data']);
       ref.read(memberProvider.notifier).updateUser(user);
     } catch (e) {
@@ -311,23 +291,6 @@ class _AccessItem extends StatelessWidget {
   }
 }
 
-class _OverrideItem extends StatelessWidget {
-  const _OverrideItem();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListItem.open(
-      leading: const Icon(Icons.edit),
-      title: Text(appLocalizations.override),
-      subtitle: Text(appLocalizations.overrideDesc),
-      delegate: OpenDelegate(
-        title: appLocalizations.override,
-        widget: const ConfigFragment(),
-      ),
-    );
-  }
-}
-
 class _SettingItem extends StatelessWidget {
   const _SettingItem();
 
@@ -340,41 +303,6 @@ class _SettingItem extends StatelessWidget {
       delegate: OpenDelegate(
         title: appLocalizations.application,
         widget: const ApplicationSettingFragment(),
-      ),
-    );
-  }
-}
-
-class _DisclaimerItem extends StatelessWidget {
-  const _DisclaimerItem();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListItem(
-      leading: const Icon(Icons.gavel),
-      title: Text(appLocalizations.disclaimer),
-      onTap: () async {
-        final isDisclaimerAccepted =
-            await globalState.appController.showDisclaimer();
-        if (!isDisclaimerAccepted) {
-          globalState.appController.handleExit();
-        }
-      },
-    );
-  }
-}
-
-class _InfoItem extends StatelessWidget {
-  const _InfoItem();
-
-  @override
-  Widget build(BuildContext context) {
-    return ListItem.open(
-      leading: const Icon(Icons.info),
-      title: Text(appLocalizations.about),
-      delegate: OpenDelegate(
-        title: appLocalizations.about,
-        widget: const AboutFragment(),
       ),
     );
   }
