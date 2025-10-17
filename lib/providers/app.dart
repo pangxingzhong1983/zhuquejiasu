@@ -8,7 +8,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'generated/app.g.dart';
 
-@riverpod
+@Riverpod(keepAlive: true)
 class Logs extends _$Logs with AutoDisposeNotifierMixin {
   @override
   FixedList<Log> build() {
@@ -27,7 +27,7 @@ class Logs extends _$Logs with AutoDisposeNotifierMixin {
   }
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class Requests extends _$Requests with AutoDisposeNotifierMixin {
   @override
   FixedList<Connection> build() {
@@ -46,7 +46,7 @@ class Requests extends _$Requests with AutoDisposeNotifierMixin {
   }
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class Providers extends _$Providers with AutoDisposeNotifierMixin {
   @override
   List<ExternalProvider> build() {
@@ -68,7 +68,7 @@ class Providers extends _$Providers with AutoDisposeNotifierMixin {
   }
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class Packages extends _$Packages with AutoDisposeNotifierMixin {
   @override
   List<Package> build() {
@@ -83,7 +83,7 @@ class Packages extends _$Packages with AutoDisposeNotifierMixin {
   }
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class AppBrightness extends _$AppBrightness with AutoDisposeNotifierMixin {
   @override
   Brightness? build() {
@@ -102,7 +102,7 @@ class AppBrightness extends _$AppBrightness with AutoDisposeNotifierMixin {
   }
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class Traffics extends _$Traffics with AutoDisposeNotifierMixin {
   @override
   FixedList<Traffic> build() {
@@ -125,7 +125,7 @@ class Traffics extends _$Traffics with AutoDisposeNotifierMixin {
   }
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class TotalTraffic extends _$TotalTraffic with AutoDisposeNotifierMixin {
   @override
   Traffic build() {
@@ -140,7 +140,7 @@ class TotalTraffic extends _$TotalTraffic with AutoDisposeNotifierMixin {
   }
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class LocalIp extends _$LocalIp with AutoDisposeNotifierMixin {
   @override
   String? build() {
@@ -163,7 +163,7 @@ class LocalIp extends _$LocalIp with AutoDisposeNotifierMixin {
   }
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class RunTime extends _$RunTime with AutoDisposeNotifierMixin {
   @override
   int? build() {
@@ -182,7 +182,7 @@ class RunTime extends _$RunTime with AutoDisposeNotifierMixin {
   }
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class ViewWidth extends _$ViewWidth with AutoDisposeNotifierMixin {
   @override
   double build() {
@@ -201,7 +201,7 @@ class ViewWidth extends _$ViewWidth with AutoDisposeNotifierMixin {
   bool get isMobileView => viewMode == ViewMode.mobile;
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class Init extends _$Init with AutoDisposeNotifierMixin {
   @override
   bool build() {
@@ -216,7 +216,7 @@ class Init extends _$Init with AutoDisposeNotifierMixin {
   }
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class CurrentPageLabel extends _$CurrentPageLabel
     with AutoDisposeNotifierMixin {
   @override
@@ -232,7 +232,7 @@ class CurrentPageLabel extends _$CurrentPageLabel
   }
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class AppSchemes extends _$AppSchemes with AutoDisposeNotifierMixin {
   @override
   ColorSchemes build() {
@@ -247,7 +247,7 @@ class AppSchemes extends _$AppSchemes with AutoDisposeNotifierMixin {
   }
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class SortNum extends _$SortNum with AutoDisposeNotifierMixin {
   @override
   int build() {
@@ -264,7 +264,7 @@ class SortNum extends _$SortNum with AutoDisposeNotifierMixin {
   add() => state++;
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class CheckIpNum extends _$CheckIpNum with AutoDisposeNotifierMixin {
   @override
   int build() {
@@ -281,7 +281,7 @@ class CheckIpNum extends _$CheckIpNum with AutoDisposeNotifierMixin {
   add() => state++;
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class Version extends _$Version with AutoDisposeNotifierMixin {
   @override
   int build() {
@@ -297,7 +297,7 @@ class Version extends _$Version with AutoDisposeNotifierMixin {
 }
 
 
-@riverpod
+@Riverpod(keepAlive: true)
 class Member extends _$Member{
   @override
   User build() {
@@ -312,7 +312,7 @@ class Member extends _$Member{
 }
 
 
-@riverpod
+@Riverpod(keepAlive: true)
 class Groups extends _$Groups with AutoDisposeNotifierMixin {
   @override
   List<Group> build() {
@@ -327,7 +327,7 @@ class Groups extends _$Groups with AutoDisposeNotifierMixin {
   }
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class DelayDataSource extends _$DelayDataSource with AutoDisposeNotifierMixin {
   @override
   DelayMap build() {

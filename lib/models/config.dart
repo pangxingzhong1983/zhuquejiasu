@@ -65,7 +65,7 @@ List<DashboardWidget> dashboardWidgetsSafeFormJson(
 }
 
 @freezed
-class AppSettingProps with _$AppSettingProps {
+abstract class AppSettingProps with _$AppSettingProps {
   const factory AppSettingProps({
     String? locale,
     @Default(defaultDashboardWidgets)
@@ -97,7 +97,7 @@ class AppSettingProps with _$AppSettingProps {
 }
 
 @freezed
-class AccessControl with _$AccessControl {
+abstract class AccessControl with _$AccessControl {
   const factory AccessControl({
     @Default(false) bool enable,
     @Default(AccessControlMode.rejectSelected) AccessControlMode mode,
@@ -119,7 +119,7 @@ extension AccessControlExt on AccessControl {
 }
 
 @freezed
-class WindowProps with _$WindowProps {
+abstract class WindowProps with _$WindowProps {
   const factory WindowProps({
     @Default(900) double width,
     @Default(600) double height,
@@ -132,7 +132,7 @@ class WindowProps with _$WindowProps {
 }
 
 @freezed
-class VpnProps with _$VpnProps {
+abstract class VpnProps with _$VpnProps {
   const factory VpnProps({
     @Default(true) bool enable,
     @Default(true) bool systemProxy,
@@ -146,7 +146,7 @@ class VpnProps with _$VpnProps {
 }
 
 @freezed
-class NetworkProps with _$NetworkProps {
+abstract class NetworkProps with _$NetworkProps {
   const factory NetworkProps({
     @Default(true) bool systemProxy,
     @Default(defaultBypassDomain) List<String> bypassDomain,
@@ -158,7 +158,7 @@ class NetworkProps with _$NetworkProps {
 }
 
 @freezed
-class ProxiesStyle with _$ProxiesStyle {
+abstract class ProxiesStyle with _$ProxiesStyle {
   const factory ProxiesStyle({
     @Default(ProxiesType.tab) ProxiesType type,
     @Default(ProxiesSortType.none) ProxiesSortType sortType,
@@ -173,7 +173,7 @@ class ProxiesStyle with _$ProxiesStyle {
 }
 
 @freezed
-class ThemeProps with _$ThemeProps {
+abstract class ThemeProps with _$ThemeProps {
   const factory ThemeProps({
     int? primaryColor,
     @Default(ThemeMode.system) ThemeMode themeMode,
@@ -196,7 +196,7 @@ class ThemeProps with _$ThemeProps {
 }
 
 @freezed
-class Config with _$Config {
+abstract class Config with _$Config {
   const factory Config({
     @JsonKey(fromJson: AppSettingProps.safeFromJson)
     @Default(defaultAppSettingProps)

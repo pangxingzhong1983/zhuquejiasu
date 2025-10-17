@@ -105,7 +105,7 @@ const defaultBypassPrivateRouteAddress = [
 ];
 
 @freezed
-class ProxyGroup with _$ProxyGroup {
+abstract class ProxyGroup with _$ProxyGroup {
   const factory ProxyGroup({
     required String name,
     @JsonKey(
@@ -132,7 +132,7 @@ class ProxyGroup with _$ProxyGroup {
 }
 
 @freezed
-class Tun with _$Tun {
+abstract class Tun with _$Tun {
   const factory Tun({
     @Default(false) bool enable,
     @Default(appName) String device,
@@ -156,7 +156,7 @@ class Tun with _$Tun {
 }
 
 @freezed
-class FallbackFilter with _$FallbackFilter {
+abstract class FallbackFilter with _$FallbackFilter {
   const factory FallbackFilter({
     @Default(true) bool geoip,
     @Default("CN") @JsonKey(name: "geoip-code") String geoipCode,
@@ -175,7 +175,7 @@ class FallbackFilter with _$FallbackFilter {
 }
 
 @freezed
-class Dns with _$Dns {
+abstract class Dns with _$Dns {
   const factory Dns({
     @Default(true) bool enable,
     @Default("0.0.0.0:1053") String listen,
@@ -238,7 +238,7 @@ class Dns with _$Dns {
 }
 
 @freezed
-class GeoXUrl with _$GeoXUrl {
+abstract class GeoXUrl with _$GeoXUrl {
   const factory GeoXUrl({
     @Default(
       "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb",
@@ -274,7 +274,7 @@ class GeoXUrl with _$GeoXUrl {
 }
 
 @freezed
-class ClashConfigSnippet with _$ClashConfigSnippet {
+abstract class ClashConfigSnippet with _$ClashConfigSnippet {
   const factory ClashConfigSnippet({
     @Default([]) @JsonKey(name: "proxy-groups") List<ProxyGroup> proxyGroups,
     @Default([]) List<String> rule,
@@ -285,7 +285,7 @@ class ClashConfigSnippet with _$ClashConfigSnippet {
 }
 
 @freezed
-class ClashConfig with _$ClashConfig {
+abstract class ClashConfig with _$ClashConfig {
   const factory ClashConfig({
     @Default(defaultMixedPort) @JsonKey(name: "mixed-port") int mixedPort,
     @Default(Mode.rule) Mode mode,

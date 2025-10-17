@@ -14,7 +14,7 @@ part 'generated/profile.g.dart';
 typedef SelectedMap = Map<String, String>;
 
 @freezed
-class SubscriptionInfo with _$SubscriptionInfo {
+abstract class SubscriptionInfo with _$SubscriptionInfo {
   const factory SubscriptionInfo({
     @Default(0) int upload,
     @Default(0) int download,
@@ -43,7 +43,7 @@ class SubscriptionInfo with _$SubscriptionInfo {
 }
 
 @freezed
-class Profile with _$Profile {
+abstract class Profile with _$Profile {
   const factory Profile({
     required String id,
     String? label,

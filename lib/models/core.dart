@@ -25,7 +25,7 @@ abstract mixin class ServiceMessageListener {
 }
 
 @freezed
-class CoreState with _$CoreState {
+abstract class CoreState with _$CoreState {
   const factory CoreState({
     @JsonKey(name: "vpn-props") required VpnProps vpnProps,
     @JsonKey(name: "only-statistics-proxy") required bool onlyStatisticsProxy,
@@ -38,7 +38,7 @@ class CoreState with _$CoreState {
 }
 
 @freezed
-class AndroidVpnOptions with _$AndroidVpnOptions {
+abstract class AndroidVpnOptions with _$AndroidVpnOptions {
   const factory AndroidVpnOptions({
     required bool enable,
     required int port,
@@ -57,7 +57,7 @@ class AndroidVpnOptions with _$AndroidVpnOptions {
 }
 
 @freezed
-class ConfigExtendedParams with _$ConfigExtendedParams {
+abstract class ConfigExtendedParams with _$ConfigExtendedParams {
   const factory ConfigExtendedParams({
     @JsonKey(name: "is-patch") required bool isPatch,
     @JsonKey(name: "selected-map") required SelectedMap selectedMap,
@@ -103,7 +103,7 @@ class SetupParams {
 }
 
 @freezed
-class UpdateConfigParams with _$UpdateConfigParams {
+abstract class UpdateConfigParams with _$UpdateConfigParams {
   const factory UpdateConfigParams({
     @JsonKey(name: "profile-id") required String profileId,
     required ClashConfig config,
@@ -115,7 +115,7 @@ class UpdateConfigParams with _$UpdateConfigParams {
 }
 
 @freezed
-class ChangeProxyParams with _$ChangeProxyParams {
+abstract class ChangeProxyParams with _$ChangeProxyParams {
   const factory ChangeProxyParams({
     @JsonKey(name: "group-name") required String groupName,
     @JsonKey(name: "proxy-name") required String proxyName,
@@ -126,7 +126,7 @@ class ChangeProxyParams with _$ChangeProxyParams {
 }
 
 @freezed
-class UpdateGeoDataParams with _$UpdateGeoDataParams {
+abstract class UpdateGeoDataParams with _$UpdateGeoDataParams {
   const factory UpdateGeoDataParams({
     @JsonKey(name: "geo-type") required String geoType,
     @JsonKey(name: "geo-name") required String geoName,
@@ -137,7 +137,7 @@ class UpdateGeoDataParams with _$UpdateGeoDataParams {
 }
 
 @freezed
-class AppMessage with _$AppMessage {
+abstract class AppMessage with _$AppMessage {
   const factory AppMessage({
     required AppMessageType type,
     dynamic data,
@@ -148,7 +148,7 @@ class AppMessage with _$AppMessage {
 }
 
 @freezed
-class InvokeMessage with _$InvokeMessage {
+abstract class InvokeMessage with _$InvokeMessage {
   const factory InvokeMessage({
     required InvokeMessageType type,
     dynamic data,
@@ -159,7 +159,7 @@ class InvokeMessage with _$InvokeMessage {
 }
 
 @freezed
-class Delay with _$Delay {
+abstract class Delay with _$Delay {
   const factory Delay({
     required String name,
     required String url,
@@ -170,7 +170,7 @@ class Delay with _$Delay {
 }
 
 @freezed
-class Now with _$Now {
+abstract class Now with _$Now {
   const factory Now({
     required String name,
     required String value,
@@ -180,7 +180,7 @@ class Now with _$Now {
 }
 
 @freezed
-class ProcessData with _$ProcessData {
+abstract class ProcessData with _$ProcessData {
   const factory ProcessData({
     required String id,
     required Metadata metadata,
@@ -191,7 +191,7 @@ class ProcessData with _$ProcessData {
 }
 
 @freezed
-class Fd with _$Fd {
+abstract class Fd with _$Fd {
   const factory Fd({
     required String id,
     required int value,
@@ -201,7 +201,7 @@ class Fd with _$Fd {
 }
 
 @freezed
-class ProcessMapItem with _$ProcessMapItem {
+abstract class ProcessMapItem with _$ProcessMapItem {
   const factory ProcessMapItem({
     required String id,
     required String value,
@@ -212,7 +212,7 @@ class ProcessMapItem with _$ProcessMapItem {
 }
 
 @freezed
-class ProviderSubscriptionInfo with _$ProviderSubscriptionInfo {
+abstract class ProviderSubscriptionInfo with _$ProviderSubscriptionInfo {
   const factory ProviderSubscriptionInfo({
     @JsonKey(name: "UPLOAD") @Default(0) int upload,
     @JsonKey(name: "DOWNLOAD") @Default(0) int download,
@@ -235,7 +235,7 @@ SubscriptionInfo? subscriptionInfoFormCore(Map<String, Object?>? json) {
 }
 
 @freezed
-class ExternalProvider with _$ExternalProvider {
+abstract class ExternalProvider with _$ExternalProvider {
   const factory ExternalProvider({
     required String name,
     required String type,
@@ -253,7 +253,7 @@ class ExternalProvider with _$ExternalProvider {
 }
 
 @freezed
-class TunProps with _$TunProps {
+abstract class TunProps with _$TunProps {
   const factory TunProps({
     required int fd,
     required String gateway,
@@ -269,7 +269,7 @@ class TunProps with _$TunProps {
 }
 
 @freezed
-class Action with _$Action {
+abstract class Action with _$Action {
   const factory Action({
     required ActionMethod method,
     required dynamic data,
@@ -281,7 +281,7 @@ class Action with _$Action {
 }
 
 @freezed
-class ActionResult with _$ActionResult {
+abstract class ActionResult with _$ActionResult {
   const factory ActionResult({
     required ActionMethod method,
     required dynamic data,

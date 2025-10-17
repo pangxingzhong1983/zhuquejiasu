@@ -941,8 +941,8 @@ class AppController {
     final configJson = globalState.config.toJson();
     return Isolate.run<List<int>>(() async {
       final archive = Archive();
-      archive.add("config.json", configJson);
-      await archive.addDirectoryToArchive(profilesPath, homeDirPath);
+      archive.addJson("config.json", configJson);
+      archive.addDirectoryToArchive(profilesPath, homeDirPath);
       final zipEncoder = ZipEncoder();
       return zipEncoder.encode(archive) ?? [];
     });

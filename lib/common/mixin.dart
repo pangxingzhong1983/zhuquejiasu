@@ -2,13 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:riverpod/riverpod.dart';
 import 'context.dart';
 
-mixin AutoDisposeNotifierMixin<T> on AutoDisposeNotifier<T> {
+mixin AutoDisposeNotifierMixin<T> on AnyNotifier<T, T> {
   set value(T value) {
+    if (!ref.mounted) {
+      return;
+    }
     state = value;
   }
 
   @override
-  bool updateShouldNotify(previous, next) {
+  bool updateShouldNotify(T previous, T next) {
+    if (!ref.mounted) {
+      return false;
+    }
     final res = super.updateShouldNotify(previous, next);
     if (res) {
       onUpdate(next);
