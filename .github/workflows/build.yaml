@@ -19,9 +19,6 @@ jobs:
           - platform: windows
             os: windows-latest
             arch: amd64
-          - platform: windows
-            os: windows-latest
-            arch: arm64
           - platform: linux
             os: ubuntu-latest
             arch: amd64
@@ -274,8 +271,7 @@ jobs:
           mkdir -p r2_upload
 
           android_source=(./dist/*android-arm64-v8a*.apk)
-          windows_amd64=(./dist/*windows-amd64*.exe)
-          windows_arm64=(./dist/*windows-arm64*.exe)
+          windows_installer=(./dist/*windows-amd64*.exe)
           linux_source=(./dist/*linux-amd64*.deb)
           macos_source=(./dist/*macos-arm64*.dmg)
           ohos_source=(./dist/*ohos*.hap)
@@ -284,12 +280,8 @@ jobs:
             echo "Android APK not found in dist" >&2
             exit 1
           fi
-          if [[ ${#windows_amd64[@]} -eq 0 ]]; then
-            echo "Windows amd64 installer not found in dist" >&2
-            exit 1
-          fi
-          if [[ ${#windows_arm64[@]} -eq 0 ]]; then
-            echo "Windows arm64 installer not found in dist" >&2
+          if [[ ${#windows_installer[@]} -eq 0 ]]; then
+            echo "Windows installer not found in dist" >&2
             exit 1
           fi
           if [[ ${#linux_source[@]} -eq 0 ]]; then
@@ -311,7 +303,7 @@ jobs:
 
           combined_windows_zip="./dist/zhuquejiasu-windows.zip"
           rm -f "$combined_windows_zip"
-          zip -j "$combined_windows_zip" "${windows_amd64[0]}" "${windows_arm64[0]}"
+          zip -j "$combined_windows_zip" "${windows_installer[0]}"
 
           cp "${android_source[0]}" r2_upload/zhuquejiasu.apk
           cp "$combined_windows_zip" r2_upload/zhuquejiasu.zip
