@@ -2,7 +2,7 @@ app_id: 728B3532-C74B-4870-9068-BE70FE12A3E6
 app_name: ZhuqueJiasu
 publisher: pangxingzhong1983
 publisher_url: https://github.com/pangxingzhong1983/zhuqueJiasu
-display_name: zhuque
+display_name: 朱雀加速
 executable_name: zhuque.exe
 output_base_file_name: zhuque.exe
 setup_icon_file: ..\windows\runner\resources\app_icon.ico
