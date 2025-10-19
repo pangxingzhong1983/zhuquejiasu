@@ -124,6 +124,10 @@ jobs:
       - name: Get Flutter Dependency
         run: flutter pub get
 
+      - name: Install Inno Setup
+        if: ${{ matrix.platform == 'windows' }}
+        run: choco install innosetup --yes --no-progress
+
       - name: Setup
         run: dart setup.dart ${{ matrix.platform }} ${{ matrix.arch && format('--arch {0}', matrix.arch) }}
 

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:archive/archive_io.dart';
 import 'package:path/path.dart';
 
 enum Target {
@@ -435,7 +436,7 @@ class BuildCommand extends Command {
     );
   }
 
-  _buildDistributor({
+  Future<void> _buildDistributor({
     required Target target,
     required String targets,
     String args = '',
@@ -448,6 +449,38 @@ class BuildCommand extends Command {
         "flutter_distributor package --skip-clean --platform ${target.name} --targets $targets --flutter-build-args=verbose,tree-shake-icons,split-debug-info=build/symbols/${target.name} $args",
       ),
     );
+  }
+
+  Future<void> _compressWindowsInstaller(String archName) async {
+    final distDir = Directory(Build.distPath);
+    if (!distDir.existsSync()) {
+      return;
+    }
+
+    final suffix =
+        archName.isNotEmpty ? "-windows-$archName-setup.exe" : "-windows-setup.exe";
+    final exeFiles = distDir
+        .listSync()
+        .whereType<File>()
+        .where((file) => file.path.endsWith(suffix))
+        .toList();
+
+    if (exeFiles.isEmpty) {
+      throw "Windows installer exe not found in dist directory";
+    }
+    if (exeFiles.length > 1) {
+      throw "Multiple Windows installer executables found; please clean dist directory";
+    }
+
+    final exeFile = exeFiles.first;
+    final zipPath = exeFile.path.replaceFirst("-setup.exe", ".zip");
+
+    final encoder = ZipFileEncoder();
+    encoder.create(zipPath);
+    encoder.addFile(exeFile, basename(exeFile.path));
+    encoder.close();
+
+    exeFile.deleteSync();
   }
 
   Future<String?> get systemArch async {
@@ -476,6 +509,7 @@ class BuildCommand extends Command {
       throw "Invalid arch parameter";
     }
     final resolvedArch = arch;
+    final distributionDescription = archName ?? resolvedArch.name;
 
     await Build.buildCore(
       target: target,
@@ -518,11 +552,12 @@ class BuildCommand extends Command {
 
     switch (target) {
       case Target.windows:
-        _buildDistributor(
+        await _buildDistributor(
           target: target,
-          targets: "zip",
-          args: "--description $archName",
+          targets: "exe",
+          args: "--description $distributionDescription",
         );
+        await _compressWindowsInstaller(distributionDescription);
         return;
       case Target.linux:
         final targetMap = {

@@ -22,17 +22,13 @@ releases:
               APP_ENV: prod
   - name: windows
     jobs:
-      - name: zip
+      - name: setup
         package:
           platform: windows
-          target: zip
+          target: exe
           build_args:
             dart-define:
               APP_ENV: prod
-        distribute:
-          - name: zip
-            path: build/windows/runner/Release
-            file_name: '朱雀加速-windows-amd64'
   - name: macos
     jobs:
       - name: dmg
