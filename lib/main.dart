@@ -4,13 +4,16 @@ import 'dart:ffi';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:ui';
+import 'dart:developer' as developer;
 
+import 'package:flutter/foundation.dart'
+    show DebugPrintCallback, debugPrint, debugPrintRebuildDirtyWidgets;
 import 'package:zhuquejiasu/enum/enum.dart';
 import 'package:zhuquejiasu/plugins/app.dart';
 import 'package:zhuquejiasu/plugins/tile.dart';
 import 'package:zhuquejiasu/plugins/vpn.dart';
 import 'package:zhuquejiasu/state.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Navigator;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sp_util/sp_util.dart';
 
@@ -28,13 +31,68 @@ ReceivePort? _serviceKeepAlive;
 Future<void> main() async {
   globalState.isService = false;
   WidgetsFlutterBinding.ensureInitialized();
+  print('MAIN START on ${Platform.operatingSystem}');
+  if (!system.isHarmony) {
+    final DebugPrintCallback? originalDebugPrint = debugPrint;
+    debugPrint = (String? message, {int? wrapWidth}) {
+      originalDebugPrint?.call(message, wrapWidth: wrapWidth);
+      if (message != null) {
+        developer.log(message, name: 'FlutterDebugPrint');
+      }
+    };
+    debugPrint('Flutter debugPrint interception active');
+    final originalPresentError = FlutterError.presentError;
+    FlutterError.presentError = (FlutterErrorDetails details) {
+      originalPresentError(details);
+      commonPrint.log(
+        "[FlutterError.presentError] ${details.exceptionAsString()}",
+      );
+      final stack = details.stack;
+      if (stack != null) {
+        commonPrint.log("[FlutterError.presentError] stack:\n$stack");
+      }
+    };
+    FlutterError.onError = (details) {
+      FlutterError.presentError(details);
+      commonPrint.log(
+        "[FlutterError] ${details.exceptionAsString()}",
+      );
+      final stack = details.stack;
+      if (stack != null) {
+        commonPrint.log("[FlutterError] stack:\n$stack");
+      }
+    };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      commonPrint.log("[PlatformError] $error\n$stack");
+      return false;
+    };
+    ErrorWidget.builder = (FlutterErrorDetails details) {
+      final message = details.exceptionAsString();
+      commonPrint.log("[ErrorWidget] $message");
+      final stack = details.stack;
+      if (stack != null) {
+        commonPrint.log("[ErrorWidget] stack:\n$stack");
+      }
+      return ErrorWidget.withDetails(
+        message: message,
+        error: details.exception is FlutterError
+            ? details.exception as FlutterError
+            : null,
+      );
+    };
+    assert(() {
+      debugPrintRebuildDirtyWidgets = true;
+      return true;
+    }());
+  }
+  commonPrint.log("App bootstrap start on ${Platform.operatingSystem}");
   final version = await system.version;
   // On Android, defer preload of the native clash service so it does not
   // block the main isolate during critical startup frames. This prevents
   // service initialization (which drives native->Dart handoff) from
   // contributing to PerfMonitor long-frame kills during cold start.
   // Keep the original synchronous preload on non-Android platforms.
-  if (Platform.isAndroid) {
+  if (system.isAndroidLike) {
     // Schedule as an event so main() can continue and render first frame.
     Timer.run(() {
       clashCore.preload();
@@ -47,11 +105,30 @@ Future<void> main() async {
   await window?.init(version);
   HttpOverrides.global = ZhuqueJiasuHttpOverrides();
 
-  await SpUtil.getInstance(); // 初始化 SpUtil
+  if (system.isHarmony) {
+    commonPrint.log("Skipping SpUtil initialization on HarmonyOS");
+  } else {
+    try {
+      commonPrint.log("SpUtil initialization start");
+      await SpUtil.getInstance(); // 初始化 SpUtil
+      commonPrint.log("SpUtil initialization completed");
+    } catch (error, stackTrace) {
+      commonPrint.log("SpUtil initialization failed: $error");
+      developer.log(
+        'SpUtil initialization failed',
+        name: 'Main',
+        error: error,
+        stackTrace: stackTrace,
+      );
+    }
+  }
 
-  runApp(ProviderScope(
-    child: const Application(),
-  ));
+  runZonedGuarded(
+    () => runApp(ProviderScope(child: const Application())),
+    (error, stack) {
+      commonPrint.log("[ZonedError] $error\n$stack");
+    },
+  );
 }
 
 @pragma('vm:entry-point')
@@ -81,7 +158,9 @@ Future<void> _service(List<String> flags) async {
       try {
         IsolateNameServer.removePortNameMapping(serviceIsolate);
       } catch (_) {}
-      commonPrint.log('service isolate: received stop message; closing keep-alive port');
+      commonPrint.log(
+        'service isolate: received stop message; closing keep-alive port',
+      );
       try {
         _serviceKeepAlive?.close();
       } catch (_) {}
@@ -136,7 +215,9 @@ Future<void> _serviceInit(List<String> flags, SendPort keepAliveSend) async {
         try {
           keepAliveSend.send('stop');
         } catch (_) {}
-        commonPrint.log('service tile:onStop -> requested stop; closing keep-alive port');
+        commonPrint.log(
+          'service tile:onStop -> requested stop; closing keep-alive port',
+        );
         try {
           _serviceKeepAlive?.close();
         } catch (_) {}
@@ -149,7 +230,7 @@ Future<void> _serviceInit(List<String> flags, SendPort keepAliveSend) async {
     final traffic = clashLibHandler.getTraffic();
     return json.encode({
       "title": clashLibHandler.getCurrentProfileName(),
-      "content": "$traffic"
+      "content": "$traffic",
     });
   };
 
@@ -168,30 +249,23 @@ Future<void> _serviceInit(List<String> flags, SendPort keepAliveSend) async {
 
   final invokeReceiverPort = ReceivePort();
 
-  clashLibHandler.attachInvokePort(
-    invokeReceiverPort.sendPort.nativePort,
-  );
+  clashLibHandler.attachInvokePort(invokeReceiverPort.sendPort.nativePort);
 
-  invokeReceiverPort.listen(
-    (message) async {
-      final invokeMessage = InvokeMessage.fromJson(json.decode(message));
-      switch (invokeMessage.type) {
-        case InvokeMessageType.protect:
-          final fd = Fd.fromJson(invokeMessage.data);
-          await vpn?.setProtect(fd.value);
-          clashLibHandler.setFdMap(fd.id);
-        case InvokeMessageType.process:
-          final process = ProcessData.fromJson(invokeMessage.data);
-          final processName = await vpn?.resolverProcess(process) ?? "";
-          clashLibHandler.setProcessMap(
-            ProcessMapItem(
-              id: process.id,
-              value: processName,
-            ),
-          );
-      }
-    },
-  );
+  invokeReceiverPort.listen((message) async {
+    final invokeMessage = InvokeMessage.fromJson(json.decode(message));
+    switch (invokeMessage.type) {
+      case InvokeMessageType.protect:
+        final fd = Fd.fromJson(invokeMessage.data);
+        await vpn?.setProtect(fd.value);
+        clashLibHandler.setFdMap(fd.id);
+      case InvokeMessageType.process:
+        final process = ProcessData.fromJson(invokeMessage.data);
+        final processName = await vpn?.resolverProcess(process) ?? "";
+        clashLibHandler.setProcessMap(
+          ProcessMapItem(id: process.id, value: processName),
+        );
+    }
+  });
   if (!quickStart) {
     _handleMainIpc(clashLibHandler);
   } else {
@@ -201,29 +275,27 @@ Future<void> _serviceInit(List<String> flags, SendPort keepAliveSend) async {
     final homeDirPath = await appPath.homeDirPath;
     clashLibHandler
         .quickStart(
-      homeDirPath,
-      globalState.getUpdateConfigParams(),
-      globalState.getCoreState(),
-    )
-        .then(
-      (res) async {
-        if (res.isNotEmpty) {
-          await vpn?.stop();
-          try {
-            keepAliveSend.send('stop');
-          } catch (_) {}
-          commonPrint.log('service quickStart: non-empty res -> requested stop');
-          try {
-            _serviceKeepAlive?.close();
-          } catch (_) {}
-          return;
-        }
-        await vpn?.start(
-          clashLibHandler.getAndroidVpnOptions(),
-        );
-        clashLibHandler.startListener();
-      },
-    );
+          homeDirPath,
+          globalState.getUpdateConfigParams(),
+          globalState.getCoreState(),
+        )
+        .then((res) async {
+          if (res.isNotEmpty) {
+            await vpn?.stop();
+            try {
+              keepAliveSend.send('stop');
+            } catch (_) {}
+            commonPrint.log(
+              'service quickStart: non-empty res -> requested stop',
+            );
+            try {
+              _serviceKeepAlive?.close();
+            } catch (_) {}
+            return;
+          }
+          await vpn?.start(clashLibHandler.getAndroidVpnOptions());
+          clashLibHandler.startListener();
+        });
   }
 }
 
@@ -239,9 +311,7 @@ _handleMainIpc(ClashLibHandler clashLibHandler) {
   });
   sendPort.send(serviceReceiverPort.sendPort);
   final messageReceiverPort = ReceivePort();
-  clashLibHandler.attachMessagePort(
-    messageReceiverPort.sendPort.nativePort,
-  );
+  clashLibHandler.attachMessagePort(messageReceiverPort.sendPort.nativePort);
   messageReceiverPort.listen((message) {
     sendPort.send(message);
   });
@@ -251,9 +321,8 @@ _handleMainIpc(ClashLibHandler clashLibHandler) {
 class _TileListenerWithService with TileListener {
   final Function() _onStop;
 
-  const _TileListenerWithService({
-    required Function() onStop,
-  }) : _onStop = onStop;
+  const _TileListenerWithService({required Function() onStop})
+    : _onStop = onStop;
 
   @override
   void onStop() {
@@ -269,8 +338,8 @@ class _VpnListenerWithService with VpnListener {
   const _VpnListenerWithService({
     required Function(int fd) onStarted,
     required Function(String dns) onDnsChanged,
-  })  : _onStarted = onStarted,
-        _onDnsChanged = onDnsChanged;
+  }) : _onStarted = onStarted,
+       _onDnsChanged = onDnsChanged;
 
   @override
   void onStarted(int fd) {

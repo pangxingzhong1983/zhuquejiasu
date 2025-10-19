@@ -2,6 +2,7 @@ import 'package:zhuquejiasu/common/common.dart';
 import 'package:zhuquejiasu/models/models.dart';
 import 'package:zhuquejiasu/state.dart';
 import 'package:zhuquejiasu/widgets/fade_box.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -188,190 +189,198 @@ class CommonScaffoldState extends State<CommonScaffold> {
 
   @override
   Widget build(BuildContext context) {
-    final body = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ValueListenableBuilder(
-          valueListenable: _keywordsNotifier,
-          builder: (_, keywords, __) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (_onKeywordsUpdate != null) {
-                _onKeywordsUpdate!(keywords);
+    try {
+      final body = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ValueListenableBuilder(
+            valueListenable: _keywordsNotifier,
+            builder: (_, keywords, __) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (_onKeywordsUpdate != null) {
+                  _onKeywordsUpdate!(keywords);
+                }
+              });
+              if (keywords.isEmpty) {
+                return SizedBox();
               }
-            });
-            if (keywords.isEmpty) {
-              return SizedBox();
-            }
-            return Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 16,
-              ),
-              child: Wrap(
-                runSpacing: 8,
-                spacing: 8,
-                children: [
-                  for (final keyword in keywords)
-                    CommonChip(
-                      label: keyword,
-                      type: ChipType.delete,
-                      onPressed: () {
-                        _deleteKeyword(keyword);
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                child: Wrap(
+                  runSpacing: 8,
+                  spacing: 8,
+                  children: [
+                    for (final keyword in keywords)
+                      CommonChip(
+                        label: keyword,
+                        type: ChipType.delete,
+                        onPressed: () {
+                          _deleteKeyword(keyword);
+                        },
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+          Expanded(
+            child: widget.body,
+          ),
+        ],
+      );
+
+      final scaffold = Scaffold(
+        appBar: PreferredSize(
+          preferredSize: const Size.fromHeight(kToolbarHeight),
+          child: Stack(
+            alignment: Alignment.bottomCenter,
+            children: [
+              ValueListenableBuilder<CommonAppBarState>(
+                valueListenable: _appBarState,
+                builder: (_, state, __) {
+                  final realActions = [
+                    if (state.onSearch != null)
+                      IconButton(
+                        onPressed: () {
+                          _searching = true;
+                        },
+                        icon: Icon(Icons.search),
+                      ),
+                    ...state.actions.isNotEmpty
+                        ? state.actions
+                        : widget.actions ?? []
+                  ];
+                  final appBar = AppBar(
+                    centerTitle: false,
+                    systemOverlayStyle: SystemUiOverlayStyle(
+                      statusBarColor: Colors.transparent,
+                      statusBarIconBrightness:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? Brightness.light
+                              : Brightness.dark,
+                      systemNavigationBarIconBrightness:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? Brightness.light
+                              : Brightness.dark,
+                      systemNavigationBarColor:
+                          widget.bottomNavigationBar != null
+                              ? context.colorScheme.surfaceContainer
+                              : context.colorScheme.surface,
+                      systemNavigationBarDividerColor: Colors.transparent,
+                    ),
+                    automaticallyImplyLeading:
+                        widget.automaticallyImplyLeading,
+                    leading: Builder(
+                      builder: (BuildContext context) {
+                        return IconButton(
+                          icon: const Icon(Icons.menu),
+                          onPressed: () {
+                            Scaffold.of(context).openDrawer();
+                          },
+                        );
                       },
                     ),
-                ],
+                    title: state.searching
+                        ? TextField(
+                            autofocus: true,
+                            controller: _textController,
+                            style: context.textTheme.titleLarge,
+                            onChanged: (value) {
+                              if (state.onSearch != null) {
+                                state.onSearch!(value);
+                              }
+                            },
+                            decoration: InputDecoration(
+                              hintText: appLocalizations.search,
+                            ),
+                          )
+                        : Text(widget.title),
+                    actions: [
+                      if (state.searching)
+                        IconButton(
+                          onPressed: _handleClear,
+                          icon: Icon(Icons.close),
+                        )
+                      else
+                        Row(
+                          children: [
+                            ...realActions.separated(
+                              SizedBox(
+                                width: 4,
+                              ),
+                            )
+                          ],
+                        ),
+                      SizedBox(
+                        width: 8,
+                      )
+                    ],
+                  );
+                  return FadeBox(
+                    child: state.searching
+                        ? Theme(
+                            data: _appBarTheme(context),
+                            child: PopScope(
+                              canPop: false,
+                              onPopInvokedWithResult: (didPop, __) {
+                                if (didPop) {
+                                  return;
+                                }
+                                if (state.searching) {
+                                  _handleExitSearching();
+                                  return;
+                                }
+                                Navigator.of(context).pop();
+                              },
+                              child: appBar,
+                            ),
+                          )
+                        : appBar,
+                  );
+                },
               ),
+              ValueListenableBuilder(
+                valueListenable: _loading,
+                builder: (_, value, __) {
+                  return value == true
+                      ? const LinearProgressIndicator()
+                      : Container();
+                },
+              ),
+            ],
+          ),
+        ),
+        body: body,
+        drawer: widget.drawer,
+        floatingActionButton: ValueListenableBuilder<Widget?>(
+          valueListenable: _floatingActionButton,
+          builder: (_, value, __) {
+            return FadeScaleBox(
+              child: value ?? SizedBox(),
             );
           },
         ),
-        Expanded(
-          child: widget.body,
-        ),
-      ],
-    );
-
-    final scaffold = Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(kToolbarHeight),
-        child: Stack(
-          alignment: Alignment.bottomCenter,
-          children: [
-            ValueListenableBuilder<CommonAppBarState>(
-              valueListenable: _appBarState,
-              builder: (_, state, __) {
-                final realActions = [
-                  if (state.onSearch != null)
-                    IconButton(
-                      onPressed: () {
-                        _searching = true;
-                      },
-                      icon: Icon(Icons.search),
-                    ),
-                  ...state.actions.isNotEmpty
-                      ? state.actions
-                      : widget.actions ?? []
-                ];
-                final appBar = AppBar(
-                  centerTitle: false,
-                  systemOverlayStyle: SystemUiOverlayStyle(
-                    statusBarColor: Colors.transparent,
-                    statusBarIconBrightness:
-                        Theme.of(context).brightness == Brightness.dark
-                            ? Brightness.light
-                            : Brightness.dark,
-                    systemNavigationBarIconBrightness:
-                        Theme.of(context).brightness == Brightness.dark
-                            ? Brightness.light
-                            : Brightness.dark,
-                    systemNavigationBarColor: widget.bottomNavigationBar != null
-                        ? context.colorScheme.surfaceContainer
-                        : context.colorScheme.surface,
-                    systemNavigationBarDividerColor: Colors.transparent,
-                  ),
-                  automaticallyImplyLeading: widget.automaticallyImplyLeading,
-                  leading: Builder(  // 使用 Builder 包装
-                    builder: (BuildContext context) {
-                      return IconButton(
-                        icon: const Icon(Icons.menu),
-                        onPressed: () {
-                          Scaffold.of(context).openDrawer();  // 现在可以安全地使用 Scaffold.of
-                        },
-                      );
-                    },
-                  ),
-                  title: state.searching
-                      ? TextField(
-                          autofocus: true,
-                          controller: _textController,
-                          style: context.textTheme.titleLarge,
-                          onChanged: (value) {
-                            if (state.onSearch != null) {
-                              state.onSearch!(value);
-                            }
-                          },
-                          decoration: InputDecoration(
-                            hintText: appLocalizations.search,
-                          ),
-                        )
-                      : Text(widget.title),
-                  actions: [
-                    if (state.searching)
-                      IconButton(
-                        onPressed: _handleClear,
-                        icon: Icon(Icons.close),
-                      )
-                    else
-                      Row(
-                        children: [
-                          ...realActions.separated(
-                            SizedBox(
-                              width: 4,
-                            ),
-                          )
-                        ],
-                      ),
-                    SizedBox(
-                      width: 8,
-                    )
-                  ],
-                );
-                return FadeBox(
-                  child: state.searching
-                      ? Theme(
-                          data: _appBarTheme(context),
-                          child: PopScope(
-                            canPop: false,
-                            onPopInvokedWithResult: (didPop, __) {
-                              if (didPop) {
-                                return;
-                              }
-                              if (state.searching) {
-                                _handleExitSearching();
-                                return;
-                              }
-                              Navigator.of(context).pop();
-                            },
-                            child: appBar,
-                          ),
-                        )
-                      : appBar,
-                );
-              },
-            ),
-            ValueListenableBuilder(
-              valueListenable: _loading,
-              builder: (_, value, __) {
-                return value == true
-                    ? const LinearProgressIndicator()
-                    : Container();
-              },
-            ),
-          ],
-        ),
-      ),
-      body: body,
-      drawer: widget.drawer,
-      floatingActionButton: ValueListenableBuilder<Widget?>(
-        valueListenable: _floatingActionButton,
-        builder: (_, value, __) {
-          return FadeScaleBox(
-            child: value ?? SizedBox(),
-          );
-        },
-      ),
-      bottomNavigationBar: widget.bottomNavigationBar,
-    );
-    return _sideNavigationBar != null
-        ? Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _sideNavigationBar!,
-              Expanded(
-                flex: 1,
-                child: scaffold,
-              ),
-            ],
-          )
-        : scaffold;
+        bottomNavigationBar: widget.bottomNavigationBar,
+      );
+      return _sideNavigationBar != null
+          ? Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _sideNavigationBar!,
+                Expanded(
+                  flex: 1,
+                  child: scaffold,
+                ),
+              ],
+            )
+          : scaffold;
+    } catch (error, stack) {
+      commonPrint.log("[CommonScaffold] build failed: $error");
+      debugPrintStack(stackTrace: stack);
+      rethrow;
+    }
   }
 }

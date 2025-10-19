@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:zhuquejiasu/common/system.dart';
 
 class ConnectivityManager extends StatefulWidget {
   final VoidCallback? onConnectivityChanged;
@@ -18,11 +19,14 @@ class ConnectivityManager extends StatefulWidget {
 }
 
 class _ConnectivityManagerState extends State<ConnectivityManager> {
-  late StreamSubscription subscription;
+  StreamSubscription? subscription;
 
   @override
   void initState() {
     super.initState();
+    if (system.isHarmony) {
+      return;
+    }
     subscription = Connectivity().onConnectivityChanged.listen((_) async {
       if (widget.onConnectivityChanged != null) {
         widget.onConnectivityChanged!();
@@ -32,7 +36,7 @@ class _ConnectivityManagerState extends State<ConnectivityManager> {
 
   @override
   void dispose() {
-    subscription.cancel();
+    subscription?.cancel();
     super.dispose();
   }
 

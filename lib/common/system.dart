@@ -23,14 +23,32 @@ class System {
   bool get isDesktop =>
       Platform.isWindows || Platform.isMacOS || Platform.isLinux;
 
+  bool get isHarmony => Platform.operatingSystem.toLowerCase() == 'ohos';
+
+  bool get isAndroidLike => Platform.isAndroid || isHarmony;
+
+  bool get isMobile => isAndroidLike;
+
   Future<int> get version async {
-    final deviceInfo = await DeviceInfoPlugin().deviceInfo;
-    return switch (Platform.operatingSystem) {
-      "macos" => (deviceInfo as MacOsDeviceInfo).majorVersion,
-      "android" => (deviceInfo as AndroidDeviceInfo).version.sdkInt,
-      "windows" => (deviceInfo as WindowsDeviceInfo).majorVersion,
-      String() => 0
-    };
+    try {
+      final deviceInfo = await DeviceInfoPlugin().deviceInfo;
+      return switch (Platform.operatingSystem) {
+        "macos" => (deviceInfo as MacOsDeviceInfo).majorVersion,
+        "android" => (deviceInfo as AndroidDeviceInfo).version.sdkInt,
+        "windows" => (deviceInfo as WindowsDeviceInfo).majorVersion,
+        String() => 0,
+      };
+    } on MissingPluginException catch (error, stackTrace) {
+      debugPrint(
+        "[System] DeviceInfoPlugin not available on this platform: $error\n$stackTrace",
+      );
+      return 0;
+    } catch (error, stackTrace) {
+      debugPrint(
+        "[System] Failed to resolve system version: $error\n$stackTrace",
+      );
+      return 0;
+    }
   }
 
   Future<bool> checkIsAdmin() async {
@@ -89,7 +107,7 @@ class System {
       );
       final arguments = [
         "-c",
-        'echo "$password" | sudo -S chown root:root "$corePath" && echo "$password" | sudo -S chmod +sx "$corePath"'
+        'echo "$password" | sudo -S chown root:root "$corePath" && echo "$password" | sudo -S chmod +sx "$corePath"',
       ];
       final result = await Process.run(shell, arguments);
       if (result.exitCode != 0) {
@@ -106,7 +124,7 @@ class System {
   }
 
   terminate() async {
-  if (Platform.isAndroid) {
+    if (Platform.isAndroid) {
       // During local debugging on Android we want to avoid actually exiting the
       // whole process so we can capture logs and diagnose crashes. When running
       // in debug mode on Android, suppress the real exit and only log the call.
@@ -114,7 +132,9 @@ class System {
         debugPrint('[System] exit() suppressed in debug mode on Android');
         // Print stack trace and isolate info to help find the caller during debugging
         debugPrint('[System] exit() call stack:\n${StackTrace.current}');
-        debugPrint('[System] exit() current isolate: ${Isolate.current.debugName ?? Isolate.current.hashCode}');
+        debugPrint(
+          '[System] exit() current isolate: ${Isolate.current.debugName ?? Isolate.current.hashCode}',
+        );
         return;
       }
 
@@ -142,7 +162,7 @@ class System {
     // To avoid shadowing issues we simply call the top-level exit by
     // referring to it via Function.apply to bypass static resolution.
     // This is a safe, minimal change that avoids touching other imports.
-    
+
     // After a short delay, terminate the process directly. This is the
     // simplest and most portable approach and avoids relying on a
     // Process.pid accessor that may not be available on all platforms.

@@ -59,6 +59,7 @@ class ApplicationState extends ConsumerState<Application> {
   @override
   void initState() {
     super.initState();
+    commonPrint.log("ApplicationState.initState start");
     _autoUpdateGroupTask();
     _autoUpdateProfilesTask();
     globalState.appController = AppController(context, ref);
@@ -158,16 +159,20 @@ class ApplicationState extends ConsumerState<Application> {
 
   @override
   Widget build(context) {
-
+    commonPrint.log("ApplicationState.build start");
     return _buildPlatformWrap(
       _buildWrap(
         Consumer(
           builder: (_, ref, child) {
+            commonPrint.log("ApplicationState.Consumer builder invoked");
             final locale =
                 ref.watch(appSettingProvider.select((state) => state.locale));
             final themeProps = ref.watch(themeSettingProvider);
             return DynamicColorBuilder(
               builder: (lightDynamic, darkDynamic) {
+                commonPrint.log(
+                  "ApplicationState.DynamicColorBuilder light=${lightDynamic != null} dark=${darkDynamic != null}",
+                );
                 _updateSystemColorSchemes(lightDynamic, darkDynamic);
                 return MaterialApp(
                   navigatorKey: globalState.navigatorKey,
@@ -178,9 +183,15 @@ class ApplicationState extends ConsumerState<Application> {
                     GlobalWidgetsLocalizations.delegate
                   ],
                   builder:EasyLoading.init(builder:(_, child) {
+                    commonPrint.log(
+                      "ApplicationState.EasyLoading builder child=${child?.runtimeType}",
+                    );
                     return MessageManager(
                       child: LayoutBuilder(
                         builder: (_, container) {
+                          commonPrint.log(
+                            "ApplicationState.LayoutBuilder maxWidth=${container.maxWidth}",
+                          );
                           globalState.appController.updateViewWidth(
                             container.maxWidth,
                           );

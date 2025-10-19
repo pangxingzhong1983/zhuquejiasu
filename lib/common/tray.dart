@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:tray_manager/tray_manager.dart';
+import 'package:zhuquejiasu/common/system.dart';
 
 import 'app_localizations.dart';
 import 'constant.dart';
@@ -18,7 +19,7 @@ class Tray {
     required Brightness? brightness,
     bool force = false,
   }) async {
-    if (Platform.isAndroid) {
+    if (Platform.isAndroid || system.isHarmony) {
       return;
     }
     if (Platform.isLinux || force) {
@@ -42,7 +43,7 @@ class Tray {
     required TrayState trayState,
     bool focus = false,
   }) async {
-    if (Platform.isAndroid) {
+    if (Platform.isAndroid || system.isHarmony) {
       return;
     }
     if (!Platform.isLinux) {

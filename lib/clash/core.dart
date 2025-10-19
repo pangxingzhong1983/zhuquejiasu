@@ -19,10 +19,20 @@ class ClashCore {
   late ClashHandlerInterface clashInterface;
 
   ClashCore._internal() {
-    if (Platform.isAndroid) {
+    if (system.isHarmony) {
+      clashInterface = HarmonyClashStub();
+      commonPrint.log(
+        "ClashCore: HarmonyOS detected, using stubbed clash interface.",
+      );
+    } else if (Platform.isAndroid) {
       clashInterface = clashLib!;
-    } else {
+    } else if (clashService != null) {
       clashInterface = clashService!;
+    } else {
+      clashInterface = HarmonyClashStub();
+      commonPrint.log(
+        "ClashCore: No compatible clash backend available, falling back to stub.",
+      );
     }
   }
 
@@ -50,10 +60,14 @@ class ClashCore {
     ];
     // Try to ensure each asset exists under the app home path. Prefer local
     // bundled assets; if missing try to download from trusted mirrors.
-    final mirrors = [
-      'https://dav.zhuquejiasu.uk/ZhuqueJiasu/assets/data/',
-    ];
-    final dio = Dio(BaseOptions(responseType: ResponseType.bytes, connectTimeout: const Duration(seconds: 10), receiveTimeout: const Duration(seconds: 20)));
+    final mirrors = ['https://dav.zhuquejiasu.uk/ZhuqueJiasu/assets/data/'];
+    final dio = Dio(
+      BaseOptions(
+        responseType: ResponseType.bytes,
+        connectTimeout: const Duration(seconds: 10),
+        receiveTimeout: const Duration(seconds: 20),
+      ),
+    );
 
     bool anyFailed = false;
     for (final geoFileName in geoFileNameList) {
@@ -158,10 +172,7 @@ class ClashCore {
     );
     try {
       final result = await clashInterface.setupConfig(setupParams);
-      developer.log(
-        'setupConfig success: $result',
-        name: 'ClashCore',
-      );
+      developer.log('setupConfig success: $result', name: 'ClashCore');
       return result;
     } catch (e) {
       developer.log(
@@ -185,23 +196,17 @@ class ClashCore {
         ...(proxies[UsedProxy.GLOBAL.name]["all"] as List).where((e) {
           final proxy = proxies[e] ?? {};
           return GroupTypeExtension.valueList.contains(proxy['type']);
-        })
+        }),
       ];
       final groupsRaw = groupNames.map((groupName) {
         final group = proxies[groupName];
         group["all"] = ((group["all"] ?? []) as List)
-            .map(
-              (name) => proxies[name],
-            )
+            .map((name) => proxies[name])
             .where((proxy) => proxy != null)
             .toList();
         return group;
       }).toList();
-      return groupsRaw
-          .map(
-            (e) => Group.fromJson(e),
-          )
-          .toList();
+      return groupsRaw.map((e) => Group.fromJson(e)).toList();
     });
   }
 
@@ -225,28 +230,26 @@ class ClashCore {
   }
 
   Future<List<ExternalProvider>> getExternalProviders() async {
-    final externalProvidersRawString =
-        await clashInterface.getExternalProviders();
+    final externalProvidersRawString = await clashInterface
+        .getExternalProviders();
     if (externalProvidersRawString.isEmpty) {
       return [];
     }
-    return Isolate.run<List<ExternalProvider>>(
-      () {
-        final externalProviders =
-            (json.decode(externalProvidersRawString) as List<dynamic>)
-                .map(
-                  (item) => ExternalProvider.fromJson(item),
-                )
-                .toList();
-        return externalProviders;
-      },
-    );
+    return Isolate.run<List<ExternalProvider>>(() {
+      final externalProviders =
+          (json.decode(externalProvidersRawString) as List<dynamic>)
+              .map((item) => ExternalProvider.fromJson(item))
+              .toList();
+      return externalProviders;
+    });
   }
 
   Future<ExternalProvider?> getExternalProvider(
-      String externalProviderName) async {
-    final externalProvidersRawString =
-        await clashInterface.getExternalProvider(externalProviderName);
+    String externalProviderName,
+  ) async {
+    final externalProvidersRawString = await clashInterface.getExternalProvider(
+      externalProviderName,
+    );
     if (externalProvidersRawString.isEmpty) {
       return null;
     }
@@ -265,12 +268,12 @@ class ClashCore {
     required String data,
   }) {
     return clashInterface.sideLoadExternalProvider(
-        providerName: providerName, data: data);
+      providerName: providerName,
+      data: data,
+    );
   }
 
-  Future<String> updateExternalProvider({
-    required String providerName,
-  }) async {
+  Future<String> updateExternalProvider({required String providerName}) async {
     return clashInterface.updateExternalProvider(providerName);
   }
 
@@ -300,10 +303,7 @@ class ClashCore {
     if (countryCode.isEmpty) {
       return null;
     }
-    return IpInfo(
-      ip: ip,
-      countryCode: countryCode,
-    );
+    return IpInfo(ip: ip, countryCode: countryCode);
   }
 
   Future<Traffic> getTotalTraffic() async {
@@ -349,6 +349,173 @@ class ClashCore {
   destroy() async {
     await clashInterface.destroy();
   }
+}
+
+class HarmonyClashStub extends ClashHandlerInterface
+    with AndroidClashInterface {
+  HarmonyClashStub._internal() {
+    commonPrint.log(
+      "[HarmonyClashStub] Clash core operations are disabled on HarmonyOS; the app will run in read-only mode.",
+    );
+  }
+
+  static final HarmonyClashStub _instance = HarmonyClashStub._internal();
+
+  factory HarmonyClashStub() => _instance;
+
+  final Set<String> _warnedMethods = {};
+
+  T _log<T>(String method, T value) {
+    if (_warnedMethods.add(method)) {
+      commonPrint.log("[HarmonyClashStub] fallback invoked: $method");
+    }
+    return value;
+  }
+
+  Future<T> _future<T>(String method, T value) async => _log(method, value);
+
+  @override
+  Future<bool> init(String homeDir) => _future('init', true);
+
+  @override
+  Future<bool> preload() => _future('preload', true);
+
+  @override
+  Future<bool> shutdown() => _future('shutdown', true);
+
+  @override
+  Future<bool> get isInit => _future('isInit', true);
+
+  @override
+  Future<bool> forceGc() => _future('forceGc', true);
+
+  @override
+  Future<String> validateConfig(String data) => _future('validateConfig', '{}');
+
+  @override
+  Future<String> asyncTestDelay(String url, String proxyName) =>
+      _future('asyncTestDelay', '{}');
+
+  @override
+  Future<String> updateConfig(UpdateConfigParams updateConfigParams) =>
+      _future('updateConfig', '{}');
+
+  @override
+  Future<String> setupConfig(SetupParams setupParams) =>
+      _future('setupConfig', '{}');
+
+  @override
+  Future<String> getProxies() => _future('getProxies', '{}');
+
+  @override
+  Future<String> changeProxy(ChangeProxyParams changeProxyParams) =>
+      _future('changeProxy', '{}');
+
+  @override
+  Future<bool> startListener() => _future('startListener', true);
+
+  @override
+  Future<bool> stopListener() => _future('stopListener', true);
+
+  @override
+  Future<String> getExternalProviders() =>
+      _future('getExternalProviders', '{}');
+
+  @override
+  Future<String> getExternalProvider(String externalProviderName) =>
+      _future('getExternalProvider', '{}');
+
+  @override
+  Future<String> updateGeoData(UpdateGeoDataParams params) =>
+      _future('updateGeoData', '{}');
+
+  @override
+  Future<String> sideLoadExternalProvider({
+    required String providerName,
+    required String data,
+  }) => _future('sideLoadExternalProvider', '{}');
+
+  @override
+  Future<String> updateExternalProvider(String providerName) =>
+      _future('updateExternalProvider', '{}');
+
+  @override
+  Future<String> getTraffic() => _future('getTraffic', '{}');
+
+  @override
+  Future<String> getTotalTraffic() => _future('getTotalTraffic', '{}');
+
+  @override
+  Future<String> getCountryCode(String ip) => _future('getCountryCode', '{}');
+
+  @override
+  Future<String> getMemory() => _future('getMemory', '{}');
+
+  @override
+  resetTraffic() {
+    _log('resetTraffic', true);
+  }
+
+  @override
+  startLog() => _log('startLog', true);
+
+  @override
+  stopLog() => _log('stopLog', true);
+
+  @override
+  Future<String> getConnections() => _future('getConnections', '[]');
+
+  @override
+  Future<bool> closeConnection(String id) => _future('closeConnection', true);
+
+  @override
+  Future<bool> closeConnections() => _future('closeConnections', true);
+
+  @override
+  Future<String> getProfile(String id) => _future('getProfile', '{}');
+
+  @override
+  Future<bool> setState(CoreState state) => _future('setState', true);
+
+  @override
+  sendMessage(String message) {
+    _log('sendMessage', false);
+  }
+
+  @override
+  reStart() {
+    _log('reStart', false);
+  }
+
+  @override
+  Future<bool> destroy() => _future('destroy', true);
+
+  @override
+  Future<bool> setFdMap(int fd) => _future('setFdMap', true);
+
+  @override
+  Future<bool> setProcessMap(ProcessMapItem item) =>
+      _future('setProcessMap', true);
+
+  @override
+  Future<bool> stopTun() => _future('stopTun', true);
+
+  @override
+  Future<bool> updateDns(String value) => _future('updateDns', true);
+
+  @override
+  Future<DateTime?> startTun(int fd) => _future<DateTime?>('startTun', null);
+
+  @override
+  Future<AndroidVpnOptions?> getAndroidVpnOptions() =>
+      _future<AndroidVpnOptions?>('getAndroidVpnOptions', null);
+
+  @override
+  Future<String> getCurrentProfileName() =>
+      _future('getCurrentProfileName', 'Harmony');
+
+  @override
+  Future<DateTime?> getRunTime() => _future<DateTime?>('getRunTime', null);
 }
 
 final clashCore = ClashCore();

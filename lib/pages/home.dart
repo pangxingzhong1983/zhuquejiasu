@@ -7,6 +7,7 @@ import 'package:zhuquejiasu/widgets/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart';
 
 import '../fragments/dashboard/widgets/app_drawer.dart';
 
@@ -17,30 +18,37 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BackScope(
-      child: Consumer(
-        builder: (_, ref, child) {
-          ref.watch(homeStateProvider);
+    commonPrint.log("HomePage.build invoked");
+    try {
+      return BackScope(
+        child: Consumer(
+          builder: (_, ref, child) {
+            ref.watch(homeStateProvider);
 
-          return CommonScaffold(
-            key: globalState.homeScaffoldKey,
-            title:  '朱雀加速',
-            drawer: const AppDrawer(),
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
+            return CommonScaffold(
+              key: globalState.homeScaffoldKey,
+              title: '朱雀加速',
+              drawer: const AppDrawer(),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
 
-            // sideNavigationBar: sideNavigationBar,
-            body: child!,
-            // bottomNavigationBar: bottomNavigationBar,
-          );
-        },
-        child: _HomePageView(),
-      ),
-    );
+              // sideNavigationBar: sideNavigationBar,
+              body: child!,
+              // bottomNavigationBar: bottomNavigationBar,
+            );
+          },
+          child: _HomePageView(),
+        ),
+      );
+    } catch (error, stack) {
+      commonPrint.log("[HomePage] build failed: $error");
+      debugPrintStack(stackTrace: stack);
+      rethrow;
+    }
   }
 }
 
@@ -52,6 +60,9 @@ class _HomePageView extends ConsumerStatefulWidget {
 }
 
 class _HomePageViewState extends ConsumerState<_HomePageView> {
+  bool _buildLogged = false;
+  final Set<String> _loggedPages = {};
+
   _updatePageController(List<NavigationItem> navigationItems) {
     final pageLabel = globalState.appState.pageLabel;
     final index = navigationItems.lastIndexWhere(
@@ -60,10 +71,7 @@ class _HomePageViewState extends ConsumerState<_HomePageView> {
     final pageIndex = index == -1 ? 0 : index;
     if (globalState.pageController != null) {
       Future.delayed(Duration(milliseconds: 200), () {
-        globalState.appController.toPage(
-          pageIndex,
-          hasAnimate: true,
-        );
+        globalState.appController.toPage(pageIndex, hasAnimate: true);
       });
     } else {
       globalState.pageController = PageController(
@@ -73,28 +81,44 @@ class _HomePageViewState extends ConsumerState<_HomePageView> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
-    final navigationItems = ref.watch(currentNavigationsStateProvider).value;
-    _updatePageController(navigationItems);
-    return PageView.builder(
-      controller: globalState.pageController,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: navigationItems.length,
-      // onPageChanged: (index) {
-      //   _handlePageChanged(navigationItems[index].label);
-      // },
-      itemBuilder: (_, index) {
-        final navigationItem = navigationItems[index];
-        return KeepScope(
-          keep: navigationItem.keep,
-          key: Key(navigationItem.label.name),
-          child: navigationItem.fragment,
-        );
-      },
-    );
+    try {
+      if (!_buildLogged) {
+        commonPrint.log("_HomePageViewState.build invoked");
+        _buildLogged = true;
+      }
+      final navigationItems = ref.watch(currentNavigationsStateProvider).value;
+      commonPrint.log(
+        "_HomePageViewState navigationItems=${navigationItems.length}",
+      );
+      _updatePageController(navigationItems);
+      return PageView.builder(
+        controller: globalState.pageController,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: navigationItems.length,
+        // onPageChanged: (index) {
+        //   _handlePageChanged(navigationItems[index].label);
+        // },
+        itemBuilder: (_, index) {
+          final navigationItem = navigationItems[index];
+          if (_loggedPages.add(navigationItem.label.name)) {
+            commonPrint.log(
+              "_HomePageViewState rendering page: ${navigationItem.label.name}",
+            );
+          }
+          return KeepScope(
+            keep: navigationItem.keep,
+            key: Key(navigationItem.label.name),
+            child: navigationItem.fragment,
+          );
+        },
+      );
+    } catch (error, stack) {
+      commonPrint.log("[_HomePageViewState] build failed: $error");
+      debugPrintStack(stackTrace: stack);
+      rethrow;
+    }
   }
 }
 
@@ -163,21 +187,15 @@ class CommonNavigationBar extends ConsumerWidget {
                   unselectedIconTheme: IconThemeData(
                     color: context.colorScheme.onSurfaceVariant,
                   ),
-                  selectedLabelTextStyle:
-                      context.textTheme.labelLarge!.copyWith(
-                    color: context.colorScheme.onSurface,
-                  ),
-                  unselectedLabelTextStyle:
-                      context.textTheme.labelLarge!.copyWith(
-                    color: context.colorScheme.onSurface,
-                  ),
+                  selectedLabelTextStyle: context.textTheme.labelLarge!
+                      .copyWith(color: context.colorScheme.onSurface),
+                  unselectedLabelTextStyle: context.textTheme.labelLarge!
+                      .copyWith(color: context.colorScheme.onSurface),
                   destinations: navigationItems
                       .map(
                         (e) => NavigationRailDestination(
                           icon: e.icon,
-                          label: Text(
-                            Intl.message(e.label.name),
-                          ),
+                          label: Text(Intl.message(e.label.name)),
                         ),
                       )
                       .toList(),
@@ -191,22 +209,18 @@ class CommonNavigationBar extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(
-            height: 16,
-          ),
+          const SizedBox(height: 16),
           IconButton(
             onPressed: () {
-              ref.read(appSettingProvider.notifier).updateState(
-                    (state) => state.copyWith(
-                      showLabel: !state.showLabel,
-                    ),
+              ref
+                  .read(appSettingProvider.notifier)
+                  .updateState(
+                    (state) => state.copyWith(showLabel: !state.showLabel),
                   );
             },
             icon: const Icon(Icons.menu),
           ),
-          const SizedBox(
-            height: 16,
-          ),
+          const SizedBox(height: 16),
         ],
       ),
     );
@@ -215,11 +229,11 @@ class CommonNavigationBar extends ConsumerWidget {
 
 class _NavigationBarDefaultsM3 extends NavigationBarThemeData {
   _NavigationBarDefaultsM3(this.context)
-      : super(
-          height: 80.0,
-          elevation: 3.0,
-          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        );
+    : super(
+        height: 80.0,
+        elevation: 3.0,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+      );
 
   final BuildContext context;
   late final ColorScheme _colors = Theme.of(context).colorScheme;
@@ -242,8 +256,8 @@ class _NavigationBarDefaultsM3 extends NavigationBarThemeData {
         color: states.contains(WidgetState.disabled)
             ? _colors.onSurfaceVariant.withValues(alpha: 0.38)
             : states.contains(WidgetState.selected)
-                ? _colors.onSecondaryContainer
-                : _colors.onSurfaceVariant,
+            ? _colors.onSecondaryContainer
+            : _colors.onSurfaceVariant,
       );
     });
   }
@@ -259,12 +273,13 @@ class _NavigationBarDefaultsM3 extends NavigationBarThemeData {
     return WidgetStateProperty.resolveWith((Set<WidgetState> states) {
       final TextStyle style = _textTheme.labelMedium!;
       return style.apply(
-          overflow: TextOverflow.ellipsis,
-          color: states.contains(WidgetState.disabled)
-              ? _colors.onSurfaceVariant.withValues(alpha: 0.38)
-              : states.contains(WidgetState.selected)
-                  ? _colors.onSurface
-                  : _colors.onSurfaceVariant);
+        overflow: TextOverflow.ellipsis,
+        color: states.contains(WidgetState.disabled)
+            ? _colors.onSurfaceVariant.withValues(alpha: 0.38)
+            : states.contains(WidgetState.selected)
+            ? _colors.onSurface
+            : _colors.onSurfaceVariant,
+      );
     });
   }
 }

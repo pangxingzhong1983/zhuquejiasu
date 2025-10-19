@@ -6,7 +6,9 @@ import 'package:zhuquejiasu/enum/enum.dart';
 import 'package:zhuquejiasu/l10n/l10n.dart';
 import 'package:zhuquejiasu/plugins/service.dart';
 import 'package:zhuquejiasu/widgets/scaffold.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -49,7 +51,33 @@ class GlobalState {
     return _instance!;
   }
 
+  PackageInfo _fallbackPackageInfo() {
+    return PackageInfo(
+      appName: appName,
+      packageName: "com.follow.zhuque",
+      version: "0.0.0",
+      buildNumber: "0",
+    );
+  }
+
+  Future<PackageInfo> _resolvePackageInfo() async {
+    try {
+      return await PackageInfo.fromPlatform();
+    } on MissingPluginException catch (error, stackTrace) {
+      debugPrint(
+        "[GlobalState] PackageInfo.fromPlatform missing: $error\n$stackTrace",
+      );
+      return _fallbackPackageInfo();
+    } catch (error, stackTrace) {
+      debugPrint(
+        "[GlobalState] PackageInfo.fromPlatform failed: $error\n$stackTrace",
+      );
+      return _fallbackPackageInfo();
+    }
+  }
+
   initApp(int version) async {
+    commonPrint.log("GlobalState.initApp start version=$version");
     appState = AppState(
       version: version,
       viewWidth: other.getScreenSize().width,
@@ -60,18 +88,21 @@ class GlobalState {
     );
     await init();
     schedulePrewarm();
+    commonPrint.log("GlobalState.initApp completed");
   }
 
   init() async {
-    packageInfo = await PackageInfo.fromPlatform();
-    config = await preferences.getConfig() ??
-        Config(
-          themeProps: defaultThemeProps,
-        );
+    commonPrint.log("GlobalState.init start");
+    packageInfo = await _resolvePackageInfo();
+    config =
+        await preferences.getConfig() ?? Config(themeProps: defaultThemeProps);
     await globalState.migrateOldData(config);
     await AppLocalizations.load(
       other.getLocaleForString(config.appSetting.locale) ??
           WidgetsBinding.instance.platformDispatcher.locale,
+    );
+    commonPrint.log(
+      "GlobalState.init loaded config profiles=${config.profiles.length}",
     );
   }
 
@@ -141,9 +172,7 @@ class GlobalState {
                     style: Theme.of(context).textTheme.labelLarge,
                     children: [message],
                   ),
-                  style: const TextStyle(
-                    overflow: TextOverflow.visible,
-                  ),
+                  style: const TextStyle(overflow: TextOverflow.visible),
                 ),
               ),
             ),
@@ -160,7 +189,7 @@ class GlobalState {
                   Navigator.of(context).pop(true);
                 },
                 child: Text(confirmText ?? appLocalizations.confirm),
-              )
+              ),
             ],
           );
         },
@@ -198,9 +227,7 @@ class GlobalState {
       } else {
         showMessage(
           title: title ?? appLocalizations.tip,
-          message: TextSpan(
-            text: e.toString(),
-          ),
+          message: TextSpan(text: e.toString()),
         );
       }
       return null;
@@ -229,9 +256,7 @@ class GlobalState {
   Future<void> migrateOldData(Config config) async {
     final clashConfig = await preferences.getClashConfig();
     if (clashConfig != null) {
-      config = config.copyWith(
-        patchClashConfig: clashConfig,
-      );
+      config = config.copyWith(patchClashConfig: clashConfig);
       preferences.clearClashConfig();
       preferences.saveConfig(config);
     }
@@ -282,7 +307,8 @@ class GlobalState {
         await clashCore.preload();
         await ClashCore.initGeo();
         final params = getUpdateConfigParams();
-        final hasProfile = params.profileId.isNotEmpty ||
+        final hasProfile =
+            params.profileId.isNotEmpty ||
             config.profiles.isNotEmpty ||
             config.currentProfileId != null;
         if (!hasProfile) {

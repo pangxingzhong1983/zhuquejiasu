@@ -70,9 +70,7 @@ class AppController {
     });
   }
 
-  applyProfileDebounce({
-    bool silence = false,
-  }) {
+  applyProfileDebounce({bool silence = false}) {
     debouncer.call(DebounceTag.applyProfile, (silence) {
       applyProfile(silence: silence);
     }, args: [silence]);
@@ -83,12 +81,11 @@ class AppController {
   }
 
   changeProxyDebounce(String groupName, String proxyName) {
-    debouncer.call(DebounceTag.changeProxy,
-        (String groupName, String proxyName) async {
-      await changeProxy(
-        groupName: groupName,
-        proxyName: proxyName,
-      );
+    debouncer.call(DebounceTag.changeProxy, (
+      String groupName,
+      String proxyName,
+    ) async {
+      await changeProxy(groupName: groupName, proxyName: proxyName);
       await updateGroups();
     }, args: [groupName, proxyName]);
   }
@@ -106,17 +103,15 @@ class AppController {
     if (isStart) {
       final profile = _ref.read(currentProfileProvider);
       final currentLastModified = await profile?.profileLastModified;
-      final shouldApplyProfile = profile != null &&
+      final shouldApplyProfile =
+          profile != null &&
           (currentLastModified == null ||
               lastProfileModified == null ||
               currentLastModified > (lastProfileModified ?? 0));
       if (shouldApplyProfile) {
         await applyProfile(silence: true, refreshGroups: false);
       }
-      await globalState.handleStart([
-        updateRunTime,
-        updateTraffic,
-      ]);
+      await globalState.handleStart([updateRunTime, updateTraffic]);
       if (shouldApplyProfile) {
         Future.microtask(() async {
           try {
@@ -152,8 +147,8 @@ class AppController {
   updateTraffic() async {
     final traffic = await clashCore.getTraffic();
     _ref.read(trafficsProvider.notifier).addTraffic(traffic);
-    _ref.read(totalTrafficProvider.notifier).value =
-        await clashCore.getTotalTraffic();
+    _ref.read(totalTrafficProvider.notifier).value = await clashCore
+        .getTotalTraffic();
   }
 
   addProfile(Profile profile) async {
@@ -179,8 +174,8 @@ class AppController {
   }
 
   updateProviders() async {
-    _ref.read(providersProvider.notifier).value =
-        await clashCore.getExternalProviders();
+    _ref.read(providersProvider.notifier).value = await clashCore
+        .getExternalProviders();
   }
 
   updateLocalIp() async {
@@ -220,8 +215,9 @@ class AppController {
 
   updateOrAddHotKeyAction(HotKeyAction hotKeyAction) {
     final hotKeyActions = _ref.read(hotKeyActionsProvider);
-    final index =
-        hotKeyActions.indexWhere((item) => item.action == hotKeyAction.action);
+    final index = hotKeyActions.indexWhere(
+      (item) => item.action == hotKeyAction.action,
+    );
     if (index == -1) {
       _ref.read(hotKeyActionsProvider.notifier).value = List.from(hotKeyActions)
         ..add(hotKeyAction);
@@ -252,9 +248,9 @@ class AppController {
   }
 
   getCurrentGroupName() {
-    final currentGroupName = _ref.read(currentProfileProvider.select(
-      (state) => state?.currentGroupName,
-    ));
+    final currentGroupName = _ref.read(
+      currentProfileProvider.select((state) => state?.currentGroupName),
+    );
     return currentGroupName;
   }
 
@@ -271,18 +267,14 @@ class AppController {
     if (profile == null || profile.currentGroupName == groupName) {
       return;
     }
-    setProfile(
-      profile.copyWith(currentGroupName: groupName),
-    );
+    setProfile(profile.copyWith(currentGroupName: groupName));
   }
 
   Future<void> updateClashConfig([bool? isPatch]) async {
     final commonScaffoldState = globalState.homeScaffoldKey.currentState;
     if (commonScaffoldState?.mounted != true) return;
     await commonScaffoldState?.loadingRun(() async {
-      await _updateClashConfig(
-        isPatch,
-      );
+      await _updateClashConfig(isPatch);
     });
   }
 
@@ -384,15 +376,9 @@ class AppController {
     await preferences.saveConfig(globalState.config);
   }
 
-  changeProxy({
-    required String groupName,
-    required String proxyName,
-  }) async {
+  changeProxy({required String groupName, required String proxyName}) async {
     await clashCore.changeProxy(
-      ChangeProxyParams(
-        groupName: groupName,
-        proxyName: proxyName,
-      ),
+      ChangeProxyParams(groupName: groupName, proxyName: proxyName),
     );
     if (_ref.read(appSettingProvider).closeConnections) {
       clashCore.closeConnections();
@@ -425,15 +411,16 @@ class AppController {
 
   // 检查更新
   autoCheckUpdate() async {
+    if (system.isHarmony) {
+      commonPrint.log("autoCheckUpdate skipped on HarmonyOS");
+      return;
+    }
     // if (!_ref.read(appSettingProvider).autoCheckUpdate) return;
     final res = await request.checkForUpdate();
     checkUpdateResultHandle2(data: res);
   }
 
-  checkUpdateResultHandle2({
-    dynamic data,
-    bool handleError = false,
-  }) async {
+  checkUpdateResultHandle2({dynamic data, bool handleError = false}) async {
     if (data != null) {
       showDialog(
         context: context,
@@ -458,15 +445,9 @@ class AppController {
           text: "$tagName \n",
           style: textTheme.headlineSmall,
           children: [
-            TextSpan(
-              text: "\n",
-              style: textTheme.bodyMedium,
-            ),
+            TextSpan(text: "\n", style: textTheme.bodyMedium),
             for (final submit in submits)
-              TextSpan(
-                text: "- $submit \n",
-                style: textTheme.bodyMedium,
-              ),
+              TextSpan(text: "- $submit \n", style: textTheme.bodyMedium),
           ],
         ),
         confirmText: appLocalizations.goDownload,
@@ -474,43 +455,33 @@ class AppController {
       if (res != true) {
         return;
       }
-      launchUrl(
-        Uri.parse("https://github.com/$repository/releases/latest"),
-      );
+      launchUrl(Uri.parse("https://github.com/$repository/releases/latest"));
     } else if (handleError) {
       globalState.showMessage(
         title: appLocalizations.checkUpdate,
-        message: TextSpan(
-          text: appLocalizations.checkUpdateError,
-        ),
+        message: TextSpan(text: appLocalizations.checkUpdateError),
       );
     }
   }
 
   _handlePreference() async {
-    if (await preferences.isInit) {
+    final hasPreferences = await preferences.isInit;
+    if (!hasPreferences) {
+      commonPrint.log(
+        "Preferences storage unavailable; skipping integrity check.",
+      );
       return;
     }
-    final res = await globalState.showMessage(
-      title: appLocalizations.tip,
-      message: TextSpan(text: appLocalizations.cacheCorrupt),
-    );
-    if (res == true) {
-      final file = File(await appPath.sharedPreferencesPath);
-      final isExists = await file.exists();
-      if (isExists) {
-        await file.delete();
-      }
-    }
-    await handleExit();
+    // Existing behavior would prompt user to clear preferences when shared
+    // preferences failed to initialize. HarmonyOS lacks the native
+    // implementation, so we simply skip this step and continue with a
+    // temporary in-memory configuration to keep the UI responsive.
   }
 
   Future<void> initCore() async {
     final isInit = await clashCore.isInit;
     if (!isInit) {
-      await clashCore.setState(
-        globalState.getCoreState(),
-      );
+      await clashCore.setState(globalState.getCoreState());
       final ok = await clashCore.init();
       if (!ok) {
         // core initialization failed (missing assets / download failed).
@@ -523,7 +494,8 @@ class AppController {
           globalState.showMessage(
             title: 'Error',
             message: TextSpan(
-                text: 'Core initialization failed: missing geo data assets.'),
+              text: 'Core initialization failed: missing geo data assets.',
+            ),
             confirmText: 'OK',
           );
         } catch (e) {
@@ -545,35 +517,43 @@ class AppController {
     await _handlePreference();
 
     /// 免责声明
+    commonPrint.log("AppController.init() start");
     try {
       await initCore();
+      commonPrint.log("AppController.init() initCore finished");
       await _preAuthorizeTun();
+      commonPrint.log("AppController.init() preAuthorizeTun finished");
       await _initStatus();
+      commonPrint.log("AppController.init() initStatus finished");
       updateTray(true);
-      autoLaunch?.updateStatus(
-        _ref.read(appSettingProvider).autoLaunch,
-      );
+      commonPrint.log("AppController.init() updateTray finished");
+      autoLaunch?.updateStatus(_ref.read(appSettingProvider).autoLaunch);
+      commonPrint.log("AppController.init() autoLaunch sync done");
       autoCheckUpdate();
       if (!_ref.read(appSettingProvider).silentLaunch) {
         window?.show();
+        commonPrint.log("AppController.init() window show");
       } else {
         window?.hide();
+        commonPrint.log("AppController.init() window hide");
       }
       _ref.read(initProvider.notifier).value = true;
       addCheckIpNumDebounce();
       if (!initCompleter.isCompleted) {
         initCompleter.complete();
       }
+      commonPrint.log("AppController.init() completed");
     } catch (e, st) {
       if (!initCompleter.isCompleted) {
         initCompleter.completeError(e, st);
       }
+      commonPrint.log("AppController.init() failed: $e");
       rethrow;
     }
   }
 
   Future<void> _preAuthorizeTun() async {
-    if (Platform.isAndroid) {
+    if (system.isAndroidLike) {
       return;
     }
     final patchConfig = _ref.read(patchClashConfigProvider);
@@ -591,7 +571,7 @@ class AppController {
   }
 
   _initStatus() async {
-    if (Platform.isAndroid) {
+    if (system.isAndroidLike) {
       await globalState.updateStartTime();
     }
     var status = globalState.isStart == true
@@ -610,10 +590,7 @@ class AppController {
     _ref.read(delayDataSourceProvider.notifier).setDelay(delay);
   }
 
-  toPage(
-    int index, {
-    bool hasAnimate = false,
-  }) {
+  toPage(int index, {bool hasAnimate = false}) {
     final navigations = _ref.read(currentNavigationsStateProvider).value;
     if (index > navigations.length - 1) {
       return;
@@ -635,43 +612,42 @@ class AppController {
   }
 
   toProfiles() {
-    final index = _ref.read(currentNavigationsStateProvider).value.indexWhere(
-          (element) => element.label == PageLabel.profiles,
-        );
+    final index = _ref
+        .read(currentNavigationsStateProvider)
+        .value
+        .indexWhere((element) => element.label == PageLabel.profiles);
     if (index != -1) {
       toPage(index);
     }
   }
 
   initLink() {
-    linkManager.initAppLinksListen(
-      (url) async {
-        final res = await globalState.showMessage(
-          title: "${appLocalizations.add}${appLocalizations.profile}",
-          message: TextSpan(
-            children: [
-              TextSpan(text: appLocalizations.doYouWantToPass),
-              TextSpan(
-                text: " $url ",
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.primary,
-                  decoration: TextDecoration.underline,
-                  decorationColor: Theme.of(context).colorScheme.primary,
-                ),
+    linkManager.initAppLinksListen((url) async {
+      final res = await globalState.showMessage(
+        title: "${appLocalizations.add}${appLocalizations.profile}",
+        message: TextSpan(
+          children: [
+            TextSpan(text: appLocalizations.doYouWantToPass),
+            TextSpan(
+              text: " $url ",
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.primary,
+                decoration: TextDecoration.underline,
+                decorationColor: Theme.of(context).colorScheme.primary,
               ),
-              TextSpan(
-                  text:
-                      "${appLocalizations.create}${appLocalizations.profile}"),
-            ],
-          ),
-        );
+            ),
+            TextSpan(
+              text: "${appLocalizations.create}${appLocalizations.profile}",
+            ),
+          ],
+        ),
+      );
 
-        if (res != true) {
-          return;
-        }
-        addProfileFormURL(url);
-      },
-    );
+      if (res != true) {
+        return;
+      }
+      addProfileFormURL(url);
+    });
   }
 
   Future<bool> showDisclaimer() async {
@@ -683,9 +659,7 @@ class AppController {
               width: dialogCommonWidth,
               constraints: const BoxConstraints(maxHeight: 200),
               child: SingleChildScrollView(
-                child: SelectableText(
-                  appLocalizations.disclaimerDesc,
-                ),
+                child: SelectableText(appLocalizations.disclaimerDesc),
               ),
             ),
             actions: [
@@ -697,13 +671,15 @@ class AppController {
               ),
               TextButton(
                 onPressed: () {
-                  _ref.read(appSettingProvider.notifier).updateState(
+                  _ref
+                      .read(appSettingProvider.notifier)
+                      .updateState(
                         (state) => state.copyWith(disclaimerAccepted: true),
                       );
                   Navigator.of(context).pop<bool>(true);
                 },
                 child: Text(appLocalizations.agree),
-              )
+              ),
             ],
           ),
         ) ??
@@ -717,14 +693,9 @@ class AppController {
     toProfiles();
     final commonScaffoldState = globalState.homeScaffoldKey.currentState;
     if (commonScaffoldState?.mounted != true) return;
-    final profile = await commonScaffoldState?.loadingRun<Profile>(
-      () async {
-        return await Profile.normal(
-          url: url,
-        ).update();
-      },
-      title: "${appLocalizations.add}${appLocalizations.profile}",
-    );
+    final profile = await commonScaffoldState?.loadingRun<Profile>(() async {
+      return await Profile.normal(url: url).update();
+    }, title: "${appLocalizations.add}${appLocalizations.profile}");
     if (profile != null) {
       await addProfile(profile);
     }
@@ -741,13 +712,10 @@ class AppController {
     toProfiles();
     final commonScaffoldState = globalState.homeScaffoldKey.currentState;
     if (commonScaffoldState?.mounted != true) return;
-    final profile = await commonScaffoldState?.loadingRun<Profile?>(
-      () async {
-        await Future.delayed(const Duration(milliseconds: 300));
-        return await Profile.normal(label: platformFile?.name).saveFile(bytes);
-      },
-      title: "${appLocalizations.add}${appLocalizations.profile}",
-    );
+    final profile = await commonScaffoldState?.loadingRun<Profile?>(() async {
+      await Future.delayed(const Duration(milliseconds: 300));
+      return await Profile.normal(label: platformFile?.name).saveFile(bytes);
+    }, title: "${appLocalizations.add}${appLocalizations.profile}");
     if (profile != null) {
       await addProfile(profile);
     }
@@ -770,47 +738,37 @@ class AppController {
   }
 
   List<Proxy> _sortOfName(List<Proxy> proxies) {
-    return List.of(proxies)
-      ..sort(
-        (a, b) => other.sortByChar(
-          other.getPinyin(a.name),
-          other.getPinyin(b.name),
-        ),
-      );
+    return List.of(proxies)..sort(
+      (a, b) =>
+          other.sortByChar(other.getPinyin(a.name), other.getPinyin(b.name)),
+    );
   }
 
-  List<Proxy> _sortOfDelay({
-    required List<Proxy> proxies,
-    String? testUrl,
-  }) {
-    return List.of(proxies)
-      ..sort(
-        (a, b) {
-          final aDelay =
-              _ref.read(getDelayProvider(proxyName: a.name, testUrl: testUrl));
-          final bDelay =
-              _ref.read(getDelayProvider(proxyName: b.name, testUrl: testUrl));
-          if (aDelay == null && bDelay == null) {
-            return 0;
-          }
-          if (aDelay == null || aDelay == -1) {
-            return 1;
-          }
-          if (bDelay == null || bDelay == -1) {
-            return -1;
-          }
-          return aDelay.compareTo(bDelay);
-        },
+  List<Proxy> _sortOfDelay({required List<Proxy> proxies, String? testUrl}) {
+    return List.of(proxies)..sort((a, b) {
+      final aDelay = _ref.read(
+        getDelayProvider(proxyName: a.name, testUrl: testUrl),
       );
+      final bDelay = _ref.read(
+        getDelayProvider(proxyName: b.name, testUrl: testUrl),
+      );
+      if (aDelay == null && bDelay == null) {
+        return 0;
+      }
+      if (aDelay == null || aDelay == -1) {
+        return 1;
+      }
+      if (bDelay == null || bDelay == -1) {
+        return -1;
+      }
+      return aDelay.compareTo(bDelay);
+    });
   }
 
   List<Proxy> getSortProxies(List<Proxy> proxies, [String? url]) {
     return switch (_ref.read(proxiesStyleSettingProvider).sortType) {
       ProxiesSortType.none => proxies,
-      ProxiesSortType.delay => _sortOfDelay(
-          proxies: proxies,
-          testUrl: url,
-        ),
+      ProxiesSortType.delay => _sortOfDelay(proxies: proxies, testUrl: url),
       ProxiesSortType.name => _sortOfName(proxies),
     };
   }
@@ -829,16 +787,16 @@ class AppController {
   }
 
   updateTun() {
-    _ref.read(patchClashConfigProvider.notifier).updateState(
-          (state) => state.copyWith.tun(enable: !state.tun.enable),
-        );
+    _ref
+        .read(patchClashConfigProvider.notifier)
+        .updateState((state) => state.copyWith.tun(enable: !state.tun.enable));
   }
 
   updateSystemProxy() {
-    _ref.read(networkSettingProvider.notifier).updateState(
-          (state) => state.copyWith(
-            systemProxy: !state.systemProxy,
-          ),
+    _ref
+        .read(networkSettingProvider.notifier)
+        .updateState(
+          (state) => state.copyWith(systemProxy: !state.systemProxy),
         );
   }
 
@@ -850,14 +808,11 @@ class AppController {
     final currentProfile = _ref.read(currentProfileProvider);
     if (currentProfile != null &&
         currentProfile.selectedMap[groupName] != proxyName) {
-      final SelectedMap selectedMap = Map.from(
-        currentProfile.selectedMap,
-      )..[groupName] = proxyName;
-      _ref.read(profilesProvider.notifier).setProfile(
-            currentProfile.copyWith(
-              selectedMap: selectedMap,
-            ),
-          );
+      final SelectedMap selectedMap = Map.from(currentProfile.selectedMap)
+        ..[groupName] = proxyName;
+      _ref
+          .read(profilesProvider.notifier)
+          .setProfile(currentProfile.copyWith(selectedMap: selectedMap));
     }
   }
 
@@ -866,17 +821,15 @@ class AppController {
     if (currentProfile == null) {
       return;
     }
-    _ref.read(profilesProvider.notifier).setProfile(
-          currentProfile.copyWith(
-            unfoldSet: value,
-          ),
-        );
+    _ref
+        .read(profilesProvider.notifier)
+        .setProfile(currentProfile.copyWith(unfoldSet: value));
   }
 
   changeMode(Mode mode) {
-    _ref.read(patchClashConfigProvider.notifier).updateState(
-          (state) => state.copyWith(mode: mode),
-        );
+    _ref
+        .read(patchClashConfigProvider.notifier)
+        .updateState((state) => state.copyWith(mode: mode));
     // if (mode == Mode.global) {
     //   updateCurrentGroupName(GroupName.GLOBAL.name);
     // }
@@ -884,11 +837,9 @@ class AppController {
   }
 
   updateAutoLaunch() {
-    _ref.read(appSettingProvider.notifier).updateState(
-          (state) => state.copyWith(
-            autoLaunch: !state.autoLaunch,
-          ),
-        );
+    _ref
+        .read(appSettingProvider.notifier)
+        .updateState((state) => state.copyWith(autoLaunch: !state.autoLaunch));
   }
 
   updateVisible() async {
@@ -901,32 +852,23 @@ class AppController {
   }
 
   updateMode() {
-    _ref.read(patchClashConfigProvider.notifier).updateState(
-      (state) {
-        final index = Mode.values.indexWhere((item) => item == state.mode);
-        if (index == -1) {
-          return null;
-        }
-        final nextIndex = index + 1 > Mode.values.length - 1 ? 0 : index + 1;
-        return state.copyWith(
-          mode: Mode.values[nextIndex],
-        );
-      },
-    );
+    _ref.read(patchClashConfigProvider.notifier).updateState((state) {
+      final index = Mode.values.indexWhere((item) => item == state.mode);
+      if (index == -1) {
+        return null;
+      }
+      final nextIndex = index + 1 > Mode.values.length - 1 ? 0 : index + 1;
+      return state.copyWith(mode: Mode.values[nextIndex]);
+    });
   }
 
   Future<bool> exportLogs() async {
-    final logsRaw = _ref.read(logsProvider).list.map(
-          (item) => item.toString(),
-        );
+    final logsRaw = _ref.read(logsProvider).list.map((item) => item.toString());
     final data = await Isolate.run<List<int>>(() async {
       final logsRawString = logsRaw.join("\n");
       return utf8.encode(logsRawString);
     });
-    return await picker.saveFile(
-          other.logFile,
-          Uint8List.fromList(data),
-        ) !=
+    return await picker.saveFile(other.logFile, Uint8List.fromList(data)) !=
         null;
   }
 
@@ -944,25 +886,22 @@ class AppController {
   }
 
   updateTray([bool focus = false]) async {
-    tray.update(
-      trayState: _ref.read(trayStateProvider),
-    );
+    tray.update(trayState: _ref.read(trayStateProvider));
   }
 
-  recoveryData(
-    List<int> data,
-    RecoveryOption recoveryOption,
-  ) async {
+  recoveryData(List<int> data, RecoveryOption recoveryOption) async {
     final archive = await Isolate.run<Archive>(() {
       final zipDecoder = ZipDecoder();
       return zipDecoder.decodeBytes(data);
     });
     final homeDirPath = await appPath.homeDirPath;
-    final configs =
-        archive.files.where((item) => item.name.endsWith(".enc")).toList();
+    final configs = archive.files
+        .where((item) => item.name.endsWith(".enc"))
+        .toList();
     final profiles = archive.files.where((item) => !item.name.endsWith(".enc"));
-    final configIndex =
-        configs.indexWhere((config) => config.name == "config.enc");
+    final configIndex = configs.indexWhere(
+      (config) => config.name == "config.enc",
+    );
     if (configIndex == -1) throw "invalid backup file";
     final configFile = configs[configIndex];
 
@@ -970,9 +909,7 @@ class AppController {
     final contentString = String.fromCharCodes(configFile.content);
     final cleanContent = contentString.replaceAll(RegExp(r'^"|"$'), '');
     var dec = FileCrypto.decryptContent(cleanContent);
-    var tempConfig = Config.compatibleFromJson(
-      json.decode(dec),
-    );
+    var tempConfig = Config.compatibleFromJson(json.decode(dec));
     for (final profile in profiles) {
       final filePath = join(homeDirPath, profile.name);
       final file = File(filePath);
@@ -986,24 +923,20 @@ class AppController {
       await file.writeAsBytes(profile.content);
       // await file.writeAsString(dec);
     }
-    final clashConfigIndex =
-        configs.indexWhere((config) => config.name == "clashConfig.json");
+    final clashConfigIndex = configs.indexWhere(
+      (config) => config.name == "clashConfig.json",
+    );
     if (clashConfigIndex != -1) {
       final clashConfigFile = configs[clashConfigIndex];
       tempConfig = tempConfig.copyWith(
         patchClashConfig: ClashConfig.fromJson(
           json.decode(
-            FileCrypto.decryptContent(utf8.decode(
-              clashConfigFile.content,
-            )),
+            FileCrypto.decryptContent(utf8.decode(clashConfigFile.content)),
           ),
         ),
       );
     }
-    _recovery(
-      tempConfig,
-      recoveryOption,
-    );
+    _recovery(tempConfig, recoveryOption);
   }
 
   bool hasWebDAV() {

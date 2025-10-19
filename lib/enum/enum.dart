@@ -12,7 +12,8 @@ enum SupportPlatform {
   Windows,
   MacOS,
   Linux,
-  Android;
+  Android,
+  Harmony;
 
   static SupportPlatform get currentPlatform {
     if (Platform.isWindows) {
@@ -21,6 +22,8 @@ enum SupportPlatform {
       return SupportPlatform.MacOS;
     } else if (Platform.isLinux) {
       return SupportPlatform.Linux;
+    } else if (Platform.operatingSystem.toLowerCase() == 'ohos') {
+      return SupportPlatform.Harmony;
     } else if (Platform.isAndroid) {
       return SupportPlatform.Android;
     }
@@ -56,11 +59,8 @@ enum GroupType {
 enum GroupName { GLOBAL, Proxy, Auto, Fallback }
 
 extension GroupTypeExtension on GroupType {
-  static List<String> get valueList => GroupType.values
-      .map(
-        (e) => e.toString().split(".").last,
-      )
-      .toList();
+  static List<String> get valueList =>
+      GroupType.values.map((e) => e.toString().split(".").last).toList();
 
   bool get isComputedSelected {
     return [GroupType.URLTest, GroupType.Fallback].contains(this);
@@ -78,11 +78,8 @@ extension GroupTypeExtension on GroupType {
 enum UsedProxy { GLOBAL, DIRECT, REJECT }
 
 extension UsedProxyExtension on UsedProxy {
-  static List<String> get valueList => UsedProxy.values
-      .map(
-        (e) => e.toString().split(".").last,
-      )
-      .toList();
+  static List<String> get valueList =>
+      UsedProxy.values.map((e) => e.toString().split(".").last).toList();
 
   String get value => UsedProxyExtension.valueList[index];
 }
@@ -113,24 +110,13 @@ enum ProfileType { file, url }
 
 enum ResultType { success, error }
 
-enum AppMessageType {
-  log,
-  delay,
-  request,
-  loaded,
-}
+enum AppMessageType { log, delay, request, loaded }
 
-enum InvokeMessageType {
-  protect,
-  process,
-}
+enum InvokeMessageType { protect, process }
 
 enum FindProcessMode { always, off }
 
-enum RecoveryOption {
-  all,
-  onlyProfiles,
-}
+enum RecoveryOption { all, onlyProfiles }
 
 enum ChipType { action, delete }
 
@@ -152,39 +138,23 @@ enum DnsMode {
   fakeIp,
   @JsonValue("redir-host")
   redirHost,
-  hosts
+  hosts,
 }
 
 enum ExternalControllerStatus {
   @JsonValue("")
   close,
   @JsonValue("127.0.0.1:23145")
-  open
+  open,
 }
 
 enum KeyboardModifier {
-  alt([
-    PhysicalKeyboardKey.altLeft,
-    PhysicalKeyboardKey.altRight,
-  ]),
-  capsLock([
-    PhysicalKeyboardKey.capsLock,
-  ]),
-  control([
-    PhysicalKeyboardKey.controlLeft,
-    PhysicalKeyboardKey.controlRight,
-  ]),
-  fn([
-    PhysicalKeyboardKey.fn,
-  ]),
-  meta([
-    PhysicalKeyboardKey.metaLeft,
-    PhysicalKeyboardKey.metaRight,
-  ]),
-  shift([
-    PhysicalKeyboardKey.shiftLeft,
-    PhysicalKeyboardKey.shiftRight,
-  ]);
+  alt([PhysicalKeyboardKey.altLeft, PhysicalKeyboardKey.altRight]),
+  capsLock([PhysicalKeyboardKey.capsLock]),
+  control([PhysicalKeyboardKey.controlLeft, PhysicalKeyboardKey.controlRight]),
+  fn([PhysicalKeyboardKey.fn]),
+  meta([PhysicalKeyboardKey.metaLeft, PhysicalKeyboardKey.metaRight]),
+  shift([PhysicalKeyboardKey.shiftLeft, PhysicalKeyboardKey.shiftRight]);
 
   final List<PhysicalKeyboardKey> physicalKeys;
 
@@ -204,19 +174,9 @@ extension KeyboardModifierExt on KeyboardModifier {
   }
 }
 
-enum HotAction {
-  start,
-  view,
-  mode,
-  proxy,
-  tun,
-}
+enum HotAction { start, view, mode, proxy, tun }
 
-enum ProxiesIconStyle {
-  standard,
-  none,
-  icon,
-}
+enum ProxiesIconStyle { standard, none, icon }
 
 enum FontFamily {
   twEmoji("Twemoji"),
@@ -227,10 +187,7 @@ enum FontFamily {
   const FontFamily([this.value]);
 }
 
-enum RouteMode {
-  bypassPrivate,
-  config,
-}
+enum RouteMode { bypassPrivate, config }
 
 enum ActionMethod {
   message,
@@ -277,11 +234,7 @@ enum ActionMethod {
 
 enum AuthorizeCode { none, success, error }
 
-enum WindowsHelperServiceStatus {
-  none,
-  presence,
-  running,
-}
+enum WindowsHelperServiceStatus { none, presence, running }
 
 enum DebounceTag {
   updateClashConfig,
@@ -302,64 +255,25 @@ enum DebounceTag {
 }
 
 enum DashboardWidget {
-  networkSpeed(
-    GridItem(
-      crossAxisCellCount: 8,
-      child: NetworkSpeed(),
-    ),
-  ),
-  outboundMode(
-    GridItem(
-      crossAxisCellCount: 4,
-      child: OutboundMode(),
-    ),
-  ),
-  trafficUsage(
-    GridItem(
-      crossAxisCellCount: 4,
-      child: TrafficUsage(),
-    ),
-  ),
-  networkDetection(
-    GridItem(
-      crossAxisCellCount: 4,
-      child: NetworkDetection(),
-    ),
-  ),
+  networkSpeed(GridItem(crossAxisCellCount: 8, child: NetworkSpeed())),
+  outboundMode(GridItem(crossAxisCellCount: 4, child: OutboundMode())),
+  trafficUsage(GridItem(crossAxisCellCount: 4, child: TrafficUsage())),
+  networkDetection(GridItem(crossAxisCellCount: 4, child: NetworkDetection())),
   tunButton(
-    GridItem(
-      crossAxisCellCount: 4,
-      child: TUNButton(),
-    ),
+    GridItem(crossAxisCellCount: 4, child: TUNButton()),
     platforms: desktopPlatforms,
   ),
   systemProxyButton(
-    GridItem(
-      crossAxisCellCount: 4,
-      child: SystemProxyButton(),
-    ),
+    GridItem(crossAxisCellCount: 4, child: SystemProxyButton()),
     platforms: desktopPlatforms,
   ),
-  intranetIp(
-    GridItem(
-      crossAxisCellCount: 4,
-      child: IntranetIP(),
-    ),
-  ),
-  memoryInfo(
-    GridItem(
-      crossAxisCellCount: 4,
-      child: MemoryInfo(),
-    ),
-  );
+  intranetIp(GridItem(crossAxisCellCount: 4, child: IntranetIP())),
+  memoryInfo(GridItem(crossAxisCellCount: 4, child: MemoryInfo()));
 
   final GridItem widget;
   final List<SupportPlatform> platforms;
 
-  const DashboardWidget(
-    this.widget, {
-    this.platforms = SupportPlatform.values,
-  });
+  const DashboardWidget(this.widget, {this.platforms = SupportPlatform.values});
 
   static DashboardWidget getDashboardWidget(GridItem gridItem) {
     final dashboardWidgets = DashboardWidget.values;
@@ -370,10 +284,7 @@ enum DashboardWidget {
   }
 }
 
-enum GeodataLoader {
-  standard,
-  memconservative,
-}
+enum GeodataLoader { standard, memconservative }
 
 enum PageLabel {
   dashboard,

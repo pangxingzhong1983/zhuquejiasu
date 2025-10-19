@@ -14,7 +14,9 @@ class BackScope extends StatefulWidget {
 class _PopContainerState extends State<BackScope> {
   @override
   Widget build(BuildContext context) {
-    if (Platform.isAndroid) {
+    final isAndroidLike =
+        Platform.isAndroid || Platform.operatingSystem.toLowerCase() == 'ohos';
+    if (isAndroidLike) {
       return PopScope(
         canPop: false,
         onPopInvokedWithResult: (_, __) async {

@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:zhuquejiasu/common/common.dart';
 import 'package:zhuquejiasu/models/models.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -93,14 +95,22 @@ void _decryptConfigSensitiveFields(Map<String, dynamic> configMap) {
 class Preferences {
   static Preferences? _instance;
   Completer<SharedPreferences?> sharedPreferencesCompleter = Completer();
+  bool _useFallback = false;
+  Map<String, Object?> _memoryStore = {};
 
   Future<bool> get isInit async =>
-      await sharedPreferencesCompleter.future != null;
+      _useFallback || await sharedPreferencesCompleter.future != null;
 
   Preferences._internal() {
     SharedPreferences.getInstance()
-        .then((value) => sharedPreferencesCompleter.complete(value))
-        .onError((_, __) => sharedPreferencesCompleter.complete(null));
+        .then((value) {
+          sharedPreferencesCompleter.complete(value);
+        })
+        .onError((error, stackTrace) async {
+          _useFallback = true;
+          await _loadFallback();
+          sharedPreferencesCompleter.complete(null);
+        });
   }
 
   factory Preferences() {
@@ -108,7 +118,42 @@ class Preferences {
     return _instance!;
   }
 
+  Future<void> _loadFallback() async {
+    try {
+      final file = File(await appPath.sharedPreferencesPath);
+      if (await file.exists()) {
+        final content = await file.readAsString();
+        if (content.isNotEmpty) {
+          final decoded = json.decode(content);
+          if (decoded is Map<String, dynamic>) {
+            _memoryStore = decoded;
+          }
+        }
+      }
+    } catch (_) {
+      _memoryStore = {};
+    }
+  }
+
+  Future<void> _persistFallback() async {
+    try {
+      final file = File(await appPath.sharedPreferencesPath);
+      if (!await file.parent.exists()) {
+        await file.parent.create(recursive: true);
+      }
+      await file.writeAsString(json.encode(_memoryStore), flush: true);
+    } catch (_) {
+      // best effort persistence
+    }
+  }
+
   Future<ClashConfig?> getClashConfig() async {
+    if (_useFallback) {
+      final clashConfigString = _memoryStore[clashConfigKey] as String?;
+      if (clashConfigString == null) return null;
+      final clashConfigMap = json.decode(clashConfigString);
+      return ClashConfig.fromJson(clashConfigMap);
+    }
     final preferences = await sharedPreferencesCompleter.future;
     final clashConfigString = preferences?.getString(clashConfigKey);
     if (clashConfigString == null) return null;
@@ -117,8 +162,13 @@ class Preferences {
   }
 
   Future<Config?> getConfig() async {
-    final preferences = await sharedPreferencesCompleter.future;
-    final configString = preferences?.getString(configKey);
+    String? configString;
+    if (_useFallback) {
+      configString = _memoryStore[configKey] as String?;
+    } else {
+      final preferences = await sharedPreferencesCompleter.future;
+      configString = preferences?.getString(configKey);
+    }
     if (configString == null) return null;
     final configMap = json.decode(configString);
     if (configMap is Map<String, dynamic>) {
@@ -134,24 +184,37 @@ class Preferences {
   }
 
   Future<bool> saveConfig(Config config) async {
+    final configMap = config.toJson();
+    _encryptConfigSensitiveFields(configMap);
+    final encoded = json.encode(configMap);
+    if (_useFallback) {
+      _memoryStore[configKey] = encoded;
+      await _persistFallback();
+      return true;
+    }
     final preferences = await sharedPreferencesCompleter.future;
     if (preferences == null) {
       return false;
     }
-    final configMap = config.toJson();
-    _encryptConfigSensitiveFields(configMap);
-    return await preferences.setString(
-      configKey,
-      json.encode(configMap),
-    );
+    return await preferences.setString(configKey, encoded);
   }
 
   clearClashConfig() async {
+    if (_useFallback) {
+      _memoryStore.remove(clashConfigKey);
+      await _persistFallback();
+      return;
+    }
     final preferences = await sharedPreferencesCompleter.future;
     preferences?.remove(clashConfigKey);
   }
 
   clearPreferences() async {
+    if (_useFallback) {
+      _memoryStore.clear();
+      await _persistFallback();
+      return;
+    }
     final sharedPreferencesIns = await sharedPreferencesCompleter.future;
     sharedPreferencesIns?.clear();
   }
