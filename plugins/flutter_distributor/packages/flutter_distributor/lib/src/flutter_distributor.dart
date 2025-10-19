@@ -177,14 +177,18 @@ class FlutterDistributor {
         if (buildResult != null) {
           String buildMode =
               buildArguments.containsKey('profile') ? 'profile' : 'release';
+          final String? arch =
+              platform == 'windows' && buildResult is BuildWindowsResult
+                  ? _resolveWindowsArch(
+                      buildArguments['target-platform'], buildResult)
+                  : null;
           Map<String, dynamic>? arguments = {
             'build_mode': buildMode,
             'flavor': buildArguments['flavor'],
             'channel': channel,
             'artifact_name': artifactName,
             'description': description,
-            if (Platform.isWindows)
-              'arch': (buildResult as BuildWindowsResult).arch,
+            if (arch != null) 'arch': arch,
           };
           MakeResult makeResult = await _packager.package(
             platform,
@@ -384,5 +388,43 @@ class FlutterDistributor {
       ['pub', 'global', 'activate', 'flutter_distributor'],
     );
     return Future.value();
+  }
+
+  String _resolveWindowsArch(
+    dynamic targetPlatform,
+    BuildWindowsResult buildResult,
+  ) {
+    final List<String> candidates = [];
+    if (targetPlatform is String) {
+      candidates.addAll(
+        targetPlatform
+            .split(',')
+            .map((e) => e.trim())
+            .where((element) => element.isNotEmpty),
+      );
+    } else if (targetPlatform is Iterable) {
+      for (final entry in targetPlatform) {
+        if (entry is String) {
+          candidates.addAll(
+            entry
+                .split(',')
+                .map((e) => e.trim())
+                .where((element) => element.isNotEmpty),
+          );
+        }
+      }
+    }
+
+    for (final candidate in candidates) {
+      final normalized = candidate.toLowerCase();
+      if (normalized.contains('windows-arm64')) {
+        return 'arm64';
+      }
+      if (normalized.contains('windows-x64') ||
+          normalized.contains('windows-amd64')) {
+        return 'x64';
+      }
+    }
+    return buildResult.arch;
   }
 }

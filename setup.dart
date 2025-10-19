@@ -4,15 +4,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
-import 'package:archive/archive.dart';
 import 'package:path/path.dart';
 
-enum Target {
-  windows,
-  linux,
-  android,
-  macos,
-}
+enum Target { windows, linux, android, macos }
 
 extension TargetExt on Target {
   String get os {
@@ -77,11 +71,7 @@ class BuildItem {
   Arch? arch;
   String? archName;
 
-  BuildItem({
-    required this.target,
-    this.arch,
-    this.archName,
-  });
+  BuildItem({required this.target, this.arch, this.archName});
 
   @override
   String toString() {
@@ -91,46 +81,16 @@ class BuildItem {
 
 class Build {
   static List<BuildItem> get buildItems => [
-        BuildItem(
-          target: Target.macos,
-          arch: Arch.arm64,
-        ),
-        BuildItem(
-          target: Target.macos,
-          arch: Arch.amd64,
-        ),
-        BuildItem(
-          target: Target.linux,
-          arch: Arch.arm64,
-        ),
-        BuildItem(
-          target: Target.linux,
-          arch: Arch.amd64,
-        ),
-        BuildItem(
-          target: Target.windows,
-          arch: Arch.amd64,
-        ),
-        BuildItem(
-          target: Target.windows,
-          arch: Arch.arm64,
-        ),
-        BuildItem(
-          target: Target.android,
-          arch: Arch.arm,
-          archName: 'armeabi-v7a',
-        ),
-        BuildItem(
-          target: Target.android,
-          arch: Arch.arm64,
-          archName: 'arm64-v8a',
-        ),
-        BuildItem(
-          target: Target.android,
-          arch: Arch.amd64,
-          archName: 'x86_64',
-        ),
-      ];
+    BuildItem(target: Target.macos, arch: Arch.arm64),
+    BuildItem(target: Target.macos, arch: Arch.amd64),
+    BuildItem(target: Target.linux, arch: Arch.arm64),
+    BuildItem(target: Target.linux, arch: Arch.amd64),
+    BuildItem(target: Target.windows, arch: Arch.amd64),
+    BuildItem(target: Target.windows, arch: Arch.arm64),
+    BuildItem(target: Target.android, arch: Arch.arm, archName: 'armeabi-v7a'),
+    BuildItem(target: Target.android, arch: Arch.arm64, archName: 'arm64-v8a'),
+    BuildItem(target: Target.android, arch: Arch.amd64, archName: 'x86_64'),
+  ];
 
   static String get appName => "ZhuqueJiasu";
 
@@ -151,16 +111,18 @@ class Build {
     if (flutterRoot == null) {
       return;
     }
-    final pluginFile = File(join(
-      flutterRoot,
-      "packages",
-      "flutter_tools",
-      "gradle",
-      "src",
-      "main",
-      "kotlin",
-      "FlutterPlugin.kt",
-    ));
+    final pluginFile = File(
+      join(
+        flutterRoot,
+        "packages",
+        "flutter_tools",
+        "gradle",
+        "src",
+        "main",
+        "kotlin",
+        "FlutterPlugin.kt",
+      ),
+    );
     if (!pluginFile.existsSync()) {
       return;
     }
@@ -191,20 +153,17 @@ class Build {
     if (buildItem.target == Target.android) {
       final ndk = environment["ANDROID_NDK"];
       assert(ndk != null);
-      final prebuiltDir =
-          Directory(join(ndk!, "toolchains", "llvm", "prebuilt"));
+      final prebuiltDir = Directory(
+        join(ndk!, "toolchains", "llvm", "prebuilt"),
+      );
       final prebuiltDirList = prebuiltDir.listSync();
       final map = {
         "armeabi-v7a": "armv7a-linux-androideabi21-clang",
         "arm64-v8a": "aarch64-linux-android21-clang",
         "x86": "i686-linux-android21-clang",
-        "x86_64": "x86_64-linux-android21-clang"
+        "x86_64": "x86_64-linux-android21-clang",
       };
-      return join(
-        prebuiltDirList.first.path,
-        "bin",
-        map[buildItem.archName],
-      );
+      return join(prebuiltDirList.first.path, "bin", map[buildItem.archName]);
     }
     return "gcc";
   }
@@ -227,10 +186,10 @@ class Build {
       runInShell: runInShell,
     );
     process.stdout.listen((data) {
-      print(utf8.decode(data,allowMalformed:true));
+      print(utf8.decode(data, allowMalformed: true));
     });
     process.stderr.listen((data) {
-      print(utf8.decode(data,allowMalformed:true));
+      print(utf8.decode(data, allowMalformed: true));
     });
     final exitCode = await process.exitCode;
     if (exitCode != 0 && name != null) throw "$name error";
@@ -243,19 +202,13 @@ class Build {
   }) async {
     final isLib = mode == Mode.lib;
 
-    final items = buildItems.where(
-      (element) {
-        return element.target == target &&
-            (arch == null ? true : element.arch == arch);
-      },
-    ).toList();
+    final items = buildItems.where((element) {
+      return element.target == target &&
+          (arch == null ? true : element.arch == arch);
+    }).toList();
 
     for (final item in items) {
-      final outFileDir = join(
-        outDir,
-        item.target.name,
-        item.archName,
-      );
+      final outFileDir = join(outDir, item.target.name, item.archName);
 
       final file = File(outFileDir);
       if (file.existsSync()) {
@@ -265,10 +218,7 @@ class Build {
       final fileName = isLib
           ? "$libName${item.target.dynamicLibExtensionName}"
           : "$coreName${item.target.executableExtensionName}";
-      final outPath = join(
-        outFileDir,
-        fileName,
-      );
+      final outPath = join(outFileDir, fileName);
 
       final Map<String, String> env = {};
       env["GOOS"] = item.target.os;
@@ -301,26 +251,33 @@ class Build {
     }
   }
 
-  static buildHelper(Target target) async {
-    await exec(
-      [
-        "cargo",
-        "build",
-        "--release",
-        "--features",
-        "windows-service",
+  static buildHelper(Target target, Arch arch) async {
+    final bool isWindowsTarget = target == Target.windows;
+    final bool isArm64 = arch == Arch.arm64;
+    final args = [
+      "cargo",
+      "build",
+      "--release",
+      "--features",
+      "windows-service",
+      if (isWindowsTarget && isArm64) ...[
+        "--target",
+        "aarch64-pc-windows-msvc",
       ],
-      name: "build helper",
-      workingDirectory: _servicesDir,
-    );
-    final outPath = join(
+    ];
+    await exec(args, name: "build helper", workingDirectory: _servicesDir);
+    final outPath = joinAll([
       _servicesDir,
       "target",
+      if (isWindowsTarget && isArm64) "aarch64-pc-windows-msvc",
       "release",
       "helper${target.executableExtensionName}",
+    ]);
+    final targetPath = join(
+      outDir,
+      target.name,
+      "ZhuqueJiasuHelperService${target.executableExtensionName}",
     );
-    final targetPath = join(outDir, target.name,
-        "ZhuqueJiasuHelperService${target.executableExtensionName}");
     await File(outPath).copy(targetPath);
   }
 
@@ -376,9 +333,7 @@ class Build {
 class BuildCommand extends Command {
   Target target;
 
-  BuildCommand({
-    required this.target,
-  }) {
+  BuildCommand({required this.target}) {
     if (target == Target.android || target == Target.linux) {
       argParser.addOption(
         "arch",
@@ -386,17 +341,11 @@ class BuildCommand extends Command {
         help: 'The $name build desc',
       );
     } else {
-      argParser.addOption(
-        "arch",
-        help: 'The $name build archName',
-      );
+      argParser.addOption("arch", help: 'The $name build archName');
     }
     argParser.addOption(
       "out",
-      valueHelp: [
-        if (target.same) "app",
-        "core",
-      ].join(','),
+      valueHelp: [if (target.same) "app", "core"].join(','),
       help: 'The $name build arch',
     );
   }
@@ -413,9 +362,7 @@ class BuildCommand extends Command {
       .toList();
 
   _getLinuxDependencies(Arch arch) async {
-    await Build.exec(
-      Build.getExecutable("sudo apt update -y"),
-    );
+    await Build.exec(Build.getExecutable("sudo apt update -y"));
     await Build.exec(
       Build.getExecutable("sudo apt install -y ninja-build libgtk-3-dev"),
     );
@@ -425,15 +372,11 @@ class BuildCommand extends Command {
     await Build.exec(
       Build.getExecutable("sudo apt-get install -y libkeybinder-3.0-dev"),
     );
-    await Build.exec(
-      Build.getExecutable("sudo apt install -y locate"),
-    );
+    await Build.exec(Build.getExecutable("sudo apt install -y locate"));
   }
 
   _getMacosDependencies() async {
-    await Build.exec(
-      Build.getExecutable("npm install -g appdmg"),
-    );
+    await Build.exec(Build.getExecutable("npm install -g appdmg"));
   }
 
   Future<void> _buildDistributor({
@@ -451,76 +394,6 @@ class BuildCommand extends Command {
     );
   }
 
-  Future<void> _compressWindowsInstaller(String archName) async {
-    final distDir = Directory(Build.distPath);
-    if (!distDir.existsSync()) {
-      return;
-    }
-
-    final suffix =
-        archName.isNotEmpty ? "-windows-$archName-setup.exe" : "-windows-setup.exe";
-    final exeFiles = distDir
-        .listSync()
-        .whereType<File>()
-        .where((file) => file.path.endsWith(suffix))
-        .toList();
-
-    if (exeFiles.isEmpty) {
-      throw "Windows installer exe not found in dist directory";
-    }
-    if (exeFiles.length > 1) {
-      throw "Multiple Windows installer executables found; please clean dist directory";
-    }
-
-    final exeFile = exeFiles.first;
-    final zipPath = exeFile.path.replaceFirst("-setup.exe", ".zip");
-    final zipFile = File(zipPath);
-    if (zipFile.existsSync()) {
-      zipFile.deleteSync();
-    }
-
-    final archive = Archive()
-      ..addFile(
-        ArchiveFile(
-          basename(exeFile.path),
-          exeFile.lengthSync(),
-          exeFile.readAsBytesSync(),
-        ),
-      );
-    final zipEncoder = ZipEncoder();
-    final zippedBytes = zipEncoder.encode(archive);
-    if (zippedBytes == null) {
-      throw "Failed to encode Windows installer archive";
-    }
-    zipFile.writeAsBytesSync(zippedBytes, flush: true);
-
-    await _deleteFileWithRetry(exeFile);
-  }
-
-  Future<void> _deleteFileWithRetry(
-    File file, {
-    int maxAttempts = 5,
-    Duration initialDelay = const Duration(milliseconds: 200),
-  }) async {
-    var attempt = 0;
-    var delay = initialDelay;
-    while (true) {
-      try {
-        if (file.existsSync()) {
-          file.deleteSync();
-        }
-        return;
-      } on FileSystemException catch (_) {
-        attempt++;
-        if (attempt >= maxAttempts) {
-          rethrow;
-        }
-        await Future.delayed(delay);
-        delay = delay * 2;
-      }
-    }
-  }
-
   Future<String?> get systemArch async {
     if (Platform.isWindows) {
       return Platform.environment["PROCESSOR_ARCHITECTURE"];
@@ -536,8 +409,9 @@ class BuildCommand extends Command {
     final mode = target == Target.android ? Mode.lib : Mode.core;
     final String out = argResults?["out"] ?? (target.same ? "app" : "core");
     final archName = argResults?["arch"];
-    final currentArches =
-        arches.where((element) => element.name == archName).toList();
+    final currentArches = arches
+        .where((element) => element.name == archName)
+        .toList();
     Arch? arch = currentArches.isEmpty ? null : currentArches.first;
 
     if (target == Target.android) {
@@ -549,11 +423,7 @@ class BuildCommand extends Command {
     final resolvedArch = arch;
     final distributionDescription = archName ?? resolvedArch.name;
 
-    await Build.buildCore(
-      target: target,
-      arch: resolvedArch,
-      mode: mode,
-    );
+    await Build.buildCore(target: target, arch: resolvedArch, mode: mode);
 
     if (target == Target.android) {
       final keepArchName = Build.buildItems
@@ -563,17 +433,11 @@ class BuildCommand extends Command {
                 element.arch == resolvedArch,
           )
           .archName;
-      final androidLibDir = Directory(
-        join(
-          Build.outDir,
-          Target.android.name,
-        ),
-      );
+      final androidLibDir = Directory(join(Build.outDir, Target.android.name));
       if (androidLibDir.existsSync()) {
         for (final entity in androidLibDir.listSync()) {
           if (entity is Directory &&
-              (keepArchName == null ||
-                  basename(entity.path) != keepArchName)) {
+              (keepArchName == null || basename(entity.path) != keepArchName)) {
             entity.deleteSync(recursive: true);
           }
         }
@@ -581,7 +445,7 @@ class BuildCommand extends Command {
     }
 
     if (target == Target.windows) {
-      await Build.buildHelper(target);
+      await Build.buildHelper(target, resolvedArch);
     }
 
     if (out != "app") {
@@ -590,21 +454,24 @@ class BuildCommand extends Command {
 
     switch (target) {
       case Target.windows:
+        final targetMap = {
+          Arch.amd64: "windows-x64",
+          Arch.arm64: "windows-arm64",
+        };
+        final targetPlatform = targetMap[resolvedArch];
+        final windowsArgs = [
+          "--description $distributionDescription",
+          if (targetPlatform != null) "--build-target-platform $targetPlatform",
+        ].join(" ");
         await _buildDistributor(
           target: target,
           targets: "exe",
-          args: "--description $distributionDescription",
+          args: windowsArgs,
         );
-        await _compressWindowsInstaller(distributionDescription);
         return;
       case Target.linux:
-        final targetMap = {
-          Arch.arm64: "linux-arm64",
-          Arch.amd64: "linux-x64",
-        };
-        final targets = [
-          "deb",
-        ].join(",");
+        final targetMap = {Arch.arm64: "linux-arm64", Arch.amd64: "linux-x64"};
+        final targets = ["deb"].join(",");
         final defaultTarget = targetMap[resolvedArch];
         await _getLinuxDependencies(resolvedArch);
         await _buildDistributor(
@@ -622,13 +489,15 @@ class BuildCommand extends Command {
           Arch.amd64: "android-x64",
         };
         // Only keep arm64-v8a by default; can override with --arch
-        final defaultTargets =
-            [targetMap[resolvedArch]].whereType<String>().toList();
+        final defaultTargets = [
+          targetMap[resolvedArch],
+        ].whereType<String>().toList();
         final selectedArch = resolvedArch;
         final archDescriptor = Build.buildItems
             .firstWhere(
               (element) =>
-                  element.target == Target.android && element.arch == selectedArch,
+                  element.target == Target.android &&
+                  element.arch == selectedArch,
             )
             .archName;
         final androidArgs = [
