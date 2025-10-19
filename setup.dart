@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
-import 'package:archive/archive_io.dart';
+import 'package:archive/archive.dart';
 import 'package:path/path.dart';
 
 enum Target {
@@ -474,13 +474,51 @@ class BuildCommand extends Command {
 
     final exeFile = exeFiles.first;
     final zipPath = exeFile.path.replaceFirst("-setup.exe", ".zip");
+    final zipFile = File(zipPath);
+    if (zipFile.existsSync()) {
+      zipFile.deleteSync();
+    }
 
-    final encoder = ZipFileEncoder();
-    encoder.create(zipPath);
-    encoder.addFile(exeFile, basename(exeFile.path));
-    encoder.close();
+    final archive = Archive()
+      ..addFile(
+        ArchiveFile(
+          basename(exeFile.path),
+          exeFile.lengthSync(),
+          exeFile.readAsBytesSync(),
+        ),
+      );
+    final zipEncoder = ZipEncoder();
+    final zippedBytes = zipEncoder.encode(archive);
+    if (zippedBytes == null) {
+      throw "Failed to encode Windows installer archive";
+    }
+    zipFile.writeAsBytesSync(zippedBytes, flush: true);
 
-    exeFile.deleteSync();
+    await _deleteFileWithRetry(exeFile);
+  }
+
+  Future<void> _deleteFileWithRetry(
+    File file, {
+    int maxAttempts = 5,
+    Duration initialDelay = const Duration(milliseconds: 200),
+  }) async {
+    var attempt = 0;
+    var delay = initialDelay;
+    while (true) {
+      try {
+        if (file.existsSync()) {
+          file.deleteSync();
+        }
+        return;
+      } on FileSystemException catch (_) {
+        attempt++;
+        if (attempt >= maxAttempts) {
+          rethrow;
+        }
+        await Future.delayed(delay);
+        delay = delay * 2;
+      }
+    }
   }
 
   Future<String?> get systemArch async {
@@ -569,7 +607,7 @@ class BuildCommand extends Command {
         ].join(",");
         final defaultTarget = targetMap[resolvedArch];
         await _getLinuxDependencies(resolvedArch);
-        _buildDistributor(
+        await _buildDistributor(
           target: target,
           targets: targets,
           args:
@@ -597,7 +635,7 @@ class BuildCommand extends Command {
           "--build-target-platform ${defaultTargets.join(",")}",
           if (archDescriptor != null) "--description $archDescriptor",
         ].where((e) => e.isNotEmpty).join(" ");
-        _buildDistributor(
+        await _buildDistributor(
           target: target,
           // Build a single APK artifact to match store/release expectations
           targets: "apk",
@@ -606,7 +644,7 @@ class BuildCommand extends Command {
         return;
       case Target.macos:
         await _getMacosDependencies();
-        _buildDistributor(
+        await _buildDistributor(
           target: target,
           targets: "dmg",
           args: "--description $archName",
