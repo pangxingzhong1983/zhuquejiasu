@@ -11,6 +11,10 @@ set(BINARY_OUTPUT_NAME "朱雀加速")
 # versions of CMake.
 cmake_policy(SET CMP0063 NEW)
 
+if(MSVC)
+  include(InstallRequiredSystemLibraries)
+endif()
+
 # Define build configuration option.
 get_property(IS_MULTICONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(IS_MULTICONFIG)
@@ -96,6 +100,14 @@ install(PROGRAMS "${CLASH_DIR}/ZhuqueJiasuCore.exe" DESTINATION "${INSTALL_BUNDL
 
 install(PROGRAMS "${CLASH_DIR}/ZhuqueJiasuHelperService.exe" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
   COMPONENT Runtime)
+
+if(MSVC AND CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS)
+  foreach(runtime_lib ${CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS})
+    get_filename_component(runtime_name "${runtime_lib}" NAME)
+    install(PROGRAMS "${runtime_lib}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+      COMPONENT Runtime)
+  endforeach()
+endif()
 
 install(FILES "EnableLoopback.exe" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
   COMPONENT Runtime)
