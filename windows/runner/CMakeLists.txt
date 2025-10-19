@@ -41,15 +41,58 @@ target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 add_dependencies(${BINARY_NAME} flutter_assemble)
 
 if(MSVC)
-  set(VC_REDIST_ROOT "$ENV{VCToolsRedistDir}")
-  if(VC_REDIST_ROOT)
-    add_custom_command(
-      TARGET ${BINARY_NAME} POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${VC_REDIST_ROOT}/x64/Microsoft.VC143.CRT"
-        "$<TARGET_FILE_DIR:${BINARY_NAME}>"
-    )
+  set(_msvc_runtime_candidates)
+  if(DEFINED ENV{VCToolsRedistDir} AND EXISTS "$ENV{VCToolsRedistDir}")
+    file(GLOB _msvc_runtime_candidates
+      "$ENV{VCToolsRedistDir}/x64/Microsoft.VC*.CRT/*.dll")
   else()
-    message(WARNING "Environment variable VCToolsRedistDir not set; MSVC runtime DLLs will not be bundled.")
+    set(_vswhere "C:/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe")
+    if(EXISTS "${_vswhere}")
+      execute_process(
+        COMMAND "${_vswhere}" -latest -products * -property installationPath
+        OUTPUT_VARIABLE _vs_install_path
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+      )
+      if(_vs_install_path)
+        file(GLOB _msvc_runtime_candidates
+          "${_vs_install_path}/VC/Redist/MSVC/*/x64/Microsoft.VC*.CRT/*.dll")
+      endif()
+    endif()
   endif()
+
+  set(_msvc_runtime_names
+    vcruntime140.dll
+    vcruntime140_1.dll
+    msvcp140.dll
+    concrt140.dll
+    vcomp140.dll
+  )
+
+  foreach(_runtime_name IN LISTS _msvc_runtime_names)
+    set(_runtime_path "")
+    foreach(_candidate IN LISTS _msvc_runtime_candidates)
+      if(_candidate MATCHES "/${_runtime_name}$")
+        set(_runtime_path "${_candidate}")
+        break()
+      endif()
+    endforeach()
+
+    if(NOT _runtime_path AND DEFINED ENV{SystemRoot})
+      set(_candidate "$ENV{SystemRoot}/System32/${_runtime_name}")
+      if(EXISTS "${_candidate}")
+        set(_runtime_path "${_candidate}")
+      endif()
+    endif()
+
+    if(_runtime_path)
+      add_custom_command(
+        TARGET ${BINARY_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+          "${_runtime_path}"
+          "$<TARGET_FILE_DIR:${BINARY_NAME}>"
+      )
+    else()
+      message(WARNING "MSVC runtime ${_runtime_name} not found; installer may miss this dependency.")
+    endif()
+  endforeach()
 endif()
