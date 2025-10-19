@@ -1,5 +1,6 @@
 ## Unreleased
 
+- Restore Windows build packaging by dropping unsupported flags and exporting both amd64/arm64 installers in a combined zip
 - Encrypt sensitive config fields before persisting to shared preferences
 
 ## baseline-20250910

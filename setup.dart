@@ -383,6 +383,7 @@ class BuildCommand extends Command {
     required Target target,
     required String targets,
     String args = '',
+    Map<String, String>? environment,
   }) async {
     await Build.getDistributor();
     await Build.exec(
@@ -391,6 +392,7 @@ class BuildCommand extends Command {
         // Add common Flutter build optimizations to reduce app size
         "flutter_distributor package --skip-clean --platform ${target.name} --targets $targets --flutter-build-args=verbose,tree-shake-icons,split-debug-info=build/symbols/${target.name} $args",
       ),
+      environment: environment,
     );
   }
 
@@ -454,19 +456,21 @@ class BuildCommand extends Command {
 
     switch (target) {
       case Target.windows:
-        final targetMap = {
-          Arch.amd64: "windows-x64",
-          Arch.arm64: "windows-arm64",
-        };
-        final targetPlatform = targetMap[resolvedArch];
         final windowsArgs = [
           "--description $distributionDescription",
-          if (targetPlatform != null) "--build-target-platform $targetPlatform",
-        ].join(" ");
+        ].where((element) => element.isNotEmpty).join(" ");
+        final Map<String, String> flutterEnv = {};
+        if (resolvedArch == Arch.arm64) {
+          flutterEnv["FLUTTER_WINDOWS_ARCH"] = "arm64";
+          flutterEnv["PROCESSOR_ARCHITECTURE"] = "ARM64";
+        } else if (resolvedArch == Arch.amd64) {
+          flutterEnv["FLUTTER_WINDOWS_ARCH"] = "x64";
+        }
         await _buildDistributor(
           target: target,
           targets: "exe",
           args: windowsArgs,
+          environment: flutterEnv.isEmpty ? null : flutterEnv,
         );
         return;
       case Target.linux:
