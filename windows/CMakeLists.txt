@@ -11,11 +11,6 @@ set(BINARY_OUTPUT_NAME "朱雀加速")
 # versions of CMake.
 cmake_policy(SET CMP0063 NEW)
 
-if(MSVC)
-  set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION ".")
-  include(InstallRequiredSystemLibraries)
-endif()
-
 # Define build configuration option.
 get_property(IS_MULTICONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if(IS_MULTICONFIG)

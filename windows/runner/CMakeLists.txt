@@ -39,3 +39,17 @@ target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)
+
+if(MSVC)
+  set(VC_REDIST_ROOT "$ENV{VCToolsRedistDir}")
+  if(VC_REDIST_ROOT)
+    add_custom_command(
+      TARGET ${BINARY_NAME} POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${VC_REDIST_ROOT}/x64/Microsoft.VC143.CRT"
+        "$<TARGET_FILE_DIR:${BINARY_NAME}>"
+    )
+  else()
+    message(WARNING "Environment variable VCToolsRedistDir not set; MSVC runtime DLLs will not be bundled.")
+  endif()
+endif()
