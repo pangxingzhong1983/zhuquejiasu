@@ -227,17 +227,8 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
       if (groups.isEmpty) {
         return;
       }
-      final seenGroups = <String>{};
       for (final group in groups) {
         if (group.all.isEmpty) continue;
-        final dedupeKey = [
-          group.type.name,
-          group.testUrl ?? '',
-          ...group.all.map((proxy) => proxy.name),
-        ].join('#');
-        if (!seenGroups.add(dedupeKey)) {
-          continue;
-        }
         await delayTest(group.all, group.testUrl);
       }
       _prefetchedDelayHashes[status] = remoteHash ?? '';
