@@ -10,6 +10,7 @@ class MainFlutterWindow: NSWindow {
     self.setFrame(windowFrame, display: true)
       
     RegisterGeneratedPlugins(registry: flutterViewController)
+    LaunchAtStartupChannel.shared.register(with: flutterViewController.engine.binaryMessenger)
     super.awakeFromNib()
   }
   override public func order(_ place: NSWindow.OrderingMode, relativeTo otherWin: Int) {

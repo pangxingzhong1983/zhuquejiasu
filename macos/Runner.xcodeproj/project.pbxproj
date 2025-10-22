@@ -30,6 +30,7 @@
 		7AC6855B2B8AF836004C123B /* BuildFile in Bundle Framework */ = {isa = PBXBuildFile; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		E7710B10A9183216B046F819 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 880D175B1ED89FE27A2FD22C /* Pods_Runner.framework */; };
 		F50091052CF74B7700D43AEA /* ZhuqueJiasuCore in CopyFiles */ = {isa = PBXBuildFile; fileRef = F50091042CF74B7700D43AEA /* ZhuqueJiasuCore */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		F5FAC1002DFF161E000CF079 /* LaunchAtStartupChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5FAC0FF2DFF161E000CF079 /* LaunchAtStartupChannel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -115,6 +116,7 @@
 		A9F2565D00E4C69F0C4CA700 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 		F24210759DE4FD694742C3C8 /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
 		F50091042CF74B7700D43AEA /* ZhuqueJiasuCore */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = ZhuqueJiasuCore; path = ../libclash/macos/ZhuqueJiasuCore; sourceTree = "<group>"; };
+		F5FAC0FF2DFF161E000CF079 /* LaunchAtStartupChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtStartupChannel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -203,6 +205,7 @@
 			isa = PBXGroup;
 			children = (
 				33CC10F02044A3C60003C045 /* AppDelegate.swift */,
+				F5FAC0FF2DFF161E000CF079 /* LaunchAtStartupChannel.swift */,
 				33CC11122044BFA00003C045 /* MainFlutterWindow.swift */,
 				33E51913231747F40026EE4D /* DebugProfile.entitlements */,
 				33E51914231749380026EE4D /* Release.entitlements */,
@@ -438,6 +441,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F5FAC1002DFF161E000CF079 /* LaunchAtStartupChannel.swift in Sources */,
 				33CC11132044BFA00003C045 /* MainFlutterWindow.swift in Sources */,
 				33CC10F12044A3C60003C045 /* AppDelegate.swift in Sources */,
 				335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */,

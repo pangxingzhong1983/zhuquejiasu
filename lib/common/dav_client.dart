@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:dio/dio.dart';
 import 'package:zhuquejiasu/models/models.dart';
 import 'package:webdav_client/webdav_client.dart';
 
@@ -49,9 +50,14 @@ class DAVClient {
   }
 
   Future<List<int>> recovery() async {
-    await client.mkdir("$root"  );
-    final data = await client.read(backupFile);
-    return data;
+    try {
+      return await client.read(backupFile);
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 404) {
+        return const <int>[];
+      }
+      rethrow;
+    }
   }
 
   // Future<List<int>> recovery({Function(int received, int total)? onProgress}) async {

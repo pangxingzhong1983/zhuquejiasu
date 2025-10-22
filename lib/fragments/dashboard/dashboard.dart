@@ -1,14 +1,16 @@
 import 'dart:async';
 
+import 'package:crypto/crypto.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import 'package:sp_util/sp_util.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:zhuquejiasu/common/common.dart';
 import 'package:zhuquejiasu/enum/enum.dart';
 import 'package:zhuquejiasu/models/app.dart';
 import 'package:zhuquejiasu/providers/providers.dart';
 import 'package:zhuquejiasu/widgets/widgets.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../common/dav_client.dart';
 import '../../models/common.dart';
 import '../../models/user.dart';
@@ -126,8 +128,23 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
       );
       final client = DAVClient(dav);
       final tempData = await client.recovery();
-      await globalState.appController
-          .recoveryData(tempData, RecoveryOption.all);
+      if (tempData.isEmpty) {
+        _lastWebDavSyncSuccess = true;
+        _lastWebDavSyncStatus = currentNetworkStatus;
+        return true;
+      }
+
+      final hashKey = 'webdav_backup_hash_$currentNetworkStatus';
+      final remoteHash = sha256.convert(tempData).toString();
+      final cachedHash = SpUtil.getString(hashKey);
+      final shouldApplyRecovery = cachedHash != remoteHash;
+
+      if (shouldApplyRecovery) {
+        await globalState.appController
+            .recoveryData(tempData, RecoveryOption.all);
+        await SpUtil.putString(hashKey, remoteHash);
+      }
+
       _lastWebDavSyncSuccess = true;
       _lastWebDavSyncStatus = currentNetworkStatus;
       return true;
