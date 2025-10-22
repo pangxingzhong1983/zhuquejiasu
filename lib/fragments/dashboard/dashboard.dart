@@ -20,6 +20,7 @@ import '../../net/urls.dart';
 import '../../state.dart';
 import '../../utils/toast_utils.dart';
 import '../login.dart';
+import '../proxies/common.dart';
 
 class DashboardFragment extends ConsumerStatefulWidget {
   const DashboardFragment({super.key});
@@ -46,6 +47,8 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
   bool _lastWebDavSyncSuccess = false;
   String? _lastWebDavSyncStatus;
   Future<void>? _autoLoginFuture;
+  bool _isPrefetchingDelays = false;
+  final Map<String, String> _prefetchedDelayHashes = {};
 
   @override
   initState() {
@@ -115,6 +118,7 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
       return result;
     }
     final currentNetworkStatus = _networkStatus;
+    String? remoteHash;
     try {
       _isLoadingWebDAV = true;
       var data = await DioUtils.instance
@@ -131,11 +135,14 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
       if (tempData.isEmpty) {
         _lastWebDavSyncSuccess = true;
         _lastWebDavSyncStatus = currentNetworkStatus;
+        unawaited(
+          _prefetchDelaysForStatus(currentNetworkStatus),
+        );
         return true;
       }
 
       final hashKey = 'webdav_backup_hash_$currentNetworkStatus';
-      final remoteHash = sha256.convert(tempData).toString();
+      remoteHash = sha256.convert(tempData).toString();
       final cachedHash = SpUtil.getString(hashKey);
       final shouldApplyRecovery = cachedHash != remoteHash;
 
@@ -147,6 +154,12 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
 
       _lastWebDavSyncSuccess = true;
       _lastWebDavSyncStatus = currentNetworkStatus;
+      unawaited(
+        _prefetchDelaysForStatus(
+          currentNetworkStatus,
+          remoteHash: remoteHash,
+        ),
+      );
       return true;
     } catch (e) {
       _lastWebDavSyncSuccess = false;
@@ -189,6 +202,42 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
         return;
       }
       await Future.delayed(const Duration(seconds: 2));
+    }
+  }
+
+  Future<void> _prefetchDelaysForStatus(
+    String status, {
+    String? remoteHash,
+  }) async {
+    if (!mounted) return;
+    final previousHash = _prefetchedDelayHashes[status];
+    if (_isPrefetchingDelays) {
+      if (remoteHash == null || previousHash == remoteHash) {
+        return;
+      }
+    } else if (remoteHash != null && previousHash == remoteHash) {
+      return;
+    } else if (remoteHash == null && previousHash != null) {
+      return;
+    }
+    _isPrefetchingDelays = true;
+    try {
+      await globalState.appController.ensureInitializationReady();
+      final groups = globalState.appController.getCurrentGroups();
+      if (groups.isEmpty) {
+        return;
+      }
+      for (final group in groups) {
+        if (group.all.isEmpty) continue;
+        await delayTest(group.all, group.testUrl);
+      }
+      _prefetchedDelayHashes[status] = remoteHash ?? '';
+    } catch (error) {
+      commonPrint.log(
+        '[Dashboard] Prefetch proxy delays failed for $status: $error',
+      );
+    } finally {
+      _isPrefetchingDelays = false;
     }
   }
 
