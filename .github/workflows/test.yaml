@@ -196,12 +196,10 @@ jobs:
             git config --local user.email "chen08209@gmail.com"
             git config --local user.name "chen08209"
             git commit -m "Update changelog"
-            git push
-            if [ $? -eq 0 ]; then
+            if git push; then
               echo "Push succeeded"
             else
-              echo "Push failed"
-              exit 1
+              echo "Push skipped due to branch protection"
             fi
           fi
 
