@@ -2,6 +2,7 @@
 
 - Add Test GitHub Actions workflow mirroring build job without Cloudflare R2 upload step
 - Remove legacy verify-assets workflow in favor of consolidated pipeline
+- Fix macOS release packaging by correcting LaunchAtStartup Swift syntax for CI
 - Restore Windows build packaging by dropping unsupported flags and exporting both amd64/arm64 installers in a combined zip
 - Encrypt sensitive config fields before persisting to shared preferences
 

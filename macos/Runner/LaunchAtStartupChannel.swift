@@ -79,7 +79,7 @@ final class LaunchAtStartupChannel {
         throw NSError(
           domain: "launch_at_startup",
           code: 2,
-          userInfo: [NSLocalizedDescriptionKey: "Failed to write launch agent plist."],
+          userInfo: [NSLocalizedDescriptionKey: "Failed to write launch agent plist."]
         )
       }
       reloadLaunchAgent()
