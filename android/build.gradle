@@ -1,14 +1,24 @@
+def isCIEnv() {
+    return System.getenv("CI")?.toBoolean() ?: false
+}
+
+def configureRepositories(RepositoryHandler repositories) {
+    repositories.mavenLocal()
+    repositories.google()
+    repositories.mavenCentral()
+    repositories.maven { url 'https://jitpack.io' }
+    if (!isCIEnv()) {
+        repositories.maven { url 'https://maven.aliyun.com/repository/public' }
+        repositories.maven { url 'https://maven.aliyun.com/repository/google' }
+        repositories.maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
+        repositories.maven { url 'https://maven.aliyun.com/repository/jcenter' }
+    }
+}
+
 buildscript {
     ext.kotlin_version = "${kotlin_version}"
     repositories {
-        mavenLocal()
-        maven { url 'https://maven.aliyun.com/repository/public' }
-        maven { url 'https://maven.aliyun.com/repository/google' }
-        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
-        maven { url 'https://maven.aliyun.com/repository/jcenter' }
-        maven { url 'https://jitpack.io' }
-        google()
-        mavenCentral()
+        configureRepositories(it)
     }
 
     dependencies {
@@ -19,14 +29,7 @@ buildscript {
 
 allprojects {
     repositories {
-        mavenLocal()
-        maven { url 'https://maven.aliyun.com/repository/public' }
-        maven { url 'https://maven.aliyun.com/repository/google' }
-        maven { url 'https://maven.aliyun.com/repository/gradle-plugin' }
-        maven { url 'https://maven.aliyun.com/repository/jcenter' }
-        maven { url 'https://jitpack.io' }
-        google()
-        mavenCentral()
+        configureRepositories(it)
     }
 }
 
@@ -41,4 +44,3 @@ subprojects {
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }
-
