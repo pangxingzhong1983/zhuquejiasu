@@ -24,6 +24,9 @@ class ExceptionHandle {
       if (error.type == DioExceptionType.unknown ||
           error.type == DioExceptionType.badResponse){
         dynamic e = error.error;
+        if (e is HandshakeException) {
+          return Error(socketError, "");
+        }
         if (e is SocketException){
           return Error(socketError, "网络异常，请检查你的网络！");
         }
@@ -31,6 +34,9 @@ class ExceptionHandle {
           return Error(httpError, "服务器异常！");
         }
         return Error(netError, "网络异常，请检查你的网络！");
+      }else if (error.type == DioExceptionType.connectionError &&
+          error.error is HandshakeException) {
+        return Error(socketError, "");
       }else if (error.type == DioExceptionType.connectionTimeout ||
           error.type == DioExceptionType.sendTimeout ||
           error.type == DioExceptionType.receiveTimeout){

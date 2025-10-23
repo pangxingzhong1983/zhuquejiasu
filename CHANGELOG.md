@@ -1,5 +1,6 @@
 ## Unreleased
 
+- CI: enforce release signing secrets during GitHub Actions builds to keep Android APK signature stable
 - Add Test GitHub Actions workflow mirroring build job without Cloudflare R2 upload step
 - Remove legacy verify-assets workflow in favor of consolidated pipeline
 - Fix macOS release packaging by correcting LaunchAtStartup Swift syntax for CI

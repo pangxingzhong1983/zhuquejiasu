@@ -6,6 +6,9 @@ on:
       - main
     tags:
       - 'v*'
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -52,6 +55,8 @@ jobs:
         if: startsWith(matrix.platform,'android')
         shell: bash
         run: |
+          set -euo pipefail
+
           touch android/local.properties
           cleanup_props() {
             if [ -f android/local.properties ]; then
@@ -61,6 +66,13 @@ jobs:
               fi
               mv "$tmp" android/local.properties
             fi
+          }
+
+          fail_signing() {
+            echo "Android release signing unavailable: $1" >&2
+            rm -f android/app/keystore.jks
+            cleanup_props
+            exit 1
           }
 
           cleanup_props
@@ -73,38 +85,15 @@ jobs:
                 printf 'keyAlias=%s\n' "${{ secrets.KEY_ALIAS }}" >> android/local.properties
                 printf 'storePassword=%s\n' "${{ secrets.STORE_PASSWORD }}" >> android/local.properties
                 printf 'keyPassword=%s\n' "${{ secrets.KEY_PASSWORD }}" >> android/local.properties
-                echo "Android release signing enabled"
+                echo "Android release signing enabled (alias=${{ secrets.KEY_ALIAS }})"
               else
-                echo "Keystore validation failed, using debug signing"
-                rm -f android/app/keystore.jks
-                cleanup_props
+                fail_signing "keystore validation failed, please refresh KEYSTORE/STORE_PASSWORD/KEY_PASSWORD secrets"
               fi
             else
-              echo "Keystore payload could not be decoded, using debug signing"
-              rm -f android/app/keystore.jks
-              cleanup_props
+              fail_signing "keystore payload could not be decoded, please regenerate KEYSTORE secret"
             fi
           else
-            echo "Android signing secrets missing or incomplete, generating debug keystore"
-            debug_alias="androiddebugkey"
-            debug_pass="android"
-            if keytool -genkeypair \
-              -keystore android/app/keystore.jks \
-              -alias "$debug_alias" \
-              -keyalg RSA \
-              -keysize 2048 \
-              -validity 10000 \
-              -dname "CN=CI Debug,O=CI,C=US" \
-              -storepass "$debug_pass" \
-              -keypass "$debug_pass" >/dev/null 2>&1; then
-              printf 'keyAlias=%s\n' "$debug_alias" >> android/local.properties
-              printf 'storePassword=%s\n' "$debug_pass" >> android/local.properties
-              printf 'keyPassword=%s\n' "$debug_pass" >> android/local.properties
-              echo "Generated debug keystore for CI artifacts"
-            else
-              echo "Debug keystore generation failed, Android build may remain unsigned"
-              rm -f android/app/keystore.jks
-            fi
+            fail_signing "required secrets (KEYSTORE/KEY_ALIAS/STORE_PASSWORD/KEY_PASSWORD) missing"
           fi
 
 

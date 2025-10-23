@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:common_utils/common_utils.dart';
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:sp_util/sp_util.dart';
 import '../router/app_navigator.dart';
@@ -10,6 +12,8 @@ import '../utils/toast_utils.dart';
 import '../utils/url_manager.dart';
 import 'error_handle.dart';
 import 'intercept.dart';
+import '../state.dart';
+import '../common/http.dart';
 
 /// count 当前下载进度
 /// total 下载总长度
@@ -25,13 +29,14 @@ class DioUtils {
   }
 
   static Dio? _dio;
+  static Dio? _proxyDio;
 
   Dio? getDio() {
     return _dio;
   }
 
   DioUtils._internal() {
-    var options = BaseOptions(
+    final options = BaseOptions(
       connectTimeout: const Duration(milliseconds: 15000),
       receiveTimeout: const Duration(milliseconds: 15000),
       responseType: ResponseType.plain,
@@ -42,12 +47,24 @@ class DioUtils {
       baseUrl: URLManager().dynamicURL,
     );
     _dio = Dio(options);
+    _proxyDio = Dio(options);
 
     /// 统一添加身份验证请求头
     _dio!.interceptors.add(HeaderInterceptor());
+    _proxyDio!.interceptors.add(HeaderInterceptor());
 
     /// 添加log拦截器
     _dio!.interceptors.add(LoggingInterceptor());
+    _proxyDio!.interceptors.add(LoggingInterceptor());
+
+    _proxyDio!.httpClientAdapter = IOHttpClientAdapter(
+      createHttpClient: () {
+        final client = HttpClient();
+        client.findProxy = (uri) =>
+            ZhuqueJiasuHttpOverrides.handleFindProxy(uri, forceProxy: true);
+        return client;
+      },
+    );
   }
 
   // 数据返回格式统一，统一处理异常
@@ -56,10 +73,12 @@ class DioUtils {
       Map<String, dynamic>? queryParameters,
       CancelToken? cancelToken,
       Options? options,
-      bool autoDismiss = true}) async {
+      bool autoDismiss = true,
+      bool forceProxy = false}) async {
     LogUtil.d("----------url----------$url");
     LogUtil.d("----------data----------$data");
-    var response = await _dio!.request<String>(url,
+    final client = forceProxy ? _proxyDio! : _dio!;
+    var response = await client.request<String>(url,
         data: data,
         queryParameters: queryParameters,
         options: _checkOptions(method, options),
@@ -78,7 +97,8 @@ class DioUtils {
       CancelToken? cancelToken,
       Options? options,
       bool showLoading = false,
-      bool autoDismiss = true}) async {
+      bool autoDismiss = true,
+      bool retrying = false}) async {
     String? m = _getRequestMethod(method);
     try {
       if (showLoading) ToastUtils.showLoading();
@@ -87,7 +107,8 @@ class DioUtils {
           queryParameters: queryParameters,
           options: options,
           cancelToken: cancelToken,
-          autoDismiss: autoDismiss);
+          autoDismiss: autoDismiss,
+          forceProxy: retrying);
       if (showLoading) ToastUtils.hideLoading();
       Map<String, dynamic> map =
           await compute(parseData, resp.data.toString());
@@ -117,8 +138,42 @@ class DioUtils {
       return map;
     } catch (e) {
       LogUtil.e('er-------$e');
+      if (e is DioException) {
+        LogUtil.d(
+          'dio error type=${e.type} status=${e.response?.statusCode} inner=${e.error.runtimeType}',
+        );
+        if (e.error is HandshakeException) {
+          LogUtil.d(
+            'handshake while start=${globalState.isStart} runTime=${globalState.appState.runTime} tunEnabled=${globalState.config.patchClashConfig.tun.enable}',
+          );
+        }
+      }
       if (showLoading) ToastUtils.hideLoading();
       Error error = ExceptionHandle.handleException(e);
+      if (!retrying && e is DioException) {
+        final shouldRetryViaProxy =
+            globalState.config.patchClashConfig.tun.enable == true &&
+            (e.error is HandshakeException ||
+                e.error is HttpException ||
+                e.type == DioExceptionType.connectionError ||
+                e.type == DioExceptionType.unknown);
+        if (shouldRetryViaProxy) {
+          LogUtil.d('retry request via proxy after primary failure');
+          return await request(
+            method,
+            url,
+            onSuccess: onSuccess,
+            onError: onError,
+            params: params,
+            queryParameters: queryParameters,
+            cancelToken: cancelToken,
+            options: options,
+            showLoading: showLoading,
+            autoDismiss: autoDismiss,
+            retrying: true,
+          );
+        }
+      }
       _onError(error.code.toString(), error.msg, onError);
     }
   }
@@ -133,6 +188,13 @@ class DioUtils {
       String code, String? msg, Function(String? code, String? mag)? onError) {
     // dismissProgress();
     EasyLoading.dismiss();
+    if (msg == null || msg.isEmpty) {
+      if (onError != null) {
+        onError(code, msg);
+      }
+      LogUtil.d('_onError suppressed toast: code=$code');
+      return;
+    }
     if (msg == 'Unauthenticated.') {
       // When the server says the session is unauthenticated, avoid
       // terminating the whole process. Instead clear the saved token,
