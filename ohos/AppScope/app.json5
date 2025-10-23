@@ -2,8 +2,8 @@
   "app": {
     "bundleName": "com.follow.zhuque",
     "vendor": "ZhuQue",
-    "versionCode": 2025101715,
-    "versionName": "0.9.08",
+    "versionCode": 2025102315,
+    "versionName": "0.9.09",
     "icon": "$media:app_icon",
     "label": "$string:app_name"
   }
