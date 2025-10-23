@@ -6,7 +6,6 @@
 - Fix macOS release packaging by correcting LaunchAtStartup Swift syntax for CI
 - Restore Windows build packaging by dropping unsupported flags and exporting both amd64/arm64 installers in a combined zip
 - Encrypt sensitive config fields before persisting to shared preferences
-- CI: Skip Aliyun Maven mirrors in Android builds to keep GitHub Actions dependency resolution stable
 
 ## baseline-20250910
 
