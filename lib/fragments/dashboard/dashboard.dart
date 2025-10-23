@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -13,6 +14,7 @@ import 'package:zhuquejiasu/providers/providers.dart';
 import 'package:zhuquejiasu/widgets/widgets.dart';
 import '../../common/dav_client.dart';
 import '../../models/common.dart';
+import '../../models/clash_config.dart';
 import '../../models/user.dart';
 import '../../net/api.dart';
 import '../../net/dioutils.dart';
@@ -49,6 +51,8 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
   Future<void>? _autoLoginFuture;
   bool _isPrefetchingDelays = false;
   final Map<String, String> _prefetchedDelayHashes = {};
+  final Map<String, List<String>> _originalProxyGroupMembers = {};
+  bool _isUpdatingHealthyGroups = false;
 
   @override
   initState() {
@@ -150,6 +154,7 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
         await globalState.appController
             .recoveryData(tempData, RecoveryOption.all);
         await SpUtil.putString(hashKey, remoteHash);
+        _originalProxyGroupMembers.clear();
       }
 
       _lastWebDavSyncSuccess = true;
@@ -231,6 +236,10 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
         if (group.all.isEmpty) continue;
         await delayTest(group.all, group.testUrl);
       }
+      final healthyProxies = _collectHealthyProxies(groups);
+      if (healthyProxies.isNotEmpty) {
+        await _updateHealthyProxyGroups(healthyProxies);
+      }
       _prefetchedDelayHashes[status] = remoteHash ?? '';
     } catch (error) {
       commonPrint.log(
@@ -238,6 +247,111 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
       );
     } finally {
       _isPrefetchingDelays = false;
+    }
+  }
+
+  Set<String> _collectHealthyProxies(List<Group> groups) {
+    final delayMap = ref.read(delayDataSourceProvider);
+    final defaultTestUrl = ref.read(appSettingProvider).testUrl;
+    final proxyGroupTypes = GroupType.values.map((e) => e.name).toSet();
+    final healthy = <String>{};
+    for (final group in groups) {
+      for (final proxy in group.all) {
+        if (proxyGroupTypes.contains(proxy.type)) {
+          continue;
+        }
+        final proxyState = ref.read(getProxyCardStateProvider(proxy.name));
+        final resolvedProxyName =
+            proxyState.proxyName.isNotEmpty ? proxyState.proxyName : proxy.name;
+        if (resolvedProxyName.isEmpty) {
+          continue;
+        }
+        final resolvedTestUrl =
+            proxyState.testUrl.getSafeValue(defaultTestUrl);
+        final delay = delayMap[resolvedTestUrl]?[resolvedProxyName];
+        if (delay != null && delay > 0) {
+          healthy.add(resolvedProxyName);
+        }
+      }
+    }
+    return healthy;
+  }
+
+  bool _shouldManageGroup(ProxyGroup group) {
+    return group.type == GroupType.LoadBalance ||
+        group.type == GroupType.URLTest ||
+        group.type == GroupType.Fallback;
+  }
+
+  void _ensureOriginalProxyGroupMembersCached() {
+    if (_originalProxyGroupMembers.isNotEmpty) {
+      return;
+    }
+    final configGroups = ref.read(patchClashConfigProvider).proxyGroups;
+    for (final group in configGroups) {
+      if (!_shouldManageGroup(group)) {
+        continue;
+      }
+      final proxies = (group.proxies ?? const [])
+          .where((name) => name.isNotEmpty)
+          .toList();
+      if (proxies.isEmpty) {
+        continue;
+      }
+      _originalProxyGroupMembers[group.name] = proxies;
+    }
+  }
+
+  Future<void> _updateHealthyProxyGroups(Set<String> healthyProxies) async {
+    if (_isUpdatingHealthyGroups) {
+      return;
+    }
+    _isUpdatingHealthyGroups = true;
+    try {
+      _ensureOriginalProxyGroupMembersCached();
+      if (_originalProxyGroupMembers.isEmpty) {
+        return;
+      }
+      bool configChanged = false;
+      ref.read(patchClashConfigProvider.notifier).updateState((config) {
+        final groups = config.proxyGroups.toList();
+        bool changed = false;
+        for (var i = 0; i < groups.length; i++) {
+          final group = groups[i];
+          if (!_shouldManageGroup(group)) {
+            continue;
+          }
+          final originalMembers = _originalProxyGroupMembers[group.name];
+          if (originalMembers == null || originalMembers.isEmpty) {
+            continue;
+          }
+          final filteredMembers = originalMembers
+              .where((member) => healthyProxies.contains(member))
+              .toList();
+          if (filteredMembers.isEmpty) {
+            continue;
+          }
+          final currentMembers = (group.proxies ?? const []).toList();
+          if (listEquals(filteredMembers, currentMembers)) {
+            continue;
+          }
+          groups[i] = group.copyWith(proxies: filteredMembers);
+          changed = true;
+        }
+        if (!changed) {
+          return config;
+        }
+        configChanged = true;
+        return config.copyWith(proxyGroups: groups);
+      });
+      if (configChanged) {
+        await globalState.appController.updateClashConfig(true);
+        await globalState.appController.updateGroups();
+      }
+    } catch (error) {
+      commonPrint.log('[Dashboard] update healthy groups failed: $error');
+    } finally {
+      _isUpdatingHealthyGroups = false;
     }
   }
 
