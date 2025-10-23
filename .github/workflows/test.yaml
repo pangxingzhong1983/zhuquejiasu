@@ -1,0 +1,452 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - platform: android
+            os: ubuntu-latest
+          - platform: windows
+            os: windows-latest
+            arch: amd64
+          - platform: linux
+            os: ubuntu-latest
+            arch: amd64
+          - platform: macos
+            os: macos-14
+            arch: arm64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup JAVA
+        if: startsWith(matrix.platform,'android')
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: 17
+
+      - name: Setup NDK
+        if: startsWith(matrix.platform,'android')
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r26b
+          add-to-path: true
+          link-to-sdk: true
+
+      - name: Setup Android Signing
+        if: startsWith(matrix.platform,'android')
+        shell: bash
+        run: |
+          touch android/local.properties
+          cleanup_props() {
+            if [ -f android/local.properties ]; then
+              tmp="$(mktemp)"
+              if ! grep -vE '^(keyAlias|storePassword|keyPassword)=' android/local.properties > "$tmp"; then
+                :
+              fi
+              mv "$tmp" android/local.properties
+            fi
+          }
+
+          cleanup_props
+          rm -f android/app/keystore.jks
+
+          if [[ -n "${{ secrets.KEYSTORE }}" && -n "${{ secrets.KEY_ALIAS }}" && -n "${{ secrets.STORE_PASSWORD }}" && -n "${{ secrets.KEY_PASSWORD }}" ]]; then
+            echo "Preparing Android release keystore"
+            if echo "${{ secrets.KEYSTORE }}" | base64 --decode > android/app/keystore.jks 2>/dev/null; then
+              if keytool -list -keystore android/app/keystore.jks -storepass "${{ secrets.STORE_PASSWORD }}" >/dev/null 2>&1; then
+                printf 'keyAlias=%s\n' "${{ secrets.KEY_ALIAS }}" >> android/local.properties
+                printf 'storePassword=%s\n' "${{ secrets.STORE_PASSWORD }}" >> android/local.properties
+                printf 'keyPassword=%s\n' "${{ secrets.KEY_PASSWORD }}" >> android/local.properties
+                echo "Android release signing enabled"
+              else
+                echo "Keystore validation failed, using debug signing"
+                rm -f android/app/keystore.jks
+                cleanup_props
+              fi
+            else
+              echo "Keystore payload could not be decoded, using debug signing"
+              rm -f android/app/keystore.jks
+              cleanup_props
+            fi
+          else
+            echo "Android signing secrets missing or incomplete, generating debug keystore"
+            debug_alias="androiddebugkey"
+            debug_pass="android"
+            if keytool -genkeypair \
+              -keystore android/app/keystore.jks \
+              -alias "$debug_alias" \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=CI Debug,O=CI,C=US" \
+              -storepass "$debug_pass" \
+              -keypass "$debug_pass" >/dev/null 2>&1; then
+              printf 'keyAlias=%s\n' "$debug_alias" >> android/local.properties
+              printf 'storePassword=%s\n' "$debug_pass" >> android/local.properties
+              printf 'keyPassword=%s\n' "$debug_pass" >> android/local.properties
+              echo "Generated debug keystore for CI artifacts"
+            else
+              echo "Debug keystore generation failed, Android build may remain unsigned"
+              rm -f android/app/keystore.jks
+            fi
+          fi
+
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          cache-dependency-path: |
+            core/go.sum
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Get Flutter Dependency
+        run: flutter pub get
+
+      - name: Install Inno Setup
+        if: ${{ matrix.platform == 'windows' }}
+        run: choco install innosetup --yes --no-progress
+
+      - name: Install Rust target
+        if: ${{ matrix.platform == 'windows' && matrix.arch == 'arm64' }}
+        shell: powershell
+        run: rustup target add aarch64-pc-windows-msvc
+
+      - name: Setup
+        run: dart setup.dart ${{ matrix.platform }} ${{ matrix.arch && format('--arch {0}', matrix.arch) }}
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifact-${{ matrix.platform }}${{ matrix.arch && format('-{0}', matrix.arch) }}
+          path: ./dist
+          overwrite: true
+
+  changelog:
+    runs-on: ubuntu-latest
+    needs: [ build ]
+    steps:
+      - name: Checkout
+        if: ${{ !contains(github.ref, '+') }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: refs/heads/main
+
+      - name: Generate
+        if: ${{ !contains(github.ref, '+') }}
+        run: |
+          tags=($(git tag --merged $(git rev-parse HEAD) --sort=-creatordate))
+          preTag=$(grep -oP '^## \K.*' CHANGELOG.md | head -n 1)
+          currentTag=""
+          for ((i = 0; i <= ${#tags[@]}; i++)); do
+            if (( i < ${#tags[@]} )); then
+              tag=${tags[$i]}
+            else
+              tag=""
+            fi
+            if [ -n "$currentTag" ]; then
+              if [ "$(echo -e "$currentTag\n$preTag" | sort -V | head -n 1)" == "$currentTag" ]; then
+                break
+              fi
+            fi
+            if [ -n "$currentTag" ]; then
+              echo "## $currentTag" >> NEW_CHANGELOG.md
+              echo "" >> NEW_CHANGELOG.md
+              if [ -n "$tag" ]; then
+                git log --pretty=format:"%B" "$tag..$currentTag" | awk 'NF {print "- " $0} !NF {print ""}' >> NEW_CHANGELOG.md
+              else
+                git log --pretty=format:"%B" "$currentTag" | awk 'NF {print "- " $0} !NF {print ""}' >> NEW_CHANGELOG.md
+              fi
+              echo "" >> NEW_CHANGELOG.md
+            fi
+            currentTag=$tag
+          done
+          cat CHANGELOG.md >> NEW_CHANGELOG.md
+          cat NEW_CHANGELOG.md > CHANGELOG.md
+
+      - name: Commit
+        if: ${{ !contains(github.ref, '+') }}
+        run: |
+          git add CHANGELOG.md
+          if ! git diff --cached --quiet; then
+            echo "Commit pushing"
+            git config --local user.email "chen08209@gmail.com"
+            git config --local user.name "chen08209"
+            git commit -m "Update changelog"
+            git push
+            if [ $? -eq 0 ]; then
+              echo "Push succeeded"
+            else
+              echo "Push failed"
+              exit 1
+            fi
+          fi
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  upload:
+    permissions: write-all
+    needs: [ build, build-ohos ]
+    if: always() && (needs.build.result == 'success')
+    runs-on: ubuntu-latest
+    env:
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}
+      TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+      SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
+      CF_R2_ACCOUNT_ID: ${{ secrets.CF_R2_ACCOUNT_ID }}
+      CF_R2_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
+      CF_R2_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
+      CF_R2_BUCKET: ${{ secrets.CF_R2_BUCKET }}
+      CF_R2_PUBLIC_DOMAIN: ${{ secrets.CF_R2_PUBLIC_DOMAIN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      WRANGLER_CONFIG_TOML: ${{ secrets.WRANGLER_CONFIG_TOML }}
+    services:
+      telegram-bot-api:
+        image: aiogram/telegram-bot-api:latest
+        env:
+          TELEGRAM_API_ID: ${{ env.TELEGRAM_API_ID }}
+          TELEGRAM_API_HASH: ${{ env.TELEGRAM_API_HASH }}
+        ports:
+          - 8081:8081
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download
+        uses: actions/download-artifact@v4
+        with:
+          path: ./dist/
+          pattern: artifact-*
+          merge-multiple: true
+
+      - name: Download OHOS artifact
+        if: needs.build-ohos.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: zhuquejiasu-ohos-release
+          path: ./dist/
+
+      - name: Generate release.md
+        run: |
+          tags=($(git tag --merged $(git rev-parse HEAD) --sort=-creatordate))
+          preTag=$(curl --silent "https://api.github.com/repos/chen08209/ZhuqueJiasu/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")' || echo "")
+          currentTag=""
+          for ((i = 0; i <= ${#tags[@]}; i++)); do
+            if (( i < ${#tags[@]} )); then
+              tag=${tags[$i]}
+            else
+              tag=""
+            fi
+            if [ -n "$currentTag" ]; then
+              if [ "$(echo -e "$currentTag\n$preTag" | sort -V | head -n 1)" == "$currentTag" ]; then
+                break
+              fi
+            fi
+            if [ -n "$currentTag" ]; then
+              if [ -n "$tag" ]; then
+                git log --pretty=format:"%B" "$tag..$currentTag" | awk 'NF {print "- " $0} !NF {print ""}' >> release.md
+              else
+                git log --pretty=format:"%B" "$currentTag" | awk 'NF {print "- " $0} !NF {print ""}' >> release.md
+              fi
+              echo "" >> release.md
+            fi
+            currentTag=$tag
+          done
+
+      - name: Push to telegram
+        if: ${{ env.TELEGRAM_BOT_TOKEN != '' && env.TELEGRAM_API_ID != '' && env.TELEGRAM_API_HASH != '' }}
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ env.TELEGRAM_BOT_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+          python release.py
+
+      - name: Patch release.md
+        run: |
+          version=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          sed "s|VERSION|$version|g" ./.github/release_template.md >> release.md
+
+      - name: Release
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./dist/*
+          body_path: './release.md'
+
+      - name: Create Fdroid Source Dir
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        run: |
+          mkdir -p ./tmp
+          cp ./dist/*android-arm64-v8a* ./tmp/ || true
+          echo "Files copied successfully"
+
+      - name: Push to fdroid repo
+        if: ${{ startsWith(github.ref, 'refs/tags/') && env.SSH_DEPLOY_KEY != '' }}
+        uses: cpina/github-action-push-to-another-repository@v1.7.2
+        env:
+          SSH_DEPLOY_KEY: ${{ env.SSH_DEPLOY_KEY }}
+        with:
+          source-directory: ./tmp/
+          destination-github-username: chen08209
+          destination-repository-name: ZhuqueJiasu-fdroid-repo
+          user-name: 'github-actions[bot]'
+          user-email: 'github-actions[bot]@users.noreply.github.com'
+          target-branch: action-pr
+          commit-message: Update from ${{ github.ref_name }}
+          target-directory: /tmp/
+
+  build-ohos:
+    if: ${{ false }} # Temporarily disable OHOS build without removing job definition
+    name: build (ohos, self-hosted, macos)
+    runs-on:
+      - self-hosted
+      - macos
+      - ohos
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Prepare ASCII workspace
+        run: |
+          set -euxo pipefail
+          BUILD_ROOT="${HAP_BUILD_ROOT:-/private/tmp/zhuquejiasu-ohos}"
+          rm -rf "$BUILD_ROOT"
+          mkdir -p "$BUILD_ROOT"
+          rsync -a --delete --exclude='.git' ./ "$BUILD_ROOT/"
+          mkdir -p "$BUILD_ROOT/ohos/har"
+
+          if [[ ! -f "$BUILD_ROOT/ohos/har/flutter.har" ]]; then
+            FLUTTER_BIN="${FLUTTER_OHOS:-$HOME/flutter_flutter_gitcode/bin/flutter}"
+            if [[ -x "$FLUTTER_BIN" ]]; then
+              FLUTTER_ROOT="$(cd "$(dirname "$FLUTTER_BIN")/.." && pwd)"
+              for har_path in \
+                "$FLUTTER_ROOT/bin/cache/artifacts/engine/ohos-arm64-release/flutter.har" \
+                "$FLUTTER_ROOT/bin/cache/artifacts/engine/ohos-arm64/flutter.har" \
+                "$FLUTTER_ROOT/bin/cache/artifacts/engine/ohos-x64-release/flutter.har" \
+                "$FLUTTER_ROOT/bin/cache/artifacts/engine/ohos-x64/flutter.har"; do
+                if [[ -f "$har_path" ]]; then
+                  cp "$har_path" "$BUILD_ROOT/ohos/har/flutter.har"
+                  echo "Copied flutter.har from $har_path"
+                  break
+                fi
+              done
+            else
+              echo "WARNING: Flutter OHOS binary not executable at $FLUTTER_BIN"
+            fi
+          fi
+
+          # Verify critical files exist
+          if [[ ! -f "$BUILD_ROOT/ohos/har/flutter.har" ]]; then
+            echo "ERROR: flutter.har not found after copy"
+            ls -la "$BUILD_ROOT/ohos/har/" || echo "har directory missing"
+            exit 1
+          fi
+
+      - name: Display versions
+        run: |
+          set -euxo pipefail
+          BUILD_ROOT="${HAP_BUILD_ROOT:-/private/tmp/zhuquejiasu-ohos}"
+          TOOL_HOME="${TOOL_HOME:-/Applications/DevEco-Studio.app/Contents}"
+          DEVECO_SDK_HOME="${DEVECO_SDK_HOME:-$HOME/Library/OpenHarmony/Sdk}"
+          HMS_SDK_HOME="${HMS_SDK_HOME:-/Applications/DevEco-Studio.app/Contents/sdk/default}"
+          FLUTTER_OHOS="${FLUTTER_OHOS:-$HOME/flutter_flutter_gitcode/bin/flutter}"
+          # Set critical OHOS SDK environment variables - Flutter OHOS needs HMS SDK!
+          export HOS_SDK_HOME="${HMS_SDK_HOME}"
+          export OHOS_SDK_HOME="${DEVECO_SDK_HOME}"
+          export PATH="$TOOL_HOME/tools/ohpm/bin:$TOOL_HOME/tools/hvigor/bin:$PATH"
+          cd "$BUILD_ROOT"
+          echo "WORKSPACE=$(pwd)"
+          echo "TOOL_HOME=$TOOL_HOME"
+          echo "DEVECO_SDK_HOME=$DEVECO_SDK_HOME"
+          echo "HOS_SDK_HOME=$HOS_SDK_HOME"
+          echo "OHOS_SDK_HOME=$OHOS_SDK_HOME"
+          echo "FLUTTER_OHOS=$FLUTTER_OHOS"
+          "$FLUTTER_OHOS" --version
+          "$FLUTTER_OHOS" doctor -v
+
+      - name: Install HarmonyOS dependencies
+        run: |
+          set -euxo pipefail
+          BUILD_ROOT="${HAP_BUILD_ROOT:-/private/tmp/zhuquejiasu-ohos}"
+          TOOL_HOME="${TOOL_HOME:-/Applications/DevEco-Studio.app/Contents}"
+          DEVECO_SDK_HOME="${DEVECO_SDK_HOME:-$HOME/Library/OpenHarmony/Sdk}"
+          HMS_SDK_HOME="${HMS_SDK_HOME:-/Applications/DevEco-Studio.app/Contents/sdk/default}"
+          # Set critical OHOS SDK environment variables - Flutter OHOS needs HMS SDK!
+          export HOS_SDK_HOME="${HMS_SDK_HOME}"
+          export OHOS_SDK_HOME="${DEVECO_SDK_HOME}"
+          export PATH="$TOOL_HOME/tools/ohpm/bin:$TOOL_HOME/tools/hvigor/bin:$PATH"
+          cd "$BUILD_ROOT/ohos"
+          ohpm install
+          npm install flutter-hvigor-plugin@file:$HOME/flutter_flutter_gitcode/packages/flutter_tools/hvigor
+
+      - name: Resolve Flutter packages & build Hap
+        env:
+          PUB_HOSTED_URL: ${{ env.PUB_HOSTED_URL }}
+          FLUTTER_STORAGE_BASE_URL: ${{ env.FLUTTER_STORAGE_BASE_URL }}
+        run: |
+          set -euxo pipefail
+          BUILD_ROOT="${HAP_BUILD_ROOT:-/private/tmp/zhuquejiasu-ohos}"
+          TOOL_HOME="${TOOL_HOME:-/Applications/DevEco-Studio.app/Contents}"
+          DEVECO_SDK_HOME="${DEVECO_SDK_HOME:-$HOME/Library/OpenHarmony/Sdk}"
+          HMS_SDK_HOME="${HMS_SDK_HOME:-/Applications/DevEco-Studio.app/Contents/sdk/default}"
+          FLUTTER_OHOS="${FLUTTER_OHOS:-$HOME/flutter_flutter_gitcode/bin/flutter}"
+          # Set critical OHOS SDK environment variables  
+          # Flutter OHOS requires HOS_SDK_HOME to point to HMS SDK (not OpenHarmony SDK!)
+          export HOS_SDK_HOME="${HMS_SDK_HOME}"
+          export OHOS_SDK_HOME="${DEVECO_SDK_HOME}"
+          # Add all required SDK tools to PATH
+          export PATH="$TOOL_HOME/tools/ohpm/bin:$TOOL_HOME/tools/hvigor/bin:$DEVECO_SDK_HOME/hvigor/bin:$DEVECO_SDK_HOME/ohpm/bin:$DEVECO_SDK_HOME/tools:$DEVECO_SDK_HOME/native/llvm/bin:$PATH"
+          export PUB_HOSTED_URL="${PUB_HOSTED_URL:-https://pub.flutter-io.cn}"
+          export FLUTTER_STORAGE_BASE_URL="${FLUTTER_STORAGE_BASE_URL:-https://storage.flutter-io.cn}"
+          cd "$BUILD_ROOT"
+          
+          # Configure Flutter for OHOS build with SDK path
+          "$FLUTTER_OHOS" config --enable-ohos
+          "$FLUTTER_OHOS" config --ohos-sdk "$DEVECO_SDK_HOME"
+          "$FLUTTER_OHOS" pub get
+          "$FLUTTER_OHOS" build hap --release --target-platform=ohos-arm64
+
+      - name: Collect artifact
+        run: |
+          set -euxo pipefail
+          BUILD_ROOT="${HAP_BUILD_ROOT:-/private/tmp/zhuquejiasu-ohos}"
+          mkdir -p artifacts
+          cp "$BUILD_ROOT/ohos/entry/build/default/outputs/default/entry-default-unsigned.hap" artifacts/zhuquejiasu-ohos-release.hap
+          ls -lh artifacts
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zhuquejiasu-ohos-release
+          path: artifacts/zhuquejiasu-ohos-release.hap

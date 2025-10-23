@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart' show listEquals;
@@ -23,6 +24,23 @@ import '../../state.dart';
 import '../../utils/toast_utils.dart';
 import '../login.dart';
 import '../proxies/common.dart';
+
+class _ProxyFailureState {
+  int failureCount = 0;
+  DateTime? nextRetryAt;
+}
+
+class _ProxyTestTarget {
+  _ProxyTestTarget({
+    required this.proxy,
+    required this.resolvedName,
+    required this.testUrl,
+  });
+
+  final Proxy proxy;
+  final String resolvedName;
+  final String testUrl;
+}
 
 class DashboardFragment extends ConsumerStatefulWidget {
   const DashboardFragment({super.key});
@@ -52,7 +70,10 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
   bool _isPrefetchingDelays = false;
   final Map<String, String> _prefetchedDelayHashes = {};
   final Map<String, List<String>> _originalProxyGroupMembers = {};
+  final Map<String, _ProxyFailureState> _proxyFailureStates = {};
   bool _isUpdatingHealthyGroups = false;
+  static const Duration _failureBackoffBase = Duration(seconds: 30);
+  static const Duration _failureBackoffMax = Duration(minutes: 10);
 
   @override
   initState() {
@@ -155,6 +176,7 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
             .recoveryData(tempData, RecoveryOption.all);
         await SpUtil.putString(hashKey, remoteHash);
         _originalProxyGroupMembers.clear();
+        _proxyFailureStates.clear();
       }
 
       _lastWebDavSyncSuccess = true;
@@ -232,14 +254,12 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
       if (groups.isEmpty) {
         return;
       }
-      for (final group in groups) {
-        if (group.all.isEmpty) continue;
-        await delayTest(group.all, group.testUrl);
+      final testTargets = _collectProxyTestTargets(groups);
+      for (final target in testTargets) {
+        await _testProxyWithBackoff(target);
       }
       final healthyProxies = _collectHealthyProxies(groups);
-      if (healthyProxies.isNotEmpty) {
-        await _updateHealthyProxyGroups(healthyProxies);
-      }
+      await _updateHealthyProxyGroups(healthyProxies);
       _prefetchedDelayHashes[status] = remoteHash ?? '';
     } catch (error) {
       commonPrint.log(
@@ -247,6 +267,58 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
       );
     } finally {
       _isPrefetchingDelays = false;
+    }
+  }
+
+  List<_ProxyTestTarget> _collectProxyTestTargets(List<Group> groups) {
+    final defaultTestUrl = ref.read(appSettingProvider).testUrl;
+    final proxyGroupTypes = GroupType.values.map((e) => e.name).toSet();
+    final Map<String, _ProxyTestTarget> targets = {};
+    for (final group in groups) {
+      if (group.all.isEmpty) continue;
+      for (final proxy in group.all) {
+        if (proxyGroupTypes.contains(proxy.type)) {
+          continue;
+        }
+        final proxyState = ref.read(getProxyCardStateProvider(proxy.name));
+        final resolvedName =
+            proxyState.proxyName.isNotEmpty ? proxyState.proxyName : proxy.name;
+        if (resolvedName.isEmpty) {
+          continue;
+        }
+        final testUrl = proxyState.testUrl.getSafeValue(defaultTestUrl);
+        targets.putIfAbsent(
+          resolvedName,
+          () => _ProxyTestTarget(
+            proxy: proxy,
+            resolvedName: resolvedName,
+            testUrl: testUrl,
+          ),
+        );
+      }
+    }
+    return targets.values.toList();
+  }
+
+  Future<void> _testProxyWithBackoff(_ProxyTestTarget target) async {
+    if (_shouldSkipProxyDueToBackoff(target.resolvedName)) {
+      return;
+    }
+    try {
+      await proxyDelayTest(target.proxy, target.testUrl);
+    } catch (error, stackTrace) {
+      commonPrint.log(
+        '[Dashboard] proxy ${target.resolvedName} test error: $error\n$stackTrace',
+      );
+      _registerProxyFailure(target.resolvedName);
+      return;
+    }
+    final delayMap = ref.read(delayDataSourceProvider);
+    final delay = delayMap[target.testUrl]?[target.resolvedName];
+    if (delay != null && delay > 0) {
+      _resetProxyFailure(target.resolvedName);
+    } else {
+      _registerProxyFailure(target.resolvedName);
     }
   }
 
@@ -281,6 +353,31 @@ class _DashboardFragmentState extends ConsumerState<DashboardFragment>
     return group.type == GroupType.LoadBalance ||
         group.type == GroupType.URLTest ||
         group.type == GroupType.Fallback;
+  }
+
+  bool _shouldSkipProxyDueToBackoff(String proxyName) {
+    final state = _proxyFailureStates[proxyName];
+    if (state == null || state.nextRetryAt == null) {
+      return false;
+    }
+    return state.nextRetryAt!.isAfter(DateTime.now());
+  }
+
+  void _registerProxyFailure(String proxyName) {
+    final state =
+        _proxyFailureStates.putIfAbsent(proxyName, () => _ProxyFailureState());
+    state.failureCount += 1;
+    final exponent = math.min(state.failureCount - 1, 5);
+    final seconds = _failureBackoffBase.inSeconds * (1 << exponent);
+    final clampedSeconds = seconds > _failureBackoffMax.inSeconds
+        ? _failureBackoffMax.inSeconds
+        : seconds;
+    state.nextRetryAt =
+        DateTime.now().add(Duration(seconds: clampedSeconds));
+  }
+
+  void _resetProxyFailure(String proxyName) {
+    _proxyFailureStates.remove(proxyName);
   }
 
   void _ensureOriginalProxyGroupMembersCached() {
