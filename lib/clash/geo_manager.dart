@@ -39,16 +39,7 @@ class GeoManager {
     if (!await homeDir.exists()) await homeDir.create(recursive: true);
 
     // Try load optional hash map from bundled asset: assets/data/geo_hashes.json
-    Map<String, String> expectedHashes = {};
-    try {
-      final jsonRaw = await rootBundle.loadString('assets/data/geo_hashes.json');
-      final decoded = json.decode(jsonRaw) as Map<String, dynamic>;
-      for (final k in decoded.keys) {
-        expectedHashes[k] = decoded[k].toString();
-      }
-    } catch (_) {
-      // Not required; we'll operate without strict hash verification if missing.
-    }
+    final expectedHashes = await _loadBundledHashes();
 
     final dio = Dio(BaseOptions(responseType: ResponseType.bytes, connectTimeout: const Duration(seconds: 10), receiveTimeout: const Duration(seconds: 20)));
 
@@ -113,6 +104,42 @@ class GeoManager {
     }
 
     return allOk;
+  }
+
+  static Future<Map<String, String>> _loadBundledHashes() async {
+    try {
+      final manifestRaw = await rootBundle.loadString('AssetManifest.json');
+      final manifest = json.decode(manifestRaw) as Map<String, dynamic>;
+      if (!manifest.containsKey('assets/data/geo_hashes.json')) {
+        return {};
+      }
+    } catch (e, st) {
+      developer.log(
+        'unable to inspect asset manifest for geo_hashes.json, skip checksum verification',
+        name: 'GeoManager',
+        error: e,
+        stackTrace: st,
+      );
+      return {};
+    }
+
+    try {
+      final jsonRaw = await rootBundle.loadString('assets/data/geo_hashes.json');
+      final decoded = json.decode(jsonRaw) as Map<String, dynamic>;
+      final result = <String, String>{};
+      for (final entry in decoded.entries) {
+        result[entry.key] = entry.value.toString();
+      }
+      return result;
+    } catch (e, st) {
+      developer.log(
+        'failed to load geo_hashes.json, skip checksum verification',
+        name: 'GeoManager',
+        error: e,
+        stackTrace: st,
+      );
+      return {};
+    }
   }
 
   static bool _verifyIfNeeded(String fileName, List<int> bytes, Map<String, String> map) {
