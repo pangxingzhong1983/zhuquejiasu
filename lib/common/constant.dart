@@ -17,10 +17,7 @@ const packageName = "com.follow.zhuque";
 final unixSocketPath = "/tmp/ZhuqueJiasuSocket_${Random().nextInt(10000)}.sock";
 const helperPort = 48891;
 const helperTag = "2024125";
-const baseInfoEdgeInsets = EdgeInsets.symmetric(
-  vertical: 16,
-  horizontal: 16,
-);
+const baseInfoEdgeInsets = EdgeInsets.symmetric(vertical: 16, horizontal: 16);
 const httpTimeoutDuration = Duration(milliseconds: 5000);
 const moreDuration = Duration(milliseconds: 100);
 const animateDuration = Duration(milliseconds: 100);
@@ -32,13 +29,14 @@ const geoIpFileName = "GeoIP.dat";
 const geoSiteFileName = "GeoSite.dat";
 final double kHeaderHeight = system.isDesktop
     ? !Platform.isMacOS
-        ? 40
-        : 28
+          ? 40
+          : 28
     : 0;
 const profilesDirectoryName = "profiles";
 const localhost = "127.0.0.1";
 const clashConfigKey = "clash_config";
 const configKey = "config";
+const geoLastUpdateKey = "geo_last_update";
 const listItemPadding = EdgeInsets.symmetric(horizontal: 16);
 const double dialogCommonWidth = 300;
 const repository = "pangxingzhong1983/zhuqueJiasu";

@@ -147,6 +147,28 @@ class Preferences {
     }
   }
 
+  Future<String?> _readString(String key) async {
+    if (_useFallback) {
+      final value = _memoryStore[key];
+      return value is String ? value : null;
+    }
+    final preferences = await sharedPreferencesCompleter.future;
+    return preferences?.getString(key);
+  }
+
+  Future<void> _writeString(String key, String value) async {
+    if (_useFallback) {
+      _memoryStore[key] = value;
+      await _persistFallback();
+      return;
+    }
+    final preferences = await sharedPreferencesCompleter.future;
+    if (preferences == null) {
+      return;
+    }
+    await preferences.setString(key, value);
+  }
+
   Future<ClashConfig?> getClashConfig() async {
     if (_useFallback) {
       final clashConfigString = _memoryStore[clashConfigKey] as String?;
@@ -197,6 +219,22 @@ class Preferences {
       return false;
     }
     return await preferences.setString(configKey, encoded);
+  }
+
+  Future<DateTime?> getGeoAssetsLastUpdate() async {
+    final raw = await _readString(geoLastUpdateKey);
+    if (raw == null || raw.isEmpty) {
+      return null;
+    }
+    try {
+      return DateTime.parse(raw).toLocal();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> setGeoAssetsLastUpdate(DateTime timestamp) async {
+    await _writeString(geoLastUpdateKey, timestamp.toUtc().toIso8601String());
   }
 
   clearClashConfig() async {

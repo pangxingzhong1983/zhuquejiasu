@@ -23,6 +23,18 @@ import 'clash/lib.dart';
 import 'common/common.dart';
 import 'models/models.dart';
 
+Future<void> _recordHarmonyError(String message, [StackTrace? stack]) async {
+  try {
+    final dir = await appPath.homeDirPath;
+    final file = File('$dir/harmony_error.log');
+    await file.parent.create(recursive: true);
+    final buffer = StringBuffer()
+      ..writeln('[$message]')
+      ..writeln(stack?.toString() ?? '');
+    await file.writeAsString(buffer.toString(), mode: FileMode.append, flush: true);
+  } catch (_) {}
+}
+
 // Keep a reference to the service isolate's ReceivePort so it is not
 // garbage-collected after the entrypoint returns. Register its SendPort
 // with IsolateNameServer so other isolates can look it up.
@@ -84,6 +96,51 @@ Future<void> main() async {
       debugPrintRebuildDirtyWidgets = true;
       return true;
     }());
+  } else {
+    FlutterError.dumpErrorToConsole = (_, {int? forceReport, bool? informationCollector}) {};
+    FlutterError.presentError = (_) {};
+    FlutterError.reportError = (FlutterErrorDetails details) {
+      final message = details.exceptionAsString();
+      stderr.writeln("HarmonyFlutterError: $message");
+      final stack = details.stack;
+      if (stack != null) {
+        final stackLines = stack
+            .toString()
+            .split('\n')
+            .take(40)
+            .join('\n');
+        stderr.writeln("HarmonyFlutterError stack:\n$stackLines");
+        _recordHarmonyError("HarmonyFlutterError: $message", StackTrace.fromString(stackLines));
+      } else {
+        _recordHarmonyError("HarmonyFlutterError: $message");
+      }
+    };
+    FlutterError.onError = (FlutterErrorDetails details) {
+      FlutterError.reportError(details);
+    };
+    ErrorWidget.builder = (FlutterErrorDetails details) {
+      final message = details.exceptionAsString();
+      developer.log(
+        "ErrorWidget: $message",
+        name: 'HarmonyFlutterError',
+      );
+      return Directionality(
+        textDirection: TextDirection.ltr,
+        child: Center(
+          child: Text(
+            message,
+            style: const TextStyle(color: Colors.red),
+          ),
+        ),
+      );
+    };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      developer.log(
+        "$error\n$stack",
+        name: 'HarmonyPlatformError',
+      );
+      return true;
+    };
   }
   commonPrint.log("App bootstrap start on ${Platform.operatingSystem}");
   final version = await system.version;

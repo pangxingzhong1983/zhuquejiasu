@@ -32,6 +32,19 @@ class ApplicationState extends ConsumerState<Application> {
   Timer? _autoUpdateGroupTaskTimer;
   Timer? _autoUpdateProfilesTaskTimer;
 
+  Future<void> _ensureNavigatorReady({
+    Duration timeout = const Duration(seconds: 5),
+  }) async {
+    final binding = WidgetsBinding.instance;
+    final start = DateTime.now();
+    while (globalState.navigatorKey.currentContext == null) {
+      if (DateTime.now().difference(start) >= timeout) {
+        break;
+      }
+      await binding.endOfFrame;
+    }
+  }
+
   final _pageTransitionsTheme = const PageTransitionsTheme(
     builders: <TargetPlatform, PageTransitionsBuilder>{
       TargetPlatform.android: CommonPageTransitionsBuilder(),
@@ -74,6 +87,7 @@ class ApplicationState extends ConsumerState<Application> {
     //   }
     // }, fireImmediately: true);
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+      await _ensureNavigatorReady();
       final currentContext = globalState.navigatorKey.currentContext;
       if (currentContext != null) {
         globalState.appController = AppController(currentContext, ref);
@@ -174,7 +188,32 @@ class ApplicationState extends ConsumerState<Application> {
                   "ApplicationState.DynamicColorBuilder light=${lightDynamic != null} dark=${darkDynamic != null}",
                 );
                 _updateSystemColorSchemes(lightDynamic, darkDynamic);
-                return MaterialApp(
+                Widget builderWrapper(BuildContext _, Widget? childWidget) {
+                  final Widget effectiveChild =
+                      childWidget ?? const SizedBox.shrink();
+                  commonPrint.log(
+                    "ApplicationState.AppShell builder child=${effectiveChild.runtimeType} harmony=${system.isHarmony}",
+                  );
+                  return MessageManager(
+                    child: LayoutBuilder(
+                      builder: (_, container) {
+                        commonPrint.log(
+                          "ApplicationState.LayoutBuilder maxWidth=${container.maxWidth}",
+                        );
+                        globalState.appController.updateViewWidth(
+                          container.maxWidth,
+                        );
+                        return _buildPage(effectiveChild);
+                      },
+                    ),
+                  );
+                }
+
+                commonPrint.log("ApplicationState.MaterialApp constructing");
+                final TransitionBuilder materialBuilder = system.isHarmony
+                    ? builderWrapper
+                    : EasyLoading.init(builder: builderWrapper);
+                final app = MaterialApp(
                   navigatorKey: globalState.navigatorKey,
                   localizationsDelegates: const [
                     AppLocalizations.delegate,
@@ -182,24 +221,7 @@ class ApplicationState extends ConsumerState<Application> {
                     GlobalCupertinoLocalizations.delegate,
                     GlobalWidgetsLocalizations.delegate
                   ],
-                  builder:EasyLoading.init(builder:(_, child) {
-                    commonPrint.log(
-                      "ApplicationState.EasyLoading builder child=${child?.runtimeType}",
-                    );
-                    return MessageManager(
-                      child: LayoutBuilder(
-                        builder: (_, container) {
-                          commonPrint.log(
-                            "ApplicationState.LayoutBuilder maxWidth=${container.maxWidth}",
-                          );
-                          globalState.appController.updateViewWidth(
-                            container.maxWidth,
-                          );
-                          return _buildPage(child!);
-                        },
-                      ),
-                    );
-                  }),
+                  builder: materialBuilder,
                   scrollBehavior: BaseScrollBehavior(),
                   title: appName,
                   locale: other.getLocaleForString(locale),
@@ -225,6 +247,8 @@ class ApplicationState extends ConsumerState<Application> {
                   ),
                   home: child,
                 );
+                commonPrint.log("ApplicationState.MaterialApp constructed");
+                return app;
               },
             );
           },

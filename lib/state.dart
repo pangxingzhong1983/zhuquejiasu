@@ -61,6 +61,9 @@ class GlobalState {
   }
 
   Future<PackageInfo> _resolvePackageInfo() async {
+    if (system.isHarmony) {
+      return _fallbackPackageInfo();
+    }
     try {
       return await PackageInfo.fromPlatform();
     } on MissingPluginException catch (error, stackTrace) {
@@ -137,6 +140,7 @@ class GlobalState {
     await ensurePrewarm();
     await clashCore.startListener();
     await service?.startVpn();
+    unawaited(clashCore.maybeUpdateGeoAssets());
     startUpdateTasks(tasks);
   }
 
@@ -201,8 +205,16 @@ class GlobalState {
     required Widget child,
     bool dismissible = true,
   }) async {
+    final navigatorState = navigatorKey.currentState;
+    final context = navigatorState?.context ?? navigatorKey.currentContext;
+    if (context == null) {
+      debugPrint(
+        "[GlobalState] showCommonDialog skipped: navigator context not ready",
+      );
+      return null;
+    }
     return await showModal<T>(
-      context: navigatorKey.currentState!.context,
+      context: context,
       configuration: FadeScaleTransitionConfiguration(
         barrierColor: Colors.black38,
         barrierDismissible: dismissible,
@@ -238,7 +250,14 @@ class GlobalState {
     if (text.isEmpty) {
       return;
     }
-    navigatorKey.currentContext?.showNotifier(text);
+    final context = navigatorKey.currentContext;
+    if (context == null) {
+      debugPrint(
+        "[GlobalState] showNotifier skipped: navigator context not ready -> $text",
+      );
+      return;
+    }
+    context.showNotifier(text);
   }
 
   openUrl(String url) async {

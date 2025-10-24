@@ -20,16 +20,30 @@ class System {
     return _instance!;
   }
 
-  bool get isDesktop =>
-      Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+  bool get isDesktop {
+    final force = Platform.environment['FORCE_DESKTOP'];
+    if (force == '0') {
+      return false;
+    }
+    return Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+  }
 
-  bool get isHarmony => Platform.operatingSystem.toLowerCase() == 'ohos';
+  bool get isHarmony {
+    final force = Platform.environment['FORCE_HARMONY'];
+    if (force == '1') {
+      return true;
+    }
+    return Platform.operatingSystem.toLowerCase() == 'ohos';
+  }
 
   bool get isAndroidLike => Platform.isAndroid || isHarmony;
 
   bool get isMobile => isAndroidLike;
 
   Future<int> get version async {
+    if (isHarmony) {
+      return 0;
+    }
     try {
       final deviceInfo = await DeviceInfoPlugin().deviceInfo;
       return switch (Platform.operatingSystem) {

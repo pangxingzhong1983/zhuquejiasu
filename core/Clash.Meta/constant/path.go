@@ -60,6 +60,11 @@ type path struct {
 // SetHomeDir is used to set the configuration path
 func SetHomeDir(root string) {
 	Path.homeDir = root
+	if len(root) == 0 {
+		return
+	}
+	// pre-create the core home directory so later asset checks see a valid path
+	_ = os.MkdirAll(root, 0o755)
 }
 
 // SetConfig is used to set the configuration file

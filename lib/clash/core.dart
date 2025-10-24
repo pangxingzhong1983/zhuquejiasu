@@ -17,6 +17,14 @@ import 'package:path/path.dart';
 class ClashCore {
   static ClashCore? _instance;
   late ClashHandlerInterface clashInterface;
+  Future<void>? _geoUpdateFuture;
+
+  static const List<MapEntry<String, String>> _geoUpdateTargets = [
+    MapEntry('GeoSite', geoSiteFileName),
+    MapEntry('GeoIp', geoIpFileName),
+    MapEntry('ASN', asnFileName),
+    MapEntry('MMDB', mmdbFileName),
+  ];
 
   ClashCore._internal() {
     if (system.isHarmony) {
@@ -344,6 +352,58 @@ class ClashCore {
 
   requestGc() {
     clashInterface.forceGc();
+  }
+
+  Future<void> maybeUpdateGeoAssets({
+    Duration interval = const Duration(days: 7),
+  }) {
+    _geoUpdateFuture ??= _performGeoUpdate(interval);
+    return _geoUpdateFuture!;
+  }
+
+  Future<void> _performGeoUpdate(Duration interval) async {
+    try {
+      if (interval.inSeconds <= 0) {
+        interval = const Duration(days: 7);
+      }
+      final lastUpdated = await preferences.getGeoAssetsLastUpdate();
+      final now = DateTime.now();
+      if (lastUpdated != null && now.difference(lastUpdated) < interval) {
+        return;
+      }
+
+      bool allSuccess = true;
+      for (final target in _geoUpdateTargets) {
+        try {
+          final message = await updateGeoData(
+            UpdateGeoDataParams(geoType: target.key, geoName: target.value),
+          );
+          if (message.isNotEmpty) {
+            allSuccess = false;
+            developer.log(
+              'Geo asset update failed',
+              name: 'ClashCore',
+              error: message,
+            );
+          }
+        } catch (error, stackTrace) {
+          allSuccess = false;
+          developer.log(
+            'Geo asset update exception',
+            name: 'ClashCore',
+            error: error,
+            stackTrace: stackTrace,
+          );
+        }
+      }
+
+      if (allSuccess) {
+        await preferences.setGeoAssetsLastUpdate(now);
+        commonPrint.log('Geo assets updated successfully.');
+      }
+    } finally {
+      _geoUpdateFuture = null;
+    }
   }
 
   destroy() async {

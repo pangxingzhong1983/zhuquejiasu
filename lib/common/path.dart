@@ -104,6 +104,18 @@ class AppPath {
     required Future<Directory?> Function() supplier,
     required String fallbackName,
   }) {
+    if (system.isHarmony) {
+      _createFallbackDirectory(fallbackName).then((dir) {
+        if (!completer.isCompleted) {
+          completer.complete(dir);
+        }
+      }).catchError((error, stackTrace) {
+        if (!completer.isCompleted) {
+          completer.completeError(error, stackTrace);
+        }
+      });
+      return;
+    }
     supplier()
         .then((dir) {
           if (!completer.isCompleted) {

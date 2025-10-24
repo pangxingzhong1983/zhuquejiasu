@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -68,6 +69,12 @@ func SetASNUrl(url string) {
 }
 
 func downloadToPath(url string, path string) (err error) {
+	if len(path) == 0 {
+		return fmt.Errorf("empty download path for geo asset")
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return fmt.Errorf("ensure download dir failed: %w", err)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*90)
 	defer cancel()
 	resp, err := mihomoHttp.HttpRequest(ctx, url, http.MethodGet, nil, nil)
